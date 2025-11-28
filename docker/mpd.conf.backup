@@ -1,0 +1,92 @@
+# Basic MPD Configuration for Docker
+# Optimized for containerized deployment
+
+# Network Configuration
+bind_to_address     "0.0.0.0"
+port                "6600"
+
+# Music Library
+music_directory     "/music"
+
+# Database
+db_file             "/var/lib/mpd/mpd.db"
+
+# Logging
+log_file            "/var/log/mpd/mpd.log"
+log_level           "default"
+
+# Process
+pid_file            "/var/run/mpd/mpd.pid"
+state_file          "/var/lib/mpd/mpdstate"
+
+# Playlist Directory
+playlist_directory  "/var/lib/mpd/playlists"
+
+# ============================================
+# AUDIO OUTPUT CONFIGURATION
+# ============================================
+
+# HTTP Streaming (UNIVERSAL - works everywhere)
+# Access via: http://localhost:8000
+audio_output {
+    type        "httpd"
+    name        "HTTP Stream"
+    encoder     "lame"
+    port        "8001"
+    bitrate     "320"
+    format      "44100:16:2"
+    always_on   "yes"
+    tags        "yes"
+}
+
+# ALSA Output (for direct audio - requires host audio access)
+# Enable with: docker run --device /dev/snd ...
+audio_output {
+    type        "alsa"
+    name        "Docker ALSA Output"
+    device      "hw:0,0"
+    mixer_type  "software"
+    enabled     "no"  # Disabled by default (enable if you have audio access)
+}
+
+# PulseAudio (for PipeWire/modern Linux audio)
+audio_output {
+    type        "pulse"
+    name        "PulseAudio Output"
+    enabled     "yes"  # Enabled for native audio
+}
+
+# HTTP Streaming (backup/remote access)
+audio_output {
+    type        "httpd"
+    name        "HTTP Stream"
+    encoder     "lame"
+    port        "8001"
+    bitrate     "320"
+    format      "44100:16:2"
+    always_on   "yes"
+    tags        "yes"
+    enabled     "yes"   # Enabled as backup
+}
+
+# Null output DISABLED (we want real audio)
+audio_output {
+    type        "null"
+    name        "Null Output"
+    enabled     "no"    # Disabled - we want audio!
+    format      "44100:16:2"
+}
+
+# Performance Settings
+max_connections         "10"
+connection_timeout      "60"
+max_playlist_length     "16384"
+max_command_list_size   "2048"
+max_output_buffer_size  "8192"
+
+# File System Settings
+follow_outside_symlinks "yes"
+follow_inside_symlinks  "yes"
+
+# Auto-update database when music files change
+auto_update             "yes"

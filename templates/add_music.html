@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Music - MPD Control</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 5px;
+            background-color: #1a1a1a;
+            color: #ecf0f1;
+            display: flex;
+            flex-direction: column; /* Stack elements vertically to avoid side-by-side columns */
+            justify-content: flex-start;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background-color: #2c3e50;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 18px rgba(0, 0, 0, 0.4);
+            box-sizing: border-box;
+        }
+
+        h1,
+        h2 {
+            color: #ecf0f1;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 1.5em;
+        }
+
+        /* Logo styling */
+        .logo-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .logo-container img {
+            max-width: 600px;
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
+
+        h2 {
+            font-size: 1.1em;
+            margin-bottom: 8px;
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #34495e;
+        }
+
+        /* Navigation Links styling */
+        .nav-links {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px 0;
+            border-top: 1px solid #34495e;
+            border-bottom: 1px solid #34495e;
+        }
+
+        .nav-links a,
+        .nav-links button {
+            color: #3498db;
+            text-decoration: none;
+            margin: 0 8px;
+            padding: 8px 16px;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            transition: all 0.3s;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            display: inline-block;
+        }
+
+        .nav-links a:hover,
+        .nav-links button:hover {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .nav-links .current-page {
+            background-color: #e67e22 !important;
+            color: white !important;
+            border-color: #e67e22 !important;
+            font-weight: bold;
+        }
+
+        .nav-links .current-page:hover {
+            background-color: #d35400 !important;
+        }
+
+        /* Mobile responsive navigation */
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+
+            .nav-links {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                align-items: center;
+                margin: 15px 0;
+                padding: 10px 0;
+            }
+
+            .nav-links a,
+            .nav-links button {
+                margin: 0;
+                width: 80%;
+                max-width: 200px;
+                text-align: center;
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+
+            .playback-controls button {
+                display: block;
+                width: 90%;
+                margin: 5px auto;
+                padding: 12px;
+            }
+
+            .footer-links {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                gap: 8px !important;
+                text-align: center !important;
+                padding: 15px 0 !important;
+                margin: 15px 0 !important;
+            }
+
+            .footer-links span {
+                margin-bottom: 8px !important;
+            }
+
+            .footer-links a {
+                padding: 8px 16px !important;
+                margin: 0 !important;
+            }
+        }
+
+        .centered-text {
+            display: block;
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        .controls:first-of-type {
+            border-top: none;
+            padding-top: 0;
+        }
+
+        .controls button {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            border: none;
+            padding: 7px 12px;
+            margin: 2px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            min-width: 70px;
+            font-weight: bold;
+        }
+
+        .controls button:hover {
+            background-color: #bdc3c7;
+            transform: translateY(-1px);
+        }
+
+        .controls button:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .controls button:disabled {
+            background-color: #6c7a89;
+            color: #aeb6bf;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Form specific styles */
+        .form-group {
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #bdc3c7;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"] {
+            width: calc(100% - 20px);
+            /* Adjust for padding */
+            padding: 8px 10px;
+            border: 1px solid #34495e;
+            border-radius: 5px;
+            background-color: #34495e;
+            color: #ecf0f1;
+            font-size: 1em;
+        }
+
+        .form-group input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        .form-group input[type="text"]:focus,
+        .form-group input[type="number"]:focus {
+            outline: none;
+            border-color: #1abc9c;
+            box-shadow: 0 0 0 2px rgba(26, 188, 156, 0.5);
+        }
+
+        .action-buttons button {
+            background-color: #1abc9c;
+            /* Green for add actions */
+            color: #2c3e50;
+        }
+
+        .action-buttons button:hover {
+            background-color: #16a085;
+        }
+
+        .auto-fill-buttons button {
+            background-color: #f1c40f;
+            /* Yellow */
+            color: #2c3e50;
+        }
+
+        .auto-fill-buttons button:hover {
+            background-color: #f39c12;
+        }
+
+        /* New button style for 'View Playlist' on add_music page */
+        .playlist-link-btn button {
+            background-color: #3498db;
+            /* Blue */
+            color: #ecf0f1;
+        }
+
+        .playlist-link-btn button:hover {
+            background-color: #2980b9;
+        }
+
+        /* Clear Playlist button styling - match nav-links a elements */
+        .nav-links .clear-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: 1px solid #e74c3c;
+            border-radius: 5px;
+            padding: 8px 16px;
+            margin: 0 15px;
+            text-decoration: none;
+            transition: all 0.3s;
+            cursor: pointer;
+            font-size: inherit;
+            font-family: inherit;
+            display: inline-block;
+        }
+
+        .nav-links .clear-btn:hover {
+            background-color: #c0392b;
+            border-color: #c0392b;
+        }
+
+        .playback-controls button {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            border: none;
+            padding: 10px 15px;
+            margin: 4px;
+            border-radius: 6px;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            min-width: 80px;
+            font-size: 0.9em;
+        }
+
+        .playback-controls button:hover {
+            background-color: #bdc3c7;
+            transform: translateY(-1px);
+        }
+
+        .playback-controls button:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .playback-controls button:disabled {
+            background-color: #6c7a89;
+            color: #aeb6bf;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Styles for the message display area */
+        #message-area {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #message-area.show {
+            opacity: 1;
+        }
+
+        #message-area.info {
+            background-color: #2ecc71;
+            /* Green for info */
+            color: #1a1a1a;
+        }
+
+        #message-area.success {
+            background-color: #27ae60;
+            /* Consistent green for success */
+            color: #ffffff;
+        }
+
+        #message-area.error {
+            background-color: #e74c3c;
+            /* Red for error */
+            color: #ffffff;
+        }
+
+        #message-area.warning {
+            /* New style for warnings */
+            background-color: #f39c12;
+            /* Orange */
+            color: #1a1a1a;
+        }
+
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                margin: 5px;
+            }
+        }
+
+        @media (max-width: 450px) {
+            .container {
+                padding: 10px;
+            }
+
+            .logo-container {
+                margin-bottom: 15px;
+            }
+
+            .logo-container img {
+                max-width: 400px;
+            }
+
+            .form-group input[type="text"],
+            .form-group input[type="number"] {
+                width: calc(100% - 16px);
+                /* Adjust for smaller padding */
+            }
+
+            .controls {
+                padding: 8px;
+                margin: 8px 0;
+            }
+        }
+
+        /* Station item default styling */
+        .station-item {
+            background-color: #34495e;
+            border: 1px solid #34495e;
+        }
+
+        /* Minimal theme overrides to honor Settings theme across pages */
+        body.light {
+            background-color: #f5f5f7;
+            color: #1a1a1a;
+        }
+        body.light .container {
+            background-color: #ffffff;
+            color: #1a1a1a;
+        }
+        body.light .controls,
+        body.light .nav-links,
+        body.light .search-form,
+        body.light .status-box,
+        body.light #stations-list,
+        body.light #stations-container,
+        body.light .station-item {
+            background-color: #f0f3f6 !important;
+            border-color: #d0d7de;
+        }
+        /* Light theme: form fields and selects */
+        body.light .form-group input[type="text"],
+        body.light .form-group input[type="number"],
+        body.light select {
+            background-color: #ffffff !important;
+            color: #1a1a1a !important;
+            border-color: #d0d7de !important;
+        }
+        body.light #genre-select {
+            background-color: #ffffff !important;
+            color: #1a1a1a !important;
+            border-color: #d0d7de !important;
+        }
+        body.high-contrast {
+            background-color: #000000;
+            color: #ffff00;
+        }
+        body.high-contrast .container {
+            background-color: #000000;
+            color: #ffff00;
+            border: 2px solid #ffff00;
+        }
+        body.high-contrast .controls,
+        body.high-contrast .nav-links,
+        body.high-contrast .search-form,
+        body.high-contrast .status-box,
+        body.high-contrast #stations-list,
+        body.high-contrast #stations-container,
+        body.high-contrast .station-item {
+            background-color: #000000 !important;
+            border: 2px solid #ffff00;
+        }
+        /* High-contrast: form fields and selects */
+        body.high-contrast .form-group input[type="text"],
+        body.high-contrast .form-group input[type="number"],
+        body.high-contrast select,
+        body.high-contrast #genre-select {
+            background-color: #000000 !important;
+            color: #ffff00 !important;
+            border: 2px solid #ffff00 !important;
+        }
+
+        /* Desert theme */
+        body.desert {
+            background-color: #2c1810;
+            color: #f4e4bc;
+        }
+        body.desert .container {
+            background-color: #3d2f20;
+            color: #f4e4bc;
+            border-color: #8b4513;
+        }
+        body.desert .controls,
+        body.desert .nav-links,
+        body.desert .search-form,
+        body.desert .status-box,
+        body.desert #stations-list,
+        body.desert #stations-container,
+        body.desert .station-item {
+            background-color: #4a3b2a !important;
+            border-color: #cd853f;
+        }
+        body.desert .form-group input[type="text"],
+        body.desert .form-group input[type="number"],
+        body.desert select,
+        body.desert #genre-select {
+            background-color: #4a3b2a !important;
+            color: #f4e4bc !important;
+            border-color: #cd853f !important;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="{{ app_theme }}">
+    <div class="container">
+        <!-- Animated SVG Logo -->
+        <div class="logo-container">
+            <img src="{{ url_for('static', filename='logo.svg') }}" alt="Maestro MPD Control">
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="nav-links">
+            <a href="/">🏠 Main</a>
+            <a href="/playlist">🎵 Playlist</a>
+            <a href="/add_music" class="current-page">🎲 Add Music</a>
+            <a href="/search">🔍 Search</a>
+            <a href="/recent">📀 Recent</a>
+            <a href="/browse">🗂️ Browse</a>
+            <button onclick="clearPlaylist()" class="clear-btn">🗑️ Clear Playlist</button>
+        </div>
+
+        <div id="message-area"></div>
+
+        <div class="controls playback-controls">
+            <h2>🎵 Playback Controls</h2>
+            <button onclick="playbackAction('previous')" style="background-color: #9b59b6; color: white;">⏮️
+                Previous</button>
+            <button onclick="playbackAction('play')" style="background-color: #27ae60; color: white;">▶️ Play</button>
+            <button onclick="playbackAction('stop')" style="background-color: #f39c12; color: white;">⏹️ Stop</button>
+            <button onclick="playbackAction('pause')" style="background-color: #e74c3c; color: white;">⏸️ Pause</button>
+            <button onclick="playbackAction('next')" style="background-color: #3498db; color: white;">⏭️ Next</button>
+        </div>
+
+        <div class="controls action-buttons">
+            <h2>Manual Track Addition</h2>
+            <div class="form-group">
+                <label for="artist-input">Artist:</label>
+                <input type="text" id="artist-input" value="{{ current_artist }}" placeholder="e.g., Motorhead">
+            </div>
+            <div class="form-group">
+                <label for="num-tracks-input">Number of Tracks to Add:</label>
+                <input type="number" id="num-tracks-input" value="25" min="1" max="50">
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="clear-playlist-checkbox"> Clear current playlist before adding
+                </label>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="filter-by-genre-checkbox"> Filter by current genre. - {{ current_genre if
+                    current_genre != 'N/A' else 'N/A' }}
+                </label>
+            </div>
+            <button id="add-random-btn">Add Random Tracks</button>
+        </div>
+
+        {# NEW: Genre-Based Random Music Section #}
+        <div class="controls">
+            <h2>Add Random Songs by Genre</h2>
+            <div class="form-group">
+                <label for="genre-select">Select Genres:</label>
+                <select multiple id="genre-select"
+                    style="width: 100%; height: 150px; background: #34495e; color: #ecf0f1; border: 1px solid #3498db; border-radius: 5px; padding: 5px;">
+                    <option value="">Loading genres...</option>
+                </select>
+                <small style="color: #bdc3c7; margin-top: 5px; display: block;">Hold Ctrl (Cmd on Mac) to select
+                    multiple genres</small>
+            </div>
+            <p style="color: #bdc3c7; font-size: 0.9em; margin: 10px 0;">
+                Track count will use Auto-Fill settings below (Min-Max range)
+            </p>
+            <button id="add-random-by-genre-btn">Add Random Songs from Selected Genres</button>
+        </div>
+
+        {# NEW: Auto-Fill Section #}
+        <div class="controls auto-fill-buttons">
+            <h2>Auto-Fill Playlist</h2>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="auto-fill-toggle"> Enable Auto-Fill
+                </label>
+            </div>
+            <p>Current Status: <span id="auto-fill-status-display">Loading...</span></p>
+
+            <h3>Settings:</h3>
+            <div class="form-group">
+                <label for="min-queue-length-input">Min Queue Length:</label>
+                <input type="number" id="min-queue-length-input" value="5" min="1" max="25">
+            </div>
+            <div class="form-group">
+                <label for="num-tracks-min-input">Tracks to Add (Min):</label>
+                <input type="number" id="num-tracks-min-input" value="3" min="1" max="25">
+            </div>
+            <div class="form-group">
+                <label for="num-tracks-max-input">Tracks to Add (Max):</label>
+                <input type="number" id="num-tracks-max-input" value="7" min="1" max="25">
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="auto-fill-genre-filter-checkbox"> Filter Auto-Fill by current playing
+                    genre.<br>
+                    <span style="margin-left: 20px;">{{ current_genre if current_genre }}</span>
+                </label>
+            </div>
+            <button id="save-auto-fill-settings-btn">Save Auto-Fill Settings</button>
+        </div>
+
+        {# NEW: Radio Stations Section #}
+        <div class="controls auto-fill-buttons">
+            <h2>📻 Radio Stations</h2>
+            <p style="text-align: center; margin-bottom: 15px; color: #bdc3c7;">
+                Save your current genre selections as radio station presets
+            </p>
+
+            <div class="form-group">
+                <label for="station-name-input">Station Name:</label>
+                <input type="text" id="station-name-input" placeholder="e.g., Rock Classics, Chill Mix, etc."
+                    style="width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #34495e; box-sizing: border-box;">
+            </div>
+
+            <div class="form-group" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button id="save-station-btn" style="flex: 1;">💾 Save Current Genres as Station</button>
+                <button id="manage-stations-btn" style="flex: 1;">⚙️ Manage Stations</button>
+            </div>
+
+            <div class="form-group" style="text-align: center;">
+                <label for="stations-select" style="display: block; text-align: center; margin-bottom: 8px;">Load Saved Station:</label>
+                <div style="display: inline-flex; gap: 8px; align-items: center; justify-content: center;">
+                    <select id="stations-select"
+                        style="width: 300px; padding: 8px; border-radius: 5px; border: 1px solid #34495e;">
+                        <option value="">-- Select a station --</option>
+                    </select>
+                    <button id="load-station-btn" style="padding: 8px 16px;">📡 Load</button>
+                </div>
+            </div>
+
+            <div id="stations-list" style="margin-top: 15px; max-height: 200px; overflow-y: auto; display: none;">
+                <h3>Manage Stations:</h3>
+                <div id="stations-container"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- App Info + Settings (inline, always visible) -->
+    <div style="text-align: center; margin: 18px auto; padding-top: 8px; border-top: 1px solid #34495e; max-width: 1000px;" class="footer-links">
+        <span id="version-info">Loading version info...</span>
+        <a href="/settings" style="color:#bdc3c7; text-decoration: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px;">Settings</a>
+        <a href="/charts" style="color:#bdc3c7; text-decoration: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px;">Charts</a>
+    </div>
+
+    <script>
+        (function(){
+            fetch('/api/version')
+                .then(r=>r.json())
+                .then(d=>{var el=document.getElementById('version-info'); if(el) el.textContent = d.app_name+' v'+d.version+' ('+d.build_date+')';})
+                .catch(()=>{var el=document.getElementById('version-info'); if(el) el.textContent='MPD Web Control';});
+        })();
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const socket = io();
+
+            // Manual Add elements
+            const artistInput = document.getElementById('artist-input');
+            const numTracksInput = document.getElementById('num-tracks-input');
+            const clearPlaylistCheckbox = document.getElementById('clear-playlist-checkbox');
+            const filterByGenreCheckbox = document.getElementById('filter-by-genre-checkbox');
+            const addRandomBtn = document.getElementById('add-random-btn');
+
+            // Genre-based random elements
+            const genreSelect = document.getElementById('genre-select');
+            const addRandomByGenreBtn = document.getElementById('add-random-by-genre-btn');
+
+            // Auto-Fill elements
+            const autoFillToggle = document.getElementById('auto-fill-toggle');
+            const autoFillStatusDisplay = document.getElementById('auto-fill-status-display');
+            const minQueueLengthInput = document.getElementById('min-queue-length-input');
+            const numTracksMinInput = document.getElementById('num-tracks-min-input');
+            const numTracksMaxInput = document.getElementById('num-tracks-max-input');
+            const autoFillGenreFilterCheckbox = document.getElementById('auto-fill-genre-filter-checkbox');
+            const saveAutoFillSettingsBtn = document.getElementById('save-auto-fill-settings-btn');
+
+            // Radio Stations elements
+            const stationNameInput = document.getElementById('station-name-input');
+            const saveStationBtn = document.getElementById('save-station-btn');
+            const manageStationsBtn = document.getElementById('manage-stations-btn');
+            const stationsSelect = document.getElementById('stations-select');
+            const loadStationBtn = document.getElementById('load-station-btn');
+            const stationsList = document.getElementById('stations-list');
+            const stationsContainer = document.getElementById('stations-container');
+
+            const messageArea = document.getElementById('message-area');
+
+            let messageTimeout;
+            function displayMessage(type, text) {
+                clearTimeout(messageTimeout);
+                messageArea.textContent = text;
+                messageArea.className = `show ${type}`;
+                messageArea.style.opacity = 1;
+
+                messageTimeout = setTimeout(() => {
+                    messageArea.style.opacity = 0;
+                    setTimeout(() => {
+                        messageArea.textContent = '';
+                        messageArea.className = '';
+                    }, 500);
+                }, 5000);
+            }
+
+            // --- Socket.IO Listeners ---
+            socket.on('server_message', function (data) {
+                console.log('Server Message (Add Music Page):', data);
+                displayMessage(data.type, data.text);
+            });
+
+            socket.on('auto_fill_status', function (data) {
+                console.log('Received Auto-Fill Status:', data);
+                autoFillToggle.checked = data.active;
+                minQueueLengthInput.value = data.min_queue_length;
+                numTracksMinInput.value = data.num_tracks_min;
+                numTracksMaxInput.value = data.num_tracks_max;
+                autoFillGenreFilterCheckbox.checked = data.genre_filter_enabled;
+                updateAutoFillStatusDisplay(data);
+            });
+
+            // --- Helper for Auto-Fill Status Display ---
+            function updateAutoFillStatusDisplay(data) {
+                const isActive = data.active || data;  // Handle both old format (boolean) and new format (object)
+                const minLength = data.min_queue_length || arguments[1];  // Handle both formats
+
+                if (typeof data === 'object' && data.radio_station_mode) {
+                    // Radio station mode is active
+                    autoFillStatusDisplay.innerHTML = `🎵 <strong>Radio Station Mode</strong><br>
+                        Station: <span style="color: #3498db;">${data.radio_station_name}</span><br>
+                        Genres: <span style="color: #9b59b6;">${data.radio_station_genres.length} selected</span><br>
+                        Auto-fill: ${isActive ? `<span style="color: #2ecc71;">Enabled</span>, monitoring for < ${minLength} tracks` : '<span style="color: #e74c3c;">Disabled</span>'}`;
+                    autoFillStatusDisplay.style.color = '#ffffff';
+                } else if (isActive) {
+                    autoFillStatusDisplay.textContent = `Enabled, monitoring for < ${minLength} tracks.`;
+                    autoFillStatusDisplay.style.color = '#2ecc71'; // Green
+                } else {
+                    autoFillStatusDisplay.textContent = 'Disabled.';
+                    autoFillStatusDisplay.style.color = '#e74c3c'; // Red
+                }
+            }
+
+            // --- Manual Add Event Listener ---
+            addRandomBtn.addEventListener('click', function () {
+                const artistName = artistInput.value.trim();
+                const numTracks = parseInt(numTracksInput.value);
+                const clearPlaylist = clearPlaylistCheckbox.checked;
+                const filterByGenre = filterByGenreCheckbox.checked;
+
+                if (!artistName) {
+                    displayMessage('error', 'Please enter an artist name.');
+                    return;
+                }
+                if (isNaN(numTracks) || numTracks < 1 || numTracks > 50) {
+                    displayMessage('error', 'Number of tracks must be between 1 and 50.');
+                    return;
+                }
+
+                displayMessage('info', 'Requesting random tracks... This may take a moment.');
+
+                const formData = new FormData();
+                formData.append('artist_name', artistName);
+                formData.append('num_tracks', numTracks);
+                formData.append('clear_playlist', clearPlaylist);
+                formData.append('filter_by_genre', filterByGenre);
+
+                fetch('/add_random_tracks', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            console.error('Failed to add random tracks:', response.statusText);
+                            displayMessage('error', 'Failed to add random tracks.');
+                        }
+                        // Server will send a SocketIO message with success/failure
+                    })
+                    .catch(error => {
+                        console.error('Error sending add random tracks request:', error);
+                        displayMessage('error', `Error: ${error.message}`);
+                    });
+            });
+
+            // --- Auto-Fill Event Listeners ---
+            autoFillToggle.addEventListener('change', function () {
+                const newState = this.checked;
+                fetch('/toggle_auto_fill', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ active: newState })
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            console.error('Failed to toggle auto-fill:', response.statusText);
+                            displayMessage('error', 'Failed to toggle auto-fill.');
+                        }
+                        // Status will be updated via auto_fill_status SocketIO event
+                    })
+                    .catch(error => {
+                        console.error('Error sending toggle auto-fill request:', error);
+                        displayMessage('error', `Error: ${error.message}`);
+                    });
+            });
+
+            saveAutoFillSettingsBtn.addEventListener('click', function () {
+                const minQueueLength = parseInt(minQueueLengthInput.value);
+                const numTracksMin = parseInt(numTracksMinInput.value);
+                const numTracksMax = parseInt(numTracksMaxInput.value);
+                const genreFilterEnabled = autoFillGenreFilterCheckbox.checked;
+
+                if (isNaN(minQueueLength) || minQueueLength < 1 || minQueueLength > 25) {
+                    displayMessage('error', 'Min Queue Length must be between 1 and 25.');
+                    return;
+                }
+                if (isNaN(numTracksMin) || numTracksMin < 1 || numTracksMin > 25) {
+                    displayMessage('error', 'Tracks to Add (Min) must be between 1 and 25.');
+                    return;
+                }
+                if (isNaN(numTracksMax) || numTracksMax < 1 || numTracksMax > 25 || numTracksMax < numTracksMin) {
+                    displayMessage('error', 'Tracks to Add (Max) must be between 1 and 25, and greater than or equal to Min.');
+                    return;
+                }
+
+                displayMessage('info', 'Saving auto-fill settings...');
+
+                fetch('/set_auto_fill_settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        min_queue_length: minQueueLength,
+                        num_tracks_min: numTracksMin,
+                        num_tracks_max: numTracksMax,
+                        genre_filter_enabled: genreFilterEnabled
+                    })
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            console.error('Failed to save auto-fill settings:', response.statusText);
+                            displayMessage('error', 'Failed to save auto-fill settings.');
+                        }
+                        // Status will be updated via auto_fill_status SocketIO event
+                    })
+                    .catch(error => {
+                        console.error('Error sending save auto-fill settings request:', error);
+                        displayMessage('error', `Error: ${error.message}`);
+                    });
+            });
+
+            // Initial fetch of auto-fill status when page loads
+            fetch('/get_auto_fill_status')
+                .then(response => response.json())
+                .then(data => {
+                    autoFillToggle.checked = data.active;
+                    minQueueLengthInput.value = data.min_queue_length;
+                    numTracksMinInput.value = data.num_tracks_min;
+                    numTracksMaxInput.value = data.num_tracks_max;
+                    autoFillGenreFilterCheckbox.checked = data.genre_filter_enabled;
+                    updateAutoFillStatusDisplay(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching initial auto-fill status:', error);
+                    displayMessage('error', 'Could not load auto-fill settings.');
+                });
+
+            // --- Genre-based Random Tracks Event Listeners ---
+            addRandomByGenreBtn.addEventListener('click', function () {
+                const selectedGenres = Array.from(genreSelect.selectedOptions).map(option => option.value);
+
+                if (selectedGenres.length === 0) {
+                    displayMessage('error', 'Please select at least one genre.');
+                    return;
+                }
+
+                displayMessage('info', `Adding random tracks from selected genres using Auto-Fill settings...`);
+
+                const formData = new FormData();
+                formData.append('genres', JSON.stringify(selectedGenres));
+
+                fetch('/add_random_by_genre', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            console.error('Failed to add random tracks by genre:', response.statusText);
+                            displayMessage('error', 'Failed to add random tracks by genre.');
+                        }
+                        // Server will send a SocketIO message with success/failure
+                    })
+                    .catch(error => {
+                        console.error('Error sending add random tracks by genre request:', error);
+                        displayMessage('error', `Error: ${error.message}`);
+                    });
+            });
+
+            // Load genres when page loads
+            fetch('/api/genres')
+                .then(response => response.json())
+                .then(genres => {
+                    genreSelect.innerHTML = '';
+                    genres.forEach(genre => {
+                        const option = document.createElement('option');
+                        option.value = genre;
+                        option.textContent = genre;
+                        genreSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading genres:', error);
+                    displayMessage('error', 'Failed to load genres.');
+                });
+
+            // Playback control function (copied from working playlist.html)
+            function playbackAction(action) {
+                fetch(`/${action}?ajax=1`, {
+                    method: 'GET'
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            displayMessage('info', data.message);
+                        } else {
+                            displayMessage('error', data.message || `Failed to ${action}`);
+                        }
+                    })
+                    .catch(err => {
+                        displayMessage('error', `Error: ${err.message}`);
+                    });
+            }
+
+            // Clear playlist function
+            function clearPlaylist() {
+                if (confirm('Are you sure you want to clear the entire playlist?')) {
+                    fetch('/clear_playlist', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'error') {
+                                displayMessage('error', data.message);
+                            } else {
+                                displayMessage('info', 'Playlist cleared successfully');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error clearing playlist:', error);
+                            displayMessage('error', `Error clearing playlist: ${error.message}`);
+                        });
+                }
+            }
+
+            // --- Radio Station Functions ---
+
+            function loadStations() {
+                fetch('/api/radio_stations')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            updateStationsDropdown(data.stations);
+                        } else {
+                            displayMessage('error', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading stations:', error);
+                        displayMessage('error', 'Error loading stations');
+                    });
+            }
+
+            function updateStationsDropdown(stations) {
+                stationsSelect.innerHTML = '<option value="">-- Select a station --</option>';
+                Object.keys(stations).forEach(stationName => {
+                    const option = document.createElement('option');
+                    option.value = stationName;
+                    option.textContent = stationName;
+                    stationsSelect.appendChild(option);
+                });
+            }
+
+            function saveStation() {
+                const stationName = stationNameInput.value.trim();
+                if (!stationName) {
+                    displayMessage('error', 'Please enter a station name');
+                    return;
+                }
+
+                const selectedGenres = Array.from(genreSelect.selectedOptions).map(option => option.value);
+                if (selectedGenres.length === 0) {
+                    displayMessage('error', 'Please select at least one genre');
+                    return;
+                }
+
+                fetch('/api/radio_stations', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: stationName,
+                        genres: selectedGenres
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            displayMessage('success', `Station "${stationName}" saved successfully`);
+                            stationNameInput.value = '';
+                            loadStations(); // Refresh the dropdown
+                        } else {
+                            displayMessage('error', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error saving station:', error);
+                        displayMessage('error', 'Error saving station');
+                    });
+            }
+
+            function loadStation() {
+                const stationName = stationsSelect.value;
+                if (!stationName) {
+                    displayMessage('error', 'Please select a station');
+                    return;
+                }
+
+                fetch(`/api/radio_stations/${encodeURIComponent(stationName)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Clear current selections
+                            Array.from(genreSelect.options).forEach(option => option.selected = false);
+
+                            // Select the station's genres
+                            data.station.genres.forEach(genre => {
+                                const option = Array.from(genreSelect.options).find(opt => opt.value === genre);
+                                if (option) {
+                                    option.selected = true;
+                                }
+                            });
+
+                            displayMessage('success', `🎵 Loading station "${stationName}" - Adding tracks and starting playback...`);
+
+                            // Automatically add tracks from the loaded genres and start playing
+                            addTracksAndPlay(data.station.genres, stationName);
+
+                        } else {
+                            displayMessage('error', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading station:', error);
+                        displayMessage('error', 'Error loading station');
+                    });
+            }
+
+            function addTracksAndPlay(genres, stationName) {
+                // First clear the playlist, then add tracks from the station genres
+                fetch('/clear_playlist', {
+                    method: 'POST'
+                })
+                    .then(response => response.json())
+                    .then(clearData => {
+                        if (clearData.status === 'success' || clearData.status === 'info') {
+                            // Playlist cleared, now add tracks from genres
+                            const formData = new FormData();
+                            formData.append('genres', JSON.stringify(genres));
+                            formData.append('clear_playlist', 'false'); // Already cleared above
+
+                            return fetch('/add_random_by_genre', {
+                                method: 'POST',
+                                body: formData
+                            });
+                        } else {
+                            throw new Error('Failed to clear playlist');
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Tracks added successfully, now start playback
+                            setTimeout(() => {
+                                fetch('/play', { method: 'POST' })
+                                    .then(response => response.json())
+                                    .then(playData => {
+                                        if (playData.status === 'success') {
+                                            // Set radio station mode for auto-fill
+                                            fetch('/api/radio_station_mode', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                    station_name: stationName,
+                                                    genres: genres
+                                                })
+                                            })
+                                                .then(response => response.json())
+                                                .then(modeData => {
+                                                    console.log('Radio station mode set:', modeData);
+                                                    // Trigger auto-fill status update to reflect radio station mode
+                                                    fetch('/get_auto_fill_status')
+                                                        .then(response => response.json())
+                                                        .then(statusData => {
+                                                            updateAutoFillStatusDisplay(statusData);
+                                                        })
+                                                        .catch(error => console.log('Error updating auto-fill status display:', error));
+                                                })
+                                                .catch(error => {
+                                                    console.error('Error setting radio station mode:', error);
+                                                });
+
+                                            displayMessage('success', `🎵 Radio station "${stationName}" is now playing!`);
+                                        } else {
+                                            displayMessage('warning', `Tracks added but playback failed: ${playData.message}`);
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error('Error starting playback:', error);
+                                        displayMessage('warning', 'Tracks added but failed to start playback');
+                                    });
+                            }, 1500); // Increased delay to ensure tracks are fully added
+                        } else {
+                            displayMessage('error', `Failed to add tracks: ${data.message}`);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading station tracks:', error);
+                        displayMessage('error', `Error loading station: ${error.message}`);
+                    });
+            }
+
+            function toggleManageStations() {
+                if (stationsList.style.display === 'none' || stationsList.style.display === '') {
+                    loadManageStations();
+                    stationsList.style.display = 'block';
+                    manageStationsBtn.textContent = '⬆️ Hide Management';
+                } else {
+                    stationsList.style.display = 'none';
+                    manageStationsBtn.textContent = '⚙️ Manage Stations';
+                }
+            }
+
+            function loadManageStations() {
+                fetch('/api/radio_stations')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            updateManageStations(data.stations);
+                        }
+                    });
+            }
+
+            function updateManageStations(stations) {
+                stationsContainer.innerHTML = '';
+                Object.entries(stations).forEach(([name, station]) => {
+                    const stationDiv = document.createElement('div');
+                    stationDiv.className = 'station-item';
+                    stationDiv.style.cssText = 'padding: 10px; margin: 5px 0; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;';
+                    stationDiv.innerHTML = `
+                        <div>
+                            <strong>${name}</strong><br>
+                            <small>Genres: ${station.genres.join(', ')}</small>
+                        </div>
+                        <button onclick="deleteStation('${name}')" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
+                            🗑️ Delete
+                        </button>
+                    `;
+                    stationsContainer.appendChild(stationDiv);
+                });
+            }
+
+            function deleteStation(stationName) {
+                if (!confirm(`Are you sure you want to delete station "${stationName}"?`)) {
+                    return;
+                }
+
+                fetch(`/api/radio_stations/${encodeURIComponent(stationName)}`, {
+                    method: 'DELETE'
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            displayMessage('success', `Station "${stationName}" deleted`);
+                            loadStations(); // Refresh dropdown
+                            loadManageStations(); // Refresh management view
+                        } else {
+                            displayMessage('error', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error deleting station:', error);
+                        displayMessage('error', 'Error deleting station');
+                    });
+            }
+
+            // --- Radio Station Event Listeners ---
+
+            saveStationBtn.addEventListener('click', saveStation);
+            loadStationBtn.addEventListener('click', loadStation);
+            manageStationsBtn.addEventListener('click', toggleManageStations);
+
+            // Load stations on page load
+            loadStations();
+
+            // Make functions globally available
+            window.playbackAction = playbackAction;
+            window.clearPlaylist = clearPlaylist;
+            window.deleteStation = deleteStation;
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,116 @@
+{% extends 'base_layout.html' %}
+{% block title %}Settings · Maestro-MPD{% endblock %}
+{% block content %}
+<div style="text-align:center; margin-bottom: 10px;">
+    <img src="https://raw.githubusercontent.com/github/explore/main/topics/music/music.png" alt="Maestro" style="height:40px; opacity:0.85;"/>
+    <h1 style="margin:6px 0 0; font-size:1.2em;">Settings</h1>
+</div>
+
+<div class="status-box">
+    <form method="POST" action="/settings" style="margin:0;">
+        <h2 style="text-align:left;">Theme</h2>
+        <div class="controls" style="border-top:none;">
+            <label for="theme" style="margin-right:8px;">Select Theme:</label>
+            <select id="theme" name="theme" style="padding:6px 10px; border-radius:6px;">
+                <option value="dark" {% if theme == 'dark' %}selected{% endif %}>Dark (default)</option>
+                <option value="light" {% if theme == 'light' %}selected{% endif %}>Light</option>
+                <option value="high-contrast" {% if theme == 'high-contrast' %}selected{% endif %}>High Contrast</option>
+                <option value="desert" {% if theme == 'desert' %}selected{% endif %}>Desert</option>
+            </select>
+        </div>
+
+        <h2 style="text-align:left; margin-top:14px;">Last.fm</h2>
+        <div class="controls" style="border-top:none;">
+            <div style="margin:6px 0; text-align:left;">
+                <label>
+                    <input type="checkbox" name="enable_scrobbling" id="enable_scrobbling" {% if enable_scrobbling %}checked{% endif %}>
+                    Enable scrobbling (submit plays to Last.fm)
+                </label>
+                <div style="margin-top:4px; color:#bdc3c7; font-size:0.9em;">
+                    Status: <strong id="scrobble-status">{{ 'Connected' if lastfm_connected else 'Not connected' }}</strong>
+                </div>
+            </div>
+            <div style="margin:6px 0; text-align:left;">
+                <label>
+                    <input type="checkbox" name="show_scrobble_toasts" id="show_scrobble_toasts" {% if show_scrobble_toasts %}checked{% endif %}>
+                    Show on-screen toasts for Last.fm events
+                </label>
+                <div style="margin-top:4px; color:#95a5a6; font-size:0.85em;">
+                    Info toast when Now Playing is sent; success toast when a track is scrobbled.
+                </div>
+            </div>
+            <div style="margin:6px 0;">
+                <label for="lastfm_api_key" style="display:inline-block; min-width:140px; text-align:right; margin-right:6px;">API Key:</label>
+                <input type="text" id="lastfm_api_key" name="lastfm_api_key" placeholder="leave blank to keep current" value="" style="padding:6px 10px; border-radius:6px; width:60%;"/>
+                {% if lastfm_api_key_masked %}<small style="color:#bdc3c7; margin-left:6px;">(saved)</small>{% endif %}
+            </div>
+            <div style="margin:6px 0;">
+                <label for="lastfm_shared_secret" style="display:inline-block; min-width:140px; text-align:right; margin-right:6px;">Shared Secret:</label>
+                <input type="password" id="lastfm_shared_secret" name="lastfm_shared_secret" placeholder="leave blank to keep current" value="" style="padding:6px 10px; border-radius:6px; width:60%;"/>
+                {% if lastfm_shared_secret_masked %}<small style="color:#bdc3c7; margin-left:6px;">(saved)</small>{% endif %}
+            </div>
+            <div style="margin:10px 0; display:flex; justify-content:center; flex-wrap:wrap; gap:6px;">
+                <button type="button" class="button" id="btn-test-lastfm" style="background:#3498db; color:#ecf0f1;">Test Last.fm</button>
+                <button type="button" class="button" id="btn-connect-lastfm" style="background:#9b59b6; color:#ecf0f1;">Connect to Last.fm</button>
+                <button type="button" class="button" id="btn-finalize-lastfm" style="background:#8e44ad; color:#ecf0f1;">Finalize Connection</button>
+                <span id="lastfm-test-result" style="margin-left:8px; font-weight:bold;"></span>
+            </div>
+        </div>
+
+        <div class="controls" style="border-top:none;">
+            <button type="submit" class="button" style="background:#2ecc71; color:#1a1a1a;">Save Settings</button>
+            <a href="/" class="button" style="background:#7f8c8d; color:#ecf0f1;">Back</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.getElementById('btn-test-lastfm').addEventListener('click', async () => {
+        const keyField = document.getElementById('lastfm_api_key');
+        const testKey = keyField.value.trim();
+        const form = new FormData();
+        if (testKey) form.append('api_key', testKey);
+        try {
+            const resp = await fetch('/api/test_lastfm', { method: 'POST', body: form });
+            const data = await resp.json();
+            const el = document.getElementById('lastfm-test-result');
+            el.textContent = data.message || 'Unknown response';
+            el.style.color = data.status === 'success' ? '#2ecc71' : '#e74c3c';
+        } catch (e) {
+            const el = document.getElementById('lastfm-test-result');
+            el.textContent = 'Request failed';
+            el.style.color = '#e74c3c';
+        }
+    });
+
+    document.getElementById('btn-connect-lastfm').addEventListener('click', async () => {
+        try {
+            const resp = await fetch('/lastfm/request_token', { method: 'POST' });
+            const data = await resp.json();
+            if (data.status === 'success' && data.auth_url) {
+                window.open(data.auth_url, '_blank');
+            } else {
+                alert(data.message || 'Failed to request token');
+            }
+        } catch (e) {
+            alert('Failed to request token');
+        }
+    });
+
+    document.getElementById('btn-finalize-lastfm').addEventListener('click', async () => {
+        try {
+            const resp = await fetch('/lastfm/finalize', { method: 'POST' });
+            const data = await resp.json();
+            if (data.status === 'success') {
+                document.getElementById('scrobble-status').textContent = 'Connected';
+                document.getElementById('scrobble-status').style.color = '#2ecc71';
+                alert('Last.fm connected successfully.');
+            } else {
+                alert(data.message || 'Failed to finalize connection');
+            }
+        } catch (e) {
+            alert('Finalize request failed');
+        }
+    });
+</script>
+{% endblock %}

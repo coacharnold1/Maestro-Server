@@ -1,0 +1,87 @@
+# Maestro MPD Control - Windows Docker Compose Configuration
+# For Windows users who want containerized MPD with HTTP streaming
+# For native Windows MPD, use docker-compose.native-mpd.yml instead
+
+services:
+  # MPD Server (Windows containerized - HTTP streaming only)
+  mpd:
+    image: vimagick/mpd:latest
+    container_name: mpd-server
+    profiles:
+      - with-mpd
+      - full
+    volumes:
+      - ./docker/mpd.conf:/etc/mpd.conf:ro
+      - ${MUSIC_DIRECTORY}:/music:ro
+      - mpd_db:/var/lib/mpd
+      - mpd_playlists:/var/lib/mpd/playlists
+    # Windows: No audio device access - use HTTP streaming on port 8001
+    ports:
+      - "${MPD_EXTERNAL_PORT:-6600}:6600"
+      - "8001:8001"  # HTTP audio streaming (works on all platforms)
+    restart: unless-stopped
+    networks:
+      - mpd-network
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'ping' | nc localhost 6600 | grep -q 'OK'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Web Application
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: mpd-web-control
+    depends_on:
+      mpd:
+        condition: service_healthy
+        required: false  # Allow startup even if mpd service not present
+    environment:
+      - MPD_HOST=${MPD_HOST:-mpd}
+      - MPD_PORT=${MPD_PORT:-6600}
+      - MPD_TIMEOUT=${MPD_TIMEOUT:-3}
+      - MUSIC_DIRECTORY=/music
+      - APP_PORT=5003
+      - APP_HOST=0.0.0.0
+      - DEFAULT_THEME=${DEFAULT_THEME:-dark}
+      - LASTFM_API_KEY=${LASTFM_API_KEY:-}
+      - LASTFM_SHARED_SECRET=${LASTFM_SHARED_SECRET:-}
+      - AUTO_FILL_ENABLED=${AUTO_FILL_ENABLED:-true}
+      - RECENT_MUSIC_DIRS=${RECENT_MUSIC_DIRS:-}
+      - SECRET_KEY=${SECRET_KEY:-mpd-web-control-docker-${RANDOM}}
+    volumes:
+      - ${MUSIC_DIRECTORY}:/music:ro
+      - ./data:/app/data
+      - web_cache:/app/cache
+    ports:
+      - "${WEB_PORT:-5003}:5003"
+    restart: unless-stopped
+    networks:
+      - mpd-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5003/api/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+# Named volumes for persistent data
+volumes:
+  mpd_db:
+    driver: local
+    name: mpd_web_control_db
+  mpd_playlists:
+    driver: local  
+    name: mpd_web_control_playlists
+  web_cache:
+    driver: local
+    name: mpd_web_control_cache
+
+# Custom network for service communication
+networks:
+  mpd-network:
+    name: mpd-network
+    driver: bridge

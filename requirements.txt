@@ -1,0 +1,19 @@
+# MPD Web Control - Combined Version
+# Core web framework
+Flask>=2.0.0
+Flask-SocketIO>=5.0.0
+
+# MPD client library
+python-mpd2>=3.0.0
+
+# Image processing for album art
+Pillow>=9.0.0
+
+# HTTP requests for Last.fm API
+requests>=2.25.0
+
+# Async support for SocketIO
+eventlet>=0.33.0
+
+# Environment variable management
+python-dotenv>=0.19.0

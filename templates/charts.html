@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Last.fm Charts - MPD Web Control</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #1a1a1a;
+            color: #ecf0f1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #2c3e50;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 18px rgba(0, 0, 0, 0.4);
+            flex: 1;
+        }
+
+        h1 {
+            color: #ecf0f1;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .nav-links {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .nav-links a {
+            color: #3498db;
+            text-decoration: none;
+            margin: 0 10px;
+            padding: 8px 16px;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+
+        .nav-links a:hover {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .period-selector {
+            text-align: center;
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: #34495e;
+            border-radius: 8px;
+        }
+
+        .period-selector label {
+            font-weight: bold;
+            margin-right: 10px;
+            color: #bdc3c7;
+        }
+
+        .period-selector button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 4px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+
+        .period-selector button:hover {
+            background-color: #2980b9;
+        }
+
+        .period-selector button.active {
+            background-color: #e74c3c;
+        }
+
+        .chart-section {
+            margin-bottom: 30px;
+        }
+
+        .chart-section h2 {
+            color: #3498db;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.1em;
+            color: #bdc3c7;
+        }
+
+        .error {
+            background-color: #e74c3c;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .chart-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .chart-item {
+            background-color: #34495e;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .chart-item:hover {
+            background-color: #3d566e;
+            transform: translateX(5px);
+        }
+
+        .chart-item-info {
+            flex: 1;
+        }
+
+        .chart-item-rank {
+            font-weight: bold;
+            color: #e74c3c;
+            margin-right: 15px;
+            min-width: 30px;
+        }
+
+        .chart-item-name {
+            font-weight: bold;
+            color: #ecf0f1;
+            font-size: 1.1em;
+        }
+
+        .chart-item-meta {
+            color: #bdc3c7;
+            font-size: 0.9em;
+            margin-top: 4px;
+        }
+
+        .chart-item-playcount {
+            color: #95a5a6;
+            font-size: 0.85em;
+            font-style: italic;
+        }
+
+        .chart-item-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #229954;
+        }
+
+        .btn-secondary {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+
+        .message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            transition: opacity 0.3s;
+            max-width: 400px;
+        }
+
+        .message.success {
+            background-color: #27ae60;
+        }
+
+        .message.error {
+            background-color: #e74c3c;
+        }
+
+        .message.info {
+            background-color: #3498db;
+        }
+
+        .not-connected {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .not-connected h2 {
+            color: #e74c3c;
+            margin-bottom: 15px;
+        }
+
+        .not-connected p {
+            color: #bdc3c7;
+            margin-bottom: 20px;
+        }
+
+        .not-connected a {
+            color: #3498db;
+            text-decoration: underline;
+        }
+
+        /* Minimal theme overrides */
+        body.light {
+            background-color: #f5f5f7;
+            color: #1a1a1a;
+        }
+
+        body.light .container {
+            background-color: #ffffff;
+            color: #1a1a1a;
+        }
+
+        body.light .period-selector,
+        body.light .chart-item {
+            background-color: #f0f3f6;
+            border-color: #d0d7de;
+        }
+
+        body.light .error {
+            color: #ffffff;
+        }
+
+        body.high-contrast {
+            background-color: #000000;
+            color: #ffff00;
+        }
+
+        body.high-contrast .container {
+            background-color: #000000;
+            color: #ffff00;
+            border: 2px solid #ffff00;
+        }
+
+        body.high-contrast .period-selector,
+        body.high-contrast .chart-item {
+            background-color: #000000;
+            border: 2px solid #ffff00;
+        }
+
+        /* Dropdown menu styling */
+        .dropdown-container {
+            display: inline-block;
+            position: relative;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: calc(100% + 2px);
+            right: 0;
+            background-color: #2c3e50;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            min-width: 180px;
+            margin-top: 0;
+            padding: 4px 0;
+            overflow: hidden;
+        }
+
+        .dropdown-item {
+            display: block;
+            width: 100%;
+            padding: 12px 16px;
+            background: none;
+            border: none;
+            color: #ecf0f1;
+            text-align: left;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 0.9em;
+            white-space: nowrap;
+        }
+
+        .dropdown-item:hover {
+            background-color: #34495e;
+        }
+
+        .dropdown-item:hover {
+            background-color: #34495e;
+        }
+
+        body.light .dropdown-menu {
+            background-color: #ffffff;
+            border-color: #d0d7de;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        body.light .dropdown-item {
+            color: #1a1a1a;
+        }
+
+        body.light .dropdown-item:hover {
+            background-color: #f0f3f6;
+        }
+
+        body.high-contrast .dropdown-menu {
+            background-color: #000000;
+            border: 2px solid #ffff00;
+        }
+
+        body.high-contrast .dropdown-item {
+            color: #ffff00;
+        }
+
+        body.high-contrast .dropdown-item:hover {
+            background-color: #333333;
+        }
+
+        /* Desert theme */
+        body.desert {
+            background-color: #2c1810;
+            color: #f4e4bc;
+        }
+        body.desert .container {
+            background-color: #3d2f20;
+            color: #f4e4bc;
+            border-color: #8b4513;
+        }
+        body.desert .period-selector,
+        body.desert .chart-item {
+            background-color: #4a3b2a;
+            border-color: #cd853f;
+        }
+        body.desert .dropdown-menu {
+            background-color: #4a3b2a;
+            border-color: #cd853f;
+        }
+        body.desert .dropdown-item {
+            color: #f4e4bc;
+        }
+        body.desert .dropdown-item:hover {
+            background-color: #5d4c37;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+
+            .chart-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .chart-item-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .period-selector button {
+                font-size: 0.8em;
+                padding: 6px 10px;
+            }
+        }
+    </style>
+</head>
+
+<body class="{{ app_theme }}">
+    <div class="container">
+        <h1>📊 Last.fm Charts</h1>
+
+        <div class="nav-links">
+            <a href="/">🏠 Main</a>
+            <a href="/settings">⚙️ Settings</a>
+        </div>
+
+        <div id="not-connected" class="not-connected" style="display: none;">
+            <h2>⚠️ Last.fm Not Connected</h2>
+            <p>Please connect your Last.fm account in <a href="/settings">Settings</a> to view your charts.</p>
+        </div>
+
+        <div id="charts-content" style="display: none;">
+            <div class="period-selector">
+                <label>Time Period:</label>
+                <button class="period-btn active" data-period="7day">7 Days</button>
+                <button class="period-btn" data-period="1month">1 Month</button>
+                <button class="period-btn" data-period="3month">3 Months</button>
+                <button class="period-btn" data-period="6month">6 Months</button>
+                <button class="period-btn" data-period="12month">1 Year</button>
+                <button class="period-btn" data-period="overall">All Time</button>
+            </div>
+
+            <!-- Quick Navigation -->
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #34495e; border-radius: 8px;">
+                <label style="font-weight: bold; margin-right: 10px; color: #bdc3c7;">Jump to:</label>
+                <button onclick="scrollToSection('artists-section')" style="background-color: #3498db; color: white; border: none; padding: 8px 16px; margin: 4px; border-radius: 5px; cursor: pointer; font-size: 0.9em;">
+                    🎤 Artists
+                </button>
+                <button onclick="scrollToSection('albums-section')" style="background-color: #9b59b6; color: white; border: none; padding: 8px 16px; margin: 4px; border-radius: 5px; cursor: pointer; font-size: 0.9em;">
+                    💿 Albums
+                </button>
+                <button onclick="scrollToSection('tracks-section')" style="background-color: #e67e22; color: white; border: none; padding: 8px 16px; margin: 4px; border-radius: 5px; cursor: pointer; font-size: 0.9em;">
+                    🎵 Tracks
+                </button>
+            </div>
+
+            <!-- Top Artists Section -->
+            <div id="artists-section" class="chart-section">
+                <h2>🎤 Top Artists</h2>
+                <div id="artists-loading" class="loading">Loading top artists...</div>
+                <div id="artists-error" class="error" style="display: none;"></div>
+                <ul id="artists-list" class="chart-list" style="display: none;"></ul>
+            </div>
+
+            <!-- Top Albums Section -->
+            <div id="albums-section" class="chart-section">
+                <h2>💿 Top Albums</h2>
+                <div id="albums-loading" class="loading">Loading top albums...</div>
+                <div id="albums-error" class="error" style="display: none;"></div>
+                <ul id="albums-list" class="chart-list" style="display: none;"></ul>
+            </div>
+
+            <!-- Top Tracks Section -->
+            <div id="tracks-section" class="chart-section">
+                <h2>🎵 Top Tracks</h2>
+                <div id="tracks-loading" class="loading">Loading top tracks...</div>
+                <div id="tracks-error" class="error" style="display: none;"></div>
+                <ul id="tracks-list" class="chart-list" style="display: none;"></ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Info + Settings (inline, always visible) -->
+    <div style="text-align: center; margin: 18px auto; padding-top: 8px; border-top: 1px solid #34495e; max-width: 1000px;">
+        <span id="version-info">Loading version info...</span>
+        &nbsp;•&nbsp;
+        <a href="/settings" style="color:#bdc3c7; text-decoration: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px;">Settings</a>
+        &nbsp;•&nbsp;
+        <a href="/charts" style="color:#bdc3c7; text-decoration: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px;">Charts</a>
+    </div>
+
+    <script>
+        (function () {
+            fetch('/api/version')
+                .then(r => r.json())
+                .then(d => { var el = document.getElementById('version-info'); if (el) el.textContent = d.app_name + ' v' + d.version + ' (' + d.build_date + ')'; })
+                .catch(() => { var el = document.getElementById('version-info'); if (el) el.textContent = 'MPD Web Control'; });
+        })();
+
+        let currentPeriod = '7day';
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Check if Last.fm is connected
+            checkLastfmConnection();
+
+            // Period selector buttons
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentPeriod = this.getAttribute('data-period');
+                    loadAllCharts();
+                });
+            });
+        });
+
+        function checkLastfmConnection() {
+            // Simple check - try to load artists, if 401 then not connected
+            fetch(`/api/charts/artists?period=7day`)
+                .then(response => {
+                    if (response.status === 401) {
+                        document.getElementById('not-connected').style.display = 'block';
+                        document.getElementById('charts-content').style.display = 'none';
+                    } else {
+                        document.getElementById('not-connected').style.display = 'none';
+                        document.getElementById('charts-content').style.display = 'block';
+                        loadAllCharts();
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('not-connected').style.display = 'block';
+                    document.getElementById('charts-content').style.display = 'none';
+                });
+        }
+
+        function loadAllCharts() {
+            loadChart('artists');
+            loadChart('albums');
+            loadChart('tracks');
+        }
+
+        function loadChart(chartType) {
+            const loading = document.getElementById(`${chartType}-loading`);
+            const error = document.getElementById(`${chartType}-error`);
+            const list = document.getElementById(`${chartType}-list`);
+
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            list.style.display = 'none';
+
+            fetch(`/api/charts/${chartType}?period=${currentPeriod}`)
+                .then(response => response.json())
+                .then(data => {
+                    loading.style.display = 'none';
+
+                    if (data.status === 'success') {
+                        displayChart(chartType, data.data);
+                    } else {
+                        showError(chartType, data.message || 'Failed to load chart');
+                    }
+                })
+                .catch(err => {
+                    loading.style.display = 'none';
+                    showError(chartType, 'Network error: ' + err.message);
+                });
+        }
+
+        function displayChart(chartType, items) {
+            const list = document.getElementById(`${chartType}-list`);
+            list.innerHTML = '';
+
+            if (items.length === 0) {
+                list.innerHTML = '<li style="text-align: center; padding: 40px; color: #bdc3c7;">No data for this period</li>';
+                list.style.display = 'block';
+                return;
+            }
+
+            items.forEach((item, index) => {
+                const listItem = document.createElement('li');
+                listItem.className = 'chart-item';
+
+                let nameHtml = '';
+                let metaHtml = '';
+                let actionsHtml = '';
+
+                if (chartType === 'artists') {
+                    const safeArtistJs = jsString(item.name || '');
+                    const dropdownId = `artist-dropdown-${index}`;
+                    nameHtml = `<div class="chart-item-name">${escapeHtml(item.name)}</div>`;
+                    metaHtml = `<div class="chart-item-playcount">${item.playcount} plays</div>`;
+                    // Primary action: Search; secondary actions in dropdown
+                    actionsHtml = `
+                        <form method="POST" action="/search" style="display:inline;">
+                            <input type="hidden" name="search_tag" value="artist">
+                            <input type="hidden" name="query" value="${escapeHtml(item.name)}">
+                            <button type="submit" class="btn btn-secondary">🔍 View in Search</button>
+                        </form>
+                        <div class="dropdown-container" style="display:inline-block; position:relative;">
+                            <button class="btn btn-primary" onclick="toggleDropdown('${dropdownId}'); event.stopPropagation();">
+                                ➕ Add… ▾
+                            </button>
+                            <div id="${dropdownId}" class="dropdown-menu" style="display:none;">
+                                <button class="dropdown-item" onclick="addTopAlbums('${safeArtistJs}', 1); closeDropdown('${dropdownId}');">Top 1 Album</button>
+                                <button class="dropdown-item" onclick="addTopAlbums('${safeArtistJs}', 3); closeDropdown('${dropdownId}');">Top 3 Albums</button>
+                                <button class="dropdown-item" onclick="addTopTracks('${safeArtistJs}', 10); closeDropdown('${dropdownId}');">Top 10 Tracks</button>
+                            </div>
+                        </div>
+                    `;
+                } else if (chartType === 'albums') {
+                    const safeArtistJs = jsString(item.artist || '');
+                    const safeAlbumJs = jsString(item.name || '');
+                    nameHtml = `<div class="chart-item-name">${escapeHtml(item.name)}</div>`;
+                    metaHtml = `
+                        <div class="chart-item-meta">by ${escapeHtml(item.artist)}</div>
+                        <div class="chart-item-playcount">${item.playcount} plays</div>
+                    `;
+                    actionsHtml = `
+                        <button class="btn btn-primary" onclick="addAlbum('${safeArtistJs}', '${safeAlbumJs}')">
+                            ➕ Add Album
+                        </button>
+                    `;
+                } else if (chartType === 'tracks') {
+                    const safeArtistJs = jsString(item.artist || '');
+                    const safeTrackJs = jsString(item.name || '');
+                    nameHtml = `<div class="chart-item-name">${escapeHtml(item.name)}</div>`;
+                    metaHtml = `
+                        <div class="chart-item-meta">by ${escapeHtml(item.artist)}</div>
+                        <div class="chart-item-playcount">${item.playcount} plays</div>
+                    `;
+                    actionsHtml = `
+                        <button class="btn btn-secondary" onclick="searchAndAdd('${safeArtistJs}', '${safeTrackJs}')">
+                            🔍 Find & Add
+                        </button>
+                    `;
+                }
+
+                listItem.innerHTML = `
+                    <div class="chart-item-info">
+                        <span class="chart-item-rank">#${index + 1}</span>
+                        ${nameHtml}
+                        ${metaHtml}
+                    </div>
+                    <div class="chart-item-actions">
+                        ${actionsHtml}
+                    </div>
+                `;
+
+                list.appendChild(listItem);
+            });
+
+            list.style.display = 'block';
+        }
+
+        function showError(chartType, message) {
+            const error = document.getElementById(`${chartType}-error`);
+            error.textContent = message;
+            error.style.display = 'block';
+        }
+
+        // Removed aggressive "Add All Albums" behavior for artists in favor of sending users to Search.
+
+        function addAlbum(artistName, albumName) {
+            console.log('[DEBUG] addAlbum called with:', { artist: artistName, album: albumName });
+            showMessage(`Adding ${albumName}...`, 'info');
+
+            fetch('/add_album_to_playlist', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ artist: artistName, album: albumName })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('[DEBUG] Server response:', data);
+                    if (data.status === 'success') {
+                        showMessage(data.message, 'success');
+                    } else {
+                        showMessage(data.message || 'Failed to add album', 'error');
+                    }
+                })
+                .catch(err => {
+                    showMessage('Error adding album: ' + err.message, 'error');
+                });
+        }
+
+        function searchAndAdd(artistName, trackName) {
+            showMessage(`Searching for ${trackName}...`, 'info');
+
+            // Search for the track
+            fetch(`/search?query=${encodeURIComponent(trackName + ' ' + artistName)}&type=title`)
+                .then(response => response.text())
+                .then(html => {
+                    // Parse results and add first matching track
+                    // For now, just show a message that search is available
+                    showMessage(`Please use Search page to find "${trackName}"`, 'info');
+                })
+                .catch(err => {
+                    showMessage('Error searching: ' + err.message, 'error');
+                });
+        }
+
+        function showMessage(text, type) {
+            const existingMessages = document.querySelectorAll('.message');
+            existingMessages.forEach(msg => msg.remove());
+
+            const message = document.createElement('div');
+            message.className = `message ${type}`;
+            message.textContent = text;
+            document.body.appendChild(message);
+
+            setTimeout(() => {
+                message.style.opacity = '0';
+                setTimeout(() => {
+                    if (message.parentNode) {
+                        message.parentNode.removeChild(message);
+                    }
+                }, 300);
+            }, 5000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function jsString(text) {
+            if (text === undefined || text === null) return '';
+            return String(text).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        }
+
+        function addTopAlbums(artistName, count) {
+            showMessage(`Adding top ${count} album(s) by ${artistName}...`, 'info');
+            fetch('/add_top_albums_by_artist', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ artist: artistName, count: count })
+            })
+                .then(r => r.json())
+                .then(d => {
+                    if (d.status === 'success') {
+                        showMessage(d.message || 'Albums added', 'success');
+                    } else {
+                        showMessage(d.message || 'Failed to add top albums', 'error');
+                    }
+                })
+                .catch(err => showMessage('Error: ' + err.message, 'error'));
+        }
+
+        function addTopTracks(artistName, count) {
+            showMessage(`Adding top ${count} tracks by ${artistName}...`, 'info');
+            fetch('/add_top_tracks_by_artist', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ artist: artistName, count: count })
+            })
+                .then(r => r.json())
+                .then(d => {
+                    if (d.status === 'success') {
+                        showMessage(d.message || 'Tracks added', 'success');
+                    } else {
+                        showMessage(d.message || 'Failed to add top tracks', 'error');
+                    }
+                })
+                .catch(err => showMessage('Error: ' + err.message, 'error'));
+        }
+
+        // Dropdown menu controls
+        function toggleDropdown(dropdownId) {
+            const dropdown = document.getElementById(dropdownId);
+            if (!dropdown) return;
+            
+            // Close all other dropdowns first
+            document.querySelectorAll('.dropdown-menu').forEach(d => {
+                if (d.id !== dropdownId) d.style.display = 'none';
+            });
+            
+            // Toggle current dropdown
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function closeDropdown(dropdownId) {
+            const dropdown = document.getElementById(dropdownId);
+            if (dropdown) dropdown.style.display = 'none';
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.dropdown-container')) {
+                document.querySelectorAll('.dropdown-menu').forEach(d => {
+                    d.style.display = 'none';
+                });
+            }
+        });
+
+        // Section navigation
+        function scrollToSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    </script>
+</body>
+
+</html>

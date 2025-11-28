@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 5px;
+            background-color: #1a1a1a;
+            color: #ecf0f1;
+            display: flex;
+            flex-direction: column; /* Ensure bottom version row stacks vertically */
+            justify-content: flex-start;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background-color: #2c3e50;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 18px rgba(0, 0, 0, 0.4);
+            box-sizing: border-box;
+        }
+
+        h1,
+        h2 {
+            color: #ecf0f1;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 1.5em;
+        }
+
+        /* Logo styling */
+        .logo-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .logo-container img {
+            max-width: 600px;
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
+
+        .nav-links {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .nav-links a,
+        .nav-links button {
+            color: #3498db;
+            text-decoration: none;
+            margin: 0 6px 5px 6px;
+            padding: 6px 12px;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            transition: all 0.3s;
+            background: none;
+            cursor: pointer;
+            font-size: 13px;
+            display: inline-block;
+        }
+
+        .nav-links a:hover,
+        .nav-links button:hover {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .nav-links .clear-btn {
+            background-color: #e74c3c;
+            color: white;
+            border-color: #e74c3c;
+        }
+
+        .nav-links .clear-btn:hover {
+            background-color: #c0392b;
+            border-color: #c0392b;
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #34495e;
+        }
+
+        .controls:first-of-type {
+            border-top: none;
+            padding-top: 0;
+        }
+
+        .controls button {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            border: none;
+            padding: 7px 12px;
+            margin: 2px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            min-width: 70px;
+            font-weight: bold;
+        }
+
+        .controls button:hover {
+            background-color: #bdc3c7;
+            transform: translateY(-1px);
+        }
+
+        .results-info {
+            background-color: #34495e;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+            color: #bdc3c7;
+        }
+
+        .song-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+
+        .song-list li {
+            background-color: #34495e;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95em;
+            border-left: 4px solid #3498db;
+        }
+
+        .album-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+        }
+
+        .album-thumbnail {
+            width: 64px;
+            height: 64px;
+            border-radius: 8px;
+            object-fit: cover;
+            flex-shrink: 0;
+            background-color: #2c3e50;
+            border: 1px solid #3498db;
+        }
+
+        .song-info {
+            flex-grow: 1;
+            margin-right: 15px;
+        }
+
+        .song-info .title {
+            font-weight: bold;
+            color: #1abc9c;
+            font-size: 1.1em;
+        }
+
+        .song-info .artist {
+            color: #ecf0f1;
+            font-weight: 500;
+            margin: 5px 0;
+        }
+
+        .song-info .album {
+            color: #95a5a6;
+            font-size: 0.9em;
+        }
+
+        .song-info .duration {
+            color: #e67e22;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-top: 2px;
+        }
+
+        .song-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .song-actions button {
+            background-color: #1abc9c;
+            color: #ecf0f1;
+            padding: 8px 12px;
+            text-decoration: none;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.8em;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .song-actions button:hover {
+            background-color: #16a085;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            background-color: #34495e;
+            border-radius: 8px;
+            margin: 20px 0;
+            color: #bdc3c7;
+        }
+
+        /* Message display styling */
+        #message-area {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #message-area.show {
+            opacity: 1;
+        }
+
+        #message-area.info {
+            background-color: #3498db;
+        }
+
+        #message-area.error {
+            background-color: #e74c3c;
+        }
+
+        #message-area.success {
+            background-color: #27ae60;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .nav-links {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                align-items: center;
+            }
+
+            .nav-links a,
+            .nav-links button {
+                margin: 0;
+                width: 80%;
+                max-width: 200px;
+                text-align: center;
+            }
+
+            .logo-container img {
+                max-width: 400px;
+            }
+
+            .song-list li {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: left;
+                padding: 12px;
+            }
+
+            .album-content {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 10px;
+            }
+
+            .album-thumbnail {
+                width: 48px;
+                height: 48px;
+            }
+
+            .song-info {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+
+            .song-actions {
+                margin-top: 10px;
+                justify-content: center;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .song-actions button {
+                width: 100%;
+                padding: 10px;
+                font-size: 0.9em;
+            }
+
+            .controls button {
+                display: block;
+                width: 90%;
+                margin: 5px auto;
+                padding: 12px;
+            }
+        }
+
+        /* Minimal theme overrides so results also honor theme */
+        body.light {
+            background-color: #f5f5f7;
+            color: #1a1a1a;
+        }
+        body.light .container {
+            background-color: #ffffff;
+            color: #1a1a1a;
+        }
+        body.light .nav-links,
+        body.light .controls {
+            background-color: #f0f3f6;
+            border-color: #d0d7de;
+        }
+        body.high-contrast {
+            background-color: #000000;
+            color: #ffff00;
+        }
+        body.high-contrast .container {
+            background-color: #000000;
+            color: #ffff00;
+            border: 2px solid #ffff00;
+        }
+        body.high-contrast .nav-links,
+        body.high-contrast .controls {
+            background-color: #000000;
+            border: 2px solid #ffff00;
+        }
+
+        /* Desert theme */
+        body.desert {
+            background-color: #2c1810;
+            color: #f4e4bc;
+        }
+        body.desert .container {
+            background-color: #3d2f20;
+            color: #f4e4bc;
+            border-color: #8b4513;
+        }
+        body.desert .nav-links,
+        body.desert .controls {
+            background-color: #4a3b2a;
+            border-color: #cd853f;
+        }
+        body.desert .results-info,
+        body.desert .song-list,
+        body.desert .song-list li {
+            background-color: #4a3b2a;
+            border-color: #cd853f;
+        }
+        body.desert .album-thumbnail {
+            border-color: #cd853f;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="{{ app_theme }}">
+    <div class="container">
+        <!-- Logo -->
+        <div class="logo-container">
+            <img src="/static/logo.svg" alt="Maestro MPD Control" onerror="this.style.display='none'">
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="nav-links">
+            <a href="/">🏠 Main</a>
+            <a href="/playlist">🎵 Playlist</a>
+            <a href="/add_music">🎲 Add Music</a>
+            <a href="/search">🔍 Search</a>
+            <a href="/recent">📀 Recent</a>
+            <a href="/browse">🗂️ Browse</a>
+            <button onclick="clearPlaylist()" class="clear-btn">🗑️ Clear Playlist</button>
+        </div>
+
+        <div id="message-area"></div>
+
+        <h1>🔍 Search Results</h1>
+
+        <!-- Playback Controls -->
+        <div class="controls">
+            <h2>🎵 Playback Controls</h2>
+            <button onclick="playbackAction('previous')" style="background-color: #9b59b6; color: white;">⏮️
+                Previous</button>
+            <button onclick="playbackAction('play')" style="background-color: #27ae60; color: white;">▶️ Play</button>
+            <button onclick="playbackAction('stop')" style="background-color: #f39c12; color: white;">⏹️ Stop</button>
+            <button onclick="playbackAction('pause')" style="background-color: #e74c3c; color: white;">⏸️ Pause</button>
+            <button onclick="playbackAction('next')" style="background-color: #3498db; color: white;">⏭️ Next</button>
+        </div>
+
+        {% if results %}
+        <div class="results-info">
+            Found <strong>{{ results|length }}</strong> results matching your search for "<strong>{{ query }}</strong>"
+            by <strong>{{ search_tag }}</strong>
+        </div>
+
+        <ul class="song-list">
+            {% for item in results %}
+            {% if item.get('item_type') == 'album' %}
+            <li>
+                <div class="album-content">
+                    {% if item.get('sample_file') %}
+                    <img src="/album_art?file={{ item.get('sample_file')|urlencode }}&artist={{ item.get('artist', '')|urlencode }}&album={{ item.get('album', '')|urlencode }}&size=thumb"
+                        alt="{{ item.get('album', 'Unknown Album') }} cover" class="album-thumbnail" loading="lazy"
+                        onerror="this.style.display='none';">
+                    {% else %}
+                    <img src="/album_art?artist={{ item.get('artist', '')|urlencode }}&album={{ item.get('album', '')|urlencode }}&size=thumb"
+                        alt="{{ item.get('album', 'Unknown Album') }} cover" class="album-thumbnail" loading="lazy"
+                        onerror="this.style.display='none';">
+                    {% endif %}
+                    <div class="song-info">
+                        <div class="artist">{{ item.get('artist', 'Unknown Artist') }}</div>
+                        <div class="title">{{ item.get('album', 'Unknown Album') }}</div>
+                        <div class="album">Full Album</div>
+                    </div>
+                </div>
+                <div class="song-actions">
+                    <button class="btn-view-album" data-artist="{{ item.get('artist','')|e }}" data-album="{{ item.get('album','')|e }}">📋
+                        View Songs</button>
+                    <button class="btn-replace-album" data-artist="{{ item.get('artist','')|e }}" data-album="{{ item.get('album','')|e }}">🔄
+                        Replace Playlist</button>
+                    <button class="btn-add-album" data-artist="{{ item.get('artist','')|e }}" data-album="{{ item.get('album','')|e }}">➕
+                        Add Album</button>
+                </div>
+            </li>
+            {% else %}
+            <li>
+                <div class="song-info">
+                    <div class="title">{{ item.get('title', 'Unknown Title') }}</div>
+                    <div class="artist">{{ item.get('artist', 'Unknown Artist') }}</div>
+                    <div class="album">{{ item.get('album', 'Unknown Album') }}</div>
+                    {% if item.get('time') and item.get('time') != '0' and item.get('time')|int > 0 %}
+                    <div class="duration">⏱️ {{ '%d:%02d' | format((item.get('time')|int // 60), (item.get('time')|int %
+                        60)) }}</div>
+                    {% endif %}
+                </div>
+                <div class="song-actions">
+                    <button class="btn-replace-song" data-file="{{ item.get('file','')|e }}">🔄 Replace
+                        Playlist</button>
+                    <button class="btn-add-song" data-file="{{ item.get('file','')|e }}">➕ Add
+                        Song</button>
+                </div>
+            </li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="no-results">
+            <h3>No results found</h3>
+            <p>No results found for your search "<strong>{{ query }}</strong>" by <strong>{{ search_tag }}</strong>.</p>
+            <p>Try adjusting your search terms or search by a different category.</p>
+        </div>
+        {% endif %}
+
+        <!-- Album Songs Drill-down (hidden by default) -->
+        <div id="album-songs-section" style="display: none;">
+            <h2>🎵 Album Songs</h2>
+            <div id="album-art-large" style="text-align: center; margin: 20px 0;">
+                <!-- Album art will be inserted here by JS -->
+            </div>
+            <div id="album-info"></div>
+            <ul id="album-songs-list" class="song-list">
+                <!-- Songs will be populated by JavaScript -->
+            </ul>
+            <div style="text-align: center; margin: 20px 0;">
+                <button onclick="hideAlbumSongs()"
+                    style="background-color: #95a5a6; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">←
+                    Back to Search Results</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Info + Settings (inline, always visible) -->
+    <div style="text-align: center; margin: 18px auto; padding-top: 8px; border-top: 1px solid #34495e; max-width: 1000px;">
+        <span id="version-info">Loading version info...</span>
+        &nbsp;•&nbsp;
+        <a href="/settings" style="color:#bdc3c7; text-decoration: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px;">Settings</a>
+        &nbsp;•&nbsp;
+        <a href="/charts" style="color:#bdc3c7; text-decoration: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px;">Charts</a>
+    </div>
+
+    <script>
+        (function(){
+            fetch('/api/version')
+                .then(r=>r.json())
+                .then(d=>{var el=document.getElementById('version-info'); if(el) el.textContent = d.app_name+' v'+d.version+' ('+d.build_date+')';})
+                .catch(()=>{var el=document.getElementById('version-info'); if(el) el.textContent='MPD Web Control';});
+        })();
+
+        // Playback control functions
+        function playbackAction(action) {
+            fetch(`/${action}?ajax=1`, {
+                method: 'GET'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        console.log(data.message);
+                        displayMessage('info', data.message || `${action.charAt(0).toUpperCase() + action.slice(1)} command sent`);
+                    } else {
+                        console.error(data.message || `Failed to ${action}`);
+                        displayMessage('error', data.message || `Failed to ${action}`);
+                    }
+                })
+                .catch(err => {
+                    console.error(`Error: ${err.message}`);
+                    displayMessage('error', `Error: ${err.message}`);
+                });
+        }
+
+        // Clear playlist function
+        function clearPlaylist() {
+            if (confirm('Are you sure you want to clear the entire playlist?')) {
+                fetch('/clear_playlist?ajax=1', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            displayMessage('info', 'Playlist cleared');
+                        } else {
+                            displayMessage('error', data.message || 'Error clearing playlist');
+                        }
+                    })
+                    .catch(error => {
+                        displayMessage('error', 'Error clearing playlist: ' + error.message);
+                    });
+            }
+        }
+
+        // Clear and add functions (replace playlist)
+        function clearAndAddAlbum(artist, album) {
+            if (confirm(`Clear playlist and start playing album "${album}" by ${artist}?`)) {
+                fetch('/clear_playlist?ajax=1', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            return addAlbumToPlaylist(artist, album, false);
+                        } else {
+                            throw new Error('Failed to clear playlist');
+                        }
+                    })
+                    .then(() => {
+                        // Auto-play after adding
+                        return fetch('/play?ajax=1', { method: 'POST' });
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        displayMessage('info', `Now playing: "${album}" by ${artist}`);
+                    })
+                    .catch(error => {
+                        displayMessage('error', 'Error: ' + error.message);
+                    });
+            }
+        }
+
+        function clearAndAddSong(file) {
+            if (confirm('Clear playlist and start playing this song?')) {
+                fetch('/clear_playlist?ajax=1', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            return addSongToPlaylist(file, false);
+                        } else {
+                            throw new Error('Failed to clear playlist');
+                        }
+                    })
+                    .then(() => {
+                        // Auto-play after adding
+                        return fetch('/play?ajax=1', { method: 'POST' });
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        displayMessage('info', 'Now playing song');
+                    })
+                    .catch(error => {
+                        displayMessage('error', 'Error: ' + error.message);
+                    });
+            }
+        }
+
+        // Add to playlist functions
+        function addAlbumToPlaylist(artist, album, showConfirm = true) {
+            const formData = new FormData();
+            formData.append('artist', artist);
+            formData.append('album', album);
+
+            return fetch('/add_album_to_playlist', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.text())
+                .then(data => {
+                    displayMessage('info', `Album "${album}" by ${artist} added to playlist`);
+                })
+                .catch(error => {
+                    displayMessage('error', 'Error adding album: ' + error.message);
+                });
+        }
+
+        function addSongToPlaylist(file, showConfirm = true) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            return fetch('/add_song_to_playlist', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.text())
+                .then(data => {
+                    displayMessage('info', 'Song added to playlist');
+                })
+                .catch(error => {
+                    displayMessage('error', 'Error adding song: ' + error.message);
+                });
+        }
+
+        // Format duration from seconds to MM:SS
+        function formatDuration(seconds) {
+            if (!seconds || seconds === '0' || seconds === '') return '';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Album drill-down functions
+        function viewAlbumSongs(artist, album) {
+            displayMessage('info', `Loading songs for "${album}" by ${artist}...`);
+
+            // Fetch album songs from server
+            const formData = new FormData();
+            formData.append('artist', artist);
+            formData.append('album', album);
+
+            fetch('/get_album_songs', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(songs => {
+                    showAlbumSongs(artist, album, songs);
+                })
+                .catch(error => {
+                    displayMessage('error', 'Error loading album songs: ' + error.message);
+                });
+        }
+
+        function showAlbumSongs(artist, album, songs) {
+            // Hide search results and show album songs section
+            const resultsSection = document.querySelector('.song-list');
+            const albumSection = document.getElementById('album-songs-section');
+            const albumInfo = document.getElementById('album-info');
+            const songsList = document.getElementById('album-songs-list');
+            const albumArtLarge = document.getElementById('album-art-large');
+
+            // Insert large album art
+            let artUrl = `/album_art?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}&size=full`;
+            if (songs.length && songs[0].file) {
+                artUrl = `/album_art?file=${encodeURIComponent(songs[0].file)}&artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}&size=full`;
+            }
+            albumArtLarge.innerHTML = `<img src="${artUrl}" alt="${album} cover" style="max-width:300px; max-height:300px; border-radius:12px; box-shadow:0 4px 18px #222; margin-bottom:18px; background:#222;" onerror="this.src='/static_placeholder_art'">`;
+
+            // Update album info
+            albumInfo.innerHTML = `<div class="results-info">Songs in "${album}" by <strong>${artist}</strong> (${songs.length} tracks)</div>`;
+
+            // Clear and populate songs list
+            songsList.innerHTML = '';
+            songs.forEach((song, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div class="song-info">
+                        <div class="title">${index + 1}. ${song.title || 'Unknown Title'}</div>
+                        <div class="artist">${song.artist || artist}</div>
+                        <div class="album">${song.album || album}</div>
+                        ${song.time ? `<div class="duration">⏱️ ${formatDuration(song.time)}</div>` : ''}
+                    </div>
+                    <div class="song-actions">
+                        <button onclick="clearAndAddSingleSong('${song.file.replace(/'/g, "\\'")}', '${(song.title || 'Unknown Title').replace(/'/g, "\\'")}")">🔄 Start Playing</button>
+                        <button onclick="addSongToPlaylist('${song.file.replace(/'/g, "\\'")}")">➕ Add Song</button>
+                    </div>
+                `;
+                songsList.appendChild(li);
+            });
+
+            // Hide search results, show album songs
+            if (resultsSection) resultsSection.style.display = 'none';
+            albumSection.style.display = 'block';
+
+            // Scroll to top
+            window.scrollTo(0, 0);
+        }
+
+        function hideAlbumSongs() {
+            // Hide album songs and show search results
+            const resultsSection = document.querySelector('.song-list');
+            const albumSection = document.getElementById('album-songs-section');
+
+            albumSection.style.display = 'none';
+            if (resultsSection) resultsSection.style.display = 'block';
+
+            // Scroll to top
+            window.scrollTo(0, 0);
+        }
+
+        // Special function for individual songs from album drill-down
+        function clearAndAddSingleSong(file, title) {
+            if (confirm(`Clear playlist and start playing "${title}"?`)) {
+                fetch('/clear_playlist?ajax=1', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            return addSongToPlaylist(file, false);
+                        } else {
+                            throw new Error('Failed to clear playlist');
+                        }
+                    })
+                    .then(() => {
+                        // Auto-play after adding
+                        return fetch('/play?ajax=1', { method: 'POST' });
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        displayMessage('info', `Now playing: "${title}"`);
+                    })
+                    .catch(error => {
+                        displayMessage('error', 'Error: ' + error.message);
+                    });
+            }
+        }
+
+        function displayMessage(type, text) {
+            const messageArea = document.getElementById('message-area');
+            messageArea.textContent = text;
+            messageArea.className = `show ${type}`;
+            messageArea.style.opacity = 1;
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                messageArea.style.opacity = 0;
+                setTimeout(() => {
+                    messageArea.textContent = '';
+                    messageArea.className = '';
+                }, 300);
+            }, 5000);
+        }
+    </script>
+    <script>
+        // Wire up button clicks via data-* attributes
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.btn-view-album').forEach(btn => {
+                btn.addEventListener('click', function(){
+                    const artist = this.dataset.artist || '';
+                    const album = this.dataset.album || '';
+                    viewAlbumSongs(artist, album);
+                });
+            });
+            document.querySelectorAll('.btn-replace-album').forEach(btn => {
+                btn.addEventListener('click', function(){
+                    const artist = this.dataset.artist || '';
+                    const album = this.dataset.album || '';
+                    clearAndAddAlbum(artist, album);
+                });
+            });
+            document.querySelectorAll('.btn-add-album').forEach(btn => {
+                btn.addEventListener('click', function(){
+                    const artist = this.dataset.artist || '';
+                    const album = this.dataset.album || '';
+                    addAlbumToPlaylist(artist, album);
+                });
+            });
+            document.querySelectorAll('.btn-replace-song').forEach(btn => {
+                btn.addEventListener('click', function(){
+                    const file = this.dataset.file || '';
+                    clearAndAddSong(file);
+                });
+            });
+            document.querySelectorAll('.btn-add-song').forEach(btn => {
+                btn.addEventListener('click', function(){
+                    const file = this.dataset.file || '';
+                    addSongToPlaylist(file);
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

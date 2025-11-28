@@ -1,0 +1,83 @@
+MPD Web Control - Combined Edition (CHARTS & THEMES)
+Export Date: Fri Nov 15 11:17:00 AM EST 2025
+Export Version: 20251115_111700_CHARTS
+Features: 
+- MPD Control
+- Last.fm Integration  
+- Search Functionality (FIXED - POST forms, proper redirects)
+- Auto-fill Playlists
+- Album Art Display
+- Real-time Updates
+- Systemd Service Integration (FIXED - proper venv activation)
+- Shuffle Mode (NEW - with cross-page sync)
+- Standardized UI Controls (NEW - icons, color coding)
+- Professional Message System (NEW - upper-right notifications)
+- Replace Playlist with Auto-play (NEW - browse albums)
+- Genre-Based Random Music (NEW - integrated with Auto-Fill settings)
+- Last.fm Charts (NEW - top artists/albums/tracks by time period)
+- Theme System (NEW - dark/light/high-contrast across all pages)
+
+Latest Major Features (Nov 12, 2025):
+Latest Major Features (Nov 15, 2025):
+✅ NEW: Last.fm Charts page with time period filtering (7day → all-time)
+✅ NEW: Complete theme system (dark, light, high-contrast) across all pages
+✅ INTEGRATION: Charts directly add artists/albums to playlist from stats
+✅ UI CONSISTENCY: Charts link added to footer on all pages
+✅ THEME FIX: Browse and Recent pages now honor theme selection
+✅ THEME FIX: Main page status box respects theme (no more static blue)
+✅ API: user.getTopArtists, user.getTopAlbums, user.getTopTracks endpoints
+✅ SMART DESIGN: Charts show playcount rankings with period selector
+
+Previous Major Features (Nov 12, 2025):
+✅ FIXED: Album addition bug for special characters (apostrophes, quotes)
+✅ NEW: Genre-based random music feature with multi-select dropdown
+✅ INTEGRATION: Genre feature uses Auto-Fill settings (3-7 track range)
+✅ CONSISTENCY: Added Clear Playlist button to add music page
+✅ UI POLISH: Consistent success message styling across all pages
+✅ SMART DESIGN: OR logic for multiple genre selection with deduplication
+✅ USER EXPERIENCE: 255+ genres available, proper mobile support
+
+Technical Achievements (Nov 12, 2025):
+Technical Achievements (Nov 15, 2025):
+- Implemented Last.fm Charts API with period-based filtering
+- Created unified theme system with minimal CSS overrides per page
+- Added Charts page with ranked lists and add-to-playlist actions
+- Extended footer navigation across all pages (version • Settings • Charts)
+- Fixed theme inheritance on browse_genres, browse_artists, browse_albums, recent_albums
+- Fixed status-box background color to respect light/high-contrast themes
+
+Previous Technical Achievements (Nov 12, 2025):
+- Fixed JavaScript template literal escaping: `.replace(/'/g, "\\'")`
+- Implemented MPD genre dictionary parsing: `{'genre': 'Rock'}` format
+- Added SocketIO success/error messaging for all operations
+- Integrated Auto-Fill min/max track settings with manual genre selection
+- Added responsive CSS for Clear Playlist button matching nav-links styling
+- Created unified backend route `/add_random_by_genre` with proper error handling
+
+Previous Enhancements (Nov 10, 2025):
+✅ Complete shuffle feature with real-time sync between pages
+✅ Standardized playback controls with Unicode icons across all pages
+✅ Professional message system with fixed upper-right positioning
+✅ Enhanced browse albums with Replace Playlist + auto-play functionality
+✅ Cleaned up redundant UI elements and improved layout consistency
+✅ Fixed search page message display functionality
+
+Previous Fixes (Nov 4, 2025):
+- Fixed search results "Method Not Allowed" errors
+- Converted GET links to POST forms for add buttons
+- Fixed route naming (add_to_playlist → add_song_to_playlist)
+- Eliminated JSON blank pages, now redirects to main page
+- Fixed systemd service with proper virtual environment activation
+- Uncommented perform_search import for full search functionality
+
+System Status: FULLY OPERATIONAL with professional-grade features
+
+Backup Snapshot (Nov 15, 2025):
+- Archive: mpd_web_control_backup_20251115_131815_theme_fixes_recent_browse.tar.gz
+- Locations: project/backups and user home directory
+- Retention: kept two most recent per location (older archives pruned automatically)
+
+Backup Snapshot (Nov 16, 2025):
+- Archive: mpd_web_control_backup_20251116_123734_ui_fixes_20251116.tar.gz
+- Locations: project/backups and user home directory
+- Retention: kept two most recent per location (older archives pruned automatically)

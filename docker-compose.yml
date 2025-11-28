@@ -1,0 +1,98 @@
+# Maestro MPD Control - Docker Compose Configuration
+# Hybrid setup supporting both containerized MPD and external MPD
+
+services:
+  # MPD Server (optional - controlled by profiles)
+  mpd:
+    image: vimagick/mpd:latest
+    container_name: mpd-server
+    profiles:
+      - with-mpd
+      - full
+    volumes:
+      - ./docker/mpd.conf:/etc/mpd.conf:ro
+      - ${MUSIC_DIRECTORY}:/music:ro
+      - mpd_db:/var/lib/mpd
+      - mpd_playlists:/var/lib/mpd/playlists
+      - mpd_logs:/var/log/mpd 
+      - /run/user/1000/pulse:/run/user/1000/pulse:rw  # PulseAudio socket
+    devices:
+      - /dev/snd:/dev/snd  # Audio device access
+    group_add:
+      - audio  # Add to audio group
+    user: "0:0"  # Run as root to fix permission issues
+    environment:
+      - PULSE_RUNTIME_PATH=/run/user/1000/pulse
+      - PULSE_SOCKET=unix:/run/user/1000/pulse/native
+    ports:
+      - "${MPD_EXTERNAL_PORT:-6600}:6600"
+      - "8002:8002"  # HTTP audio streaming (changed from 8001)
+    restart: unless-stopped
+    networks:
+      - mpd-network
+    healthcheck:
+      test: ["CMD-SHELL", "mpd --version || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # Web Application
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: mpd-web-control
+    depends_on:
+      mpd:
+        condition: service_healthy
+        required: false  # Allow startup even if mpd service not present
+    environment:
+      - MPD_HOST=${MPD_HOST:-mpd}
+      - MPD_PORT=${MPD_PORT:-6600}
+      - MPD_TIMEOUT=${MPD_TIMEOUT:-3}
+      - MUSIC_DIRECTORY=/music
+      - APP_PORT=5003
+      - APP_HOST=0.0.0.0
+      - DEFAULT_THEME=${DEFAULT_THEME:-dark}
+      - LASTFM_API_KEY=${LASTFM_API_KEY:-}
+      - LASTFM_SHARED_SECRET=${LASTFM_SHARED_SECRET:-}
+      - AUTO_FILL_ENABLED=${AUTO_FILL_ENABLED:-true}
+      - RECENT_MUSIC_DIRS=${RECENT_MUSIC_DIRS:-}
+      - SECRET_KEY=${SECRET_KEY:-mpd-web-control-docker-default}
+    volumes:
+      - ${MUSIC_DIRECTORY}:/music:ro
+      - ./data:/app/data
+      - web_cache:/app/cache
+    ports:
+      - "${WEB_PORT:-5003}:5003"
+    restart: unless-stopped
+    networks:
+      - mpd-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5003/api/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+# Named volumes for persistent data
+volumes:
+  mpd_db:
+    driver: local
+    name: mpd_web_control_db
+  mpd_playlists:
+    driver: local  
+    name: mpd_web_control_playlists
+  mpd_logs:
+    driver: local
+    name: mpd_web_control_logs
+  web_cache:
+    driver: local
+    name: mpd_web_control_cache
+
+# Custom network for service communication
+networks:
+  mpd-network:
+    name: mpd-network
+    driver: bridge

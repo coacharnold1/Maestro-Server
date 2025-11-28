@@ -1,0 +1,8 @@
+{
+  "theme": "dark",
+  "lastfm_api_key": "",
+  "lastfm_shared_secret": "",
+  "lastfm_session_key": "",
+  "scrobbling_enabled": false,
+  "show_scrobble_toasts": true
+}

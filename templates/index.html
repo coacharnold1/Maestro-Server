@@ -1,0 +1,1680 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maestro MPD Control</title>
+    <style>
+        .local-search-btn {
+            background-color: #27ae60 !important;
+            /* Green */
+            color: #fff !important;
+        }
+
+        .local-search-btn:hover {
+            background-color: #145a32 !important;
+            /* Darker green */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 5px;
+            /* Reduced body padding */
+            background-color: #1a1a1a;
+            /* Dark background */
+            color: #ecf0f1;
+            /* Light text */
+            display: flex;
+            flex-direction: column; /* Ensure footer stacks below container */
+            align-items: center; /* Center children horizontally */
+            justify-content: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            /* Expanded from 400px for desktop */
+            background-color: #2c3e50;
+            padding: 20px;
+            /* Increased padding for desktop */
+            border-radius: 15px;
+            box-shadow: 0 5px 18px rgba(0, 0, 0, 0.4);
+            box-sizing: border-box;
+        }
+
+        h1,
+        h2 {
+            color: #ecf0f1;
+            text-align: center;
+            margin-bottom: 15px;
+            /* Increased for desktop */
+            font-size: 2em;
+            /* Increased H1 size for desktop */
+        }
+
+        h1 {
+            background: linear-gradient(135deg, #3498db, #e74c3c, #f39c12);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 3s ease-in-out infinite;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            letter-spacing: 1px;
+            font-size: 2.2em;
+        }
+
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        /* Logo styling */
+        .logo-container {
+            margin-bottom: 20px;
+        }
+
+        .logo-container img {
+            max-width: 600px;
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
+
+        h2 {
+            font-size: 1.3em;
+            margin-bottom: 12px;
+            /* Increased H2 size */
+        }
+
+        .status-box {
+            border: 1px solid #34495e;
+            padding: 15px;
+            /* Increased padding */
+            border-radius: 8px;
+            background-color: #34495e;
+            margin-bottom: 15px;
+            /* Increased margin */
+        }
+
+        .status-item {
+            margin-bottom: 5px;
+            /* Increased margin */
+            font-size: 1em;
+            /* Normal font size */
+            line-height: 1.4;
+        }
+
+        .status-item span {
+            font-weight: bold;
+            color: #bdc3c7;
+        }
+
+        .disconnected {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .connected {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 15px;
+            /* Increased margin */
+            padding-top: 15px;
+            border-top: 1px solid #34495e;
+        }
+
+        .controls:first-of-type {
+            border-top: none;
+            padding-top: 0;
+        }
+
+        .controls button {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            border: none;
+            padding: 10px 15px;
+            margin: 4px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            min-width: 80px;
+            font-weight: bold;
+        }
+
+        .controls button:hover {
+            background-color: #bdc3c7;
+            transform: translateY(-1px);
+        }
+
+        .controls button:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .controls button:disabled {
+            background-color: #6c7a89;
+            color: #aeb6bf;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .controls button:hover {
+            background-color: #bdc3c7;
+            transform: translateY(-1px);
+        }
+
+        .controls button:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .controls button:disabled {
+            background-color: #6c7a89;
+            color: #aeb6bf;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .mpd-actions button {
+            background-color: #f1c40f;
+            color: #2c3e50;
+        }
+
+        .mpd-actions button:hover {
+            background-color: #f39c12;
+        }
+
+        .system-actions button {
+            background-color: #9b59b6;
+            color: #ecf0f1;
+        }
+
+        .system-actions button:hover {
+            background-color: #8e44ad;
+        }
+
+        /* Removed .volume-controls button styles as they are replaced by slider */
+
+        .album-art {
+            text-align: center;
+            margin: 15px auto;
+            /* Added auto margins for centering */
+        }
+
+        .album-art img {
+            max-width: 500px;
+            /* Increased from 400px */
+            max-height: 500px;
+            /* Increased from 400px */
+            min-width: 300px;
+            /* Ensure minimum size */
+            min-height: 300px;
+            /* Ensure minimum size */
+            width: auto;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+            border: 2px solid #34495e;
+            object-fit: contain;
+            display: block;
+            /* Ensure proper display */
+            margin: 0 auto;
+            /* Center the image itself */
+        }
+
+        /* Simple, compact volume controls */
+        .volume-controls-simple {
+            text-align: center;
+            margin-top: 15px;
+            padding: 15px;
+            border-top: 1px solid #34495e;
+        }
+
+        .volume-controls-simple h2 {
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .volume-controls-simple .volume-value {
+            color: #1abc9c;
+            font-weight: bold;
+        }
+
+        .volume-buttons-row {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* Desktop order: low to high (left to right) */
+        .volume-btn-small:nth-child(1) {
+            order: 4;
+        }
+
+        /* +5 goes to position 4 */
+        .volume-btn-small:nth-child(2) {
+            order: 3;
+        }
+
+        /* +2 goes to position 3 */
+        .volume-btn-mute {
+            order: 2;
+        }
+
+        /* mute stays in center */
+        .volume-btn-small:nth-child(4) {
+            order: 1;
+        }
+
+        /* -2 goes to position 1 */
+        .volume-btn-small:nth-child(5) {
+            order: 0;
+        }
+
+        /* -5 goes to position 0 */
+
+        /* Mobile: override order for vertical layout */
+        @media (max-width: 450px) {
+            .volume-buttons-row {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            /* Mobile order: high to low (top to bottom) */
+            .volume-btn-small:nth-child(1) {
+                order: 0;
+            }
+
+            /* +5 on top */
+            .volume-btn-small:nth-child(2) {
+                order: 1;
+            }
+
+            /* +2 next */
+            .volume-btn-mute {
+                order: 2;
+            }
+
+            /* mute in center */
+            .volume-btn-small:nth-child(4) {
+                order: 3;
+            }
+
+            /* -2 next */
+            .volume-btn-small:nth-child(5) {
+                order: 4;
+            }
+
+            /* -5 on bottom */
+        }
+
+        .volume-btn-small {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: background-color 0.3s ease;
+            min-width: 40px;
+        }
+
+        .volume-btn-small:hover {
+            background-color: #2980b9;
+        }
+
+        .volume-btn-mute {
+            background-color: #95a5a6;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: background-color 0.3s ease;
+            min-width: 40px;
+        }
+
+        .volume-btn-mute:hover {
+            background-color: #7f8c8d;
+        }
+
+        .volume-btn-mute.muted {
+            background-color: #e74c3c;
+        }
+
+        /* Styles for the progress bar */
+        .progress-container {
+            width: 100%;
+            background-color: #555;
+            border-radius: 5px;
+            margin-top: 12px;
+            height: 10px;
+            /* Slightly thicker progress bar */
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: #2ecc71;
+            border-radius: 5px;
+            transition: width 0.5s ease-out;
+        }
+
+        /* Styles for search buttons */
+        .search-actions button {
+            background-color: #3498db;
+            color: #ecf0f1;
+        }
+
+        .search-actions button:hover {
+            background-color: #2980b9;
+        }
+
+        /* New styles for the two-column button layout */
+        .search-actions .button-row {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 5px;
+        }
+
+        .search-actions .button-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .search-actions .button-row button {
+            flex: 1;
+            margin: 2px;
+        }
+
+        /* Styles for small MPD action buttons at bottom */
+        .mpd-actions-small {
+            margin-top: 20px;
+            padding: 8px;
+            opacity: 0.7;
+            /* Make it less prominent */
+            border-top: 1px solid #555;
+            /* Subtle separator */
+        }
+
+        .mpd-actions-small h3 {
+            font-size: 14px;
+            color: #bdc3c7;
+            margin-bottom: 8px;
+        }
+
+        .small-actions {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .small-btn {
+            font-size: 11px !important;
+            padding: 4px 8px !important;
+            background-color: #95a5a6 !important;
+            /* Muted gray */
+            color: #fff !important;
+            border-radius: 4px !important;
+            min-width: auto !important;
+        }
+
+        .small-btn:hover {
+            background-color: #7f8c8d !important;
+        }
+
+        /* Styles for the message display area */
+        #message-area {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #message-area.show {
+            opacity: 1;
+        }
+
+        #message-area.info {
+            background-color: #2ecc71;
+            color: #1a1a1a;
+        }
+
+        #message-area.error {
+            background-color: #e74c3c;
+            color: #ffffff;
+        }
+
+        /* New button style for 'Add Music' */
+        .add-music-btn button {
+            background-color: #e67e22;
+            color: #ecf0f1;
+        }
+
+        .add-music-btn button:hover {
+            background-color: #d35400;
+        }
+
+        /* New button style for 'Browse Database' */
+        .browse-btn button {
+            background-color: #8e44ad;
+            color: #ecf0f1;
+        }
+
+        .browse-btn button:hover {
+            background-color: #7d3c98;
+        }
+
+        /* New button style for 'View Playlist' */
+        .playlist-btn button {
+            background-color: #3498db;
+            color: #ecf0f1;
+        }
+
+        .playlist-btn button:hover {
+            background-color: #2980b9;
+        }
+
+        /* New style for MPD Options section (e.g., Consume Mode) */
+        .mpd-options-controls {
+            text-align: center;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #34495e;
+        }
+
+        .mpd-options-controls .form-group {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 5px;
+        }
+
+        .mpd-options-controls .form-group label {
+            margin-left: 8px;
+            /* Space between checkbox and label */
+            font-weight: normal;
+        }
+
+        /* Navigation Links */
+        .nav-links {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px 0;
+            border-top: 1px solid #34495e;
+            border-bottom: 1px solid #34495e;
+        }
+
+        .nav-links a,
+        .nav-links button {
+            color: #3498db;
+            text-decoration: none;
+            margin: 0 8px;
+            padding: 8px 16px;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            transition: all 0.3s;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            display: inline-block;
+        }
+
+        .nav-links a:hover,
+        .nav-links button:hover {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .nav-links .current-page {
+            background-color: #e67e22 !important;
+            color: white !important;
+            border-color: #e67e22 !important;
+            font-weight: bold;
+        }
+
+        .nav-links .current-page:hover {
+            background-color: #d35400 !important;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+            }
+
+            .container {
+                padding: 15px;
+                max-width: 100%;
+            }
+
+            h1 {
+                font-size: 1.5em;
+                margin-bottom: 10px;
+            }
+
+            h2 {
+                font-size: 1.1em;
+                margin-bottom: 8px;
+            }
+
+            .status-item {
+                font-size: 0.9em;
+            }
+
+            .status-box {
+                padding: 12px;
+                margin-bottom: 12px;
+            }
+
+            .controls {
+                margin-top: 12px;
+                padding-top: 12px;
+            }
+
+            .controls button {
+                padding: 8px 12px;
+                font-size: 0.85em;
+                min-width: 75px;
+            }
+
+            .album-art img {
+                max-width: 350px;
+                /* Increased for tablets */
+                max-height: 350px;
+            }
+
+            .album-art {
+                margin-top: 12px;
+                margin-bottom: 12px;
+            }
+
+            .volume-controls-simple {
+                padding: 10px;
+            }
+
+            .volume-buttons-row {
+                gap: 6px;
+            }
+
+            .volume-btn-small,
+            .volume-btn-mute {
+                padding: 5px 8px;
+                font-size: 0.8em;
+                min-width: 35px;
+            }
+
+            .progress-container {
+                height: 8px;
+                margin-top: 10px;
+            }
+
+            .nav-links {
+                margin: 15px 0;
+                padding: 10px 0;
+            }
+
+            .nav-links a,
+            .nav-links button {
+                margin: 2px 4px;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 450px) {
+            .container {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 1.3em;
+                margin-bottom: 8px;
+            }
+
+            h2 {
+                font-size: 1em;
+                margin-bottom: 6px;
+            }
+
+            .status-item {
+                font-size: 0.85em;
+            }
+
+            /* Mobile logo sizing */
+            .logo-container {
+                margin-bottom: 15px;
+            }
+
+            .logo-container img {
+                max-width: 400px;
+            }
+
+            .nav-links {
+                margin: 10px 0;
+                padding: 8px 0;
+            }
+
+            .nav-links a,
+            .nav-links button {
+                margin: 1px 2px;
+                padding: 4px 8px;
+                font-size: 11px;
+                display: inline-block;
+            }
+
+            .controls button {
+                display: block;
+                width: 90%;
+                margin: 5px auto;
+                padding: 12px;
+            }
+
+            .controls {
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+
+            .album-art img {
+                max-width: min(260px, calc(100vw - 30px));
+                /* Fixed: body(5px) + container(10px) = 15px each side = 30px total */
+                max-height: min(260px, calc(100vw - 30px));
+                width: auto;
+                height: auto;
+                display: block;
+                /* Make it a block element */
+                margin: 0 auto;
+                /* Classic centering technique */
+            }
+
+            .album-art {
+                margin: 12px 0;
+                text-align: center;
+                /* Center the block element */
+                width: 100%;
+                padding: 0;
+                /* Remove any padding */
+                box-sizing: border-box;
+            }
+
+            .volume-controls-container {
+                padding: 10px;
+            }
+
+            .volume-display .volume-value {
+                font-size: 1.3em;
+                padding: 6px 12px;
+            }
+
+            .volume-buttons {
+                gap: 4px;
+                justify-content: space-around;
+            }
+
+            .volume-btn {
+                padding: 8px 10px;
+                font-size: 0.8em;
+                min-width: 50px;
+                flex: 1;
+                max-width: 65px;
+            }
+
+            .volume-presets {
+                gap: 4px;
+                margin-top: 8px;
+            }
+
+            .preset-btn {
+                padding: 5px 8px;
+                font-size: 0.75em;
+                min-width: 40px;
+                flex: 1;
+            }
+
+            /* Fix MPD Options layout on mobile - stack vertically */
+            .mpd-options-controls .form-group {
+                display: grid !important;
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+            }
+
+            /* Fix small MPD action buttons on mobile */
+            .small-actions {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .small-btn {
+                font-size: 12px !important;
+                padding: 8px 12px !important;
+                width: 100% !important;
+                text-align: center !important;
+                display: block !important;
+            }
+
+            /* Mobile footer styling */
+            .mpd-actions-small:last-child {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                gap: 8px !important;
+                text-align: center !important;
+                padding: 15px 0 !important;
+                margin: 15px 0 !important;
+            }
+
+            .mpd-actions-small:last-child span {
+                margin-bottom: 8px !important;
+            }
+
+            .mpd-actions-small:last-child a {
+                display: block !important;
+                margin: 0 !important;
+                width: 120px !important;
+            }
+        }
+
+        /* Minimal theme overrides to honor Settings theme */
+        body.light {
+            background-color: #f5f5f7;
+            color: #1a1a1a;
+        }
+        body.light .container {
+            background-color: #ffffff;
+            color: #1a1a1a;
+        }
+        body.light .status-box {
+            background-color: #f0f3f6;
+            border-color: #d0d7de;
+        }
+        body.high-contrast {
+            background-color: #000000;
+            color: #ffff00;
+        }
+        body.high-contrast .container {
+            background-color: #000000;
+            color: #ffff00;
+            border: 2px solid #ffff00;
+        }
+        body.high-contrast .status-box {
+            background-color: #000000;
+            border: 2px solid #ffff00;
+        }
+
+        /* Desert theme */
+        body.desert {
+            background-color: #2c1810;
+            color: #f4e4bc;
+        }
+        body.desert .container {
+            background-color: #3d2f20;
+            color: #f4e4bc;
+            border-color: #8b4513;
+        }
+        body.desert .status-box {
+            background-color: #4a3b2a;
+            border-color: #cd853f;
+        }
+    </style>
+    <!-- Include Socket.IO client library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="{{ app_theme }}">
+    <div class="container">
+        <!-- Animated SVG Logo -->
+        <div class="logo-container" style="text-align: center; margin-bottom: 20px;">
+            <img src="{{ url_for('static', filename='logo.svg') }}" alt="Maestro MPD Control"
+                style="max-width: 600px; width: 100%; height: auto;">
+        </div>
+
+        <div class="nav-links">
+            <a href="/" class="current-page">🏠 Main</a>
+            <a href="/playlist">🎵 Playlist</a>
+            <a href="/add_music">🎲 Add Music</a>
+            <a href="/search">🔍 Search</a>
+            <a href="/recent">📀 Recent</a>
+            <a href="/browse">🗂️ Browse</a>
+        </div>
+
+        <div class="status-box">
+            <h2>MPD Status: <span id="mpd-state"
+                    class="{{ 'connected' if mpd_info.state != 'disconnected' else 'disconnected' }}">{{ mpd_info.state
+                    }}</span></h2>
+            <p class="status-item"><span>Message:</span> <span id="mpd-message">{{ mpd_info.message }}</span></p>
+            {% if mpd_info.state != 'disconnected' and mpd_info.state != 'error' %}
+            <p class="status-item"><span>Artist:</span> <span id="current-artist"><a href="/search?query={{ mpd_info.artist|strip_location|urlencode }}&type=artist" style="color:#27ae60; text-decoration:underline;">{{ mpd_info.artist }}</a></span></p>
+            <p class="status-item"><span>Title:</span> <span id="current-title">{{ mpd_info.song_title }}</span></p>
+            <p class="status-item"><span>Album:</span> <span id="current-album">{{ mpd_info.album }}</span></p>
+            <p class="status-item"><span>Genre:</span> <span id="current-genre">{{ mpd_info.get('genre') if mpd_info.get('genre') else 'N/A' }}</span></p>
+            <p class="status-item"><span>Format:</span> <span id="current-format">{% if mpd_info.get('file_format') or mpd_info.get('sample_rate') or mpd_info.get('bit_depth') %}{% if mpd_info.get('file_format') %}{{ mpd_info.get('file_format') }}{% endif %}{% if mpd_info.get('sample_rate') %}{% if mpd_info.get('file_format') %} • {% endif %}{{ (mpd_info.get('sample_rate') / 1000.0)|float|round(1, 'common') }} kHz{% endif %}{% if mpd_info.get('bit_depth') %}{% if mpd_info.get('file_format') or mpd_info.get('sample_rate') %} • {% endif %}{{ mpd_info.get('bit_depth') }}-bit{% endif %}{% else %}N/A{% endif %}</span></p>
+            <p class="status-item"><span>Playback:</span> <span id="playback-summary">Vol {{ mpd_info.volume }}% • {{ mpd_info.elapsed_time }} / {{ mpd_info.total_time }}</span></p>
+            <p class="status-item"><span>Up Next:</span> <em><span id="up-next-artist"><a href="/search?query={{ mpd_info.next_song_artist|strip_location|urlencode }}&type=artist" style="color:#27ae60; text-decoration:underline;">{{ mpd_info.next_song_artist }}</a></span> - <span id="up-next-title">{{ mpd_info.next_song_title }}</span></em></p>
+            {# Progress Bar - initial width moved to JS to avoid inline Jinja in style #}
+            <div class="progress-container">
+                <div class="progress-bar" id="song-progress-bar"
+                     data-initial-elapsed="{{ mpd_info.raw_elapsed_time | default(0) }}"
+                     data-initial-total="{{ mpd_info.raw_total_time | default(0) }}">
+                </div>
+            </div>
+            {% else %}
+            <p class="status-item"><span>Artist:</span> N/A</p>
+            <p class="status-item"><span>Title:</span> N/A</p>
+            <p class="status-item"><span>Album:</span> N/A</p>
+            <p class="status-item"><span>Genre:</span> N/A</p>
+            <p class="status-item"><span>Format:</span> N/A</p>
+            <p class="status-item"><span>Playback:</span> Vol 0% • 00:00 / 00:00</p>
+            <p class="status-item"><span>Up Next:</span> <em>N/A</em></p>
+            <div class="progress-container">
+                <div class="progress-bar" id="song-progress-bar" data-initial-elapsed="0" data-initial-total="0"></div>
+            </div>
+            {% endif %}
+        </div>
+
+        {# Album Art Display - now uses album_art_url from Flask context #}
+        <div class="album-art" id="album-art-container">
+            <img id="album-art-img" src="{{ album_art_url }}" alt="Album Art">
+        </div>
+
+        <div class="controls">
+            <h2>Playback Controls</h2>
+            <button onclick="previousTrack()" style="background-color: #9b59b6; color: white;">⏮️ Previous</button>
+            <button onclick="playMusic()" style="background-color: #27ae60; color: white;">▶️ Play</button>
+            <button onclick="stopMusic()" style="background-color: #f39c12; color: white;">⏹️ Stop</button>
+            <button onclick="pauseMusic()" style="background-color: #e74c3c; color: white;">⏸️ Pause</button>
+            <button onclick="nextTrack()" style="background-color: #3498db; color: white;">⏭️ Next</button>
+        </div>
+
+        {# VOLUME CONTROLS - Simple and Clean #}
+        <div class="controls volume-controls-simple">
+            <h2>Volume: <span class="volume-value" id="volume-percentage-display">{{ mpd_info.volume | default(0)
+                    }}%</span></h2>
+            <div class="volume-buttons-row">
+                <button class="volume-btn-small" onclick="adjustVolume(5)">+5</button>
+                <button class="volume-btn-small" onclick="adjustVolume(2)">+2</button>
+                <button class="volume-btn-mute" onclick="toggleMute()" id="mute-btn">🔇</button>
+                <button class="volume-btn-small" onclick="adjustVolume(-2)">-2</button>
+                <button class="volume-btn-small" onclick="adjustVolume(-5)">-5</button>
+            </div>
+        </div>
+
+        {# NEW: MPD Options (Consume Mode) #}
+        <div class="controls mpd-options-controls">
+            <h2>MPD Options</h2>
+            <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; max-width: 800px; margin: 0 auto; justify-items: center;">
+                <span style="display: flex; flex-direction: column; align-items: flex-start;">
+                    <span style="display: flex; align-items: center;">
+                        <input type="checkbox" id="consume-mode-checkbox" {{ 'checked' if mpd_info.consume_mode else ''
+                            }}>
+                        <label for="consume-mode-checkbox" style="margin-left: 8px;">Consume Mode</label>
+                    </span>
+                    <small style="color: #95a5a6; font-size: 0.8em; margin-left: 20px;">Remove played tracks</small>
+                </span>
+                <span style="display: flex; flex-direction: column; align-items: flex-start;">
+                    <span style="display: flex; align-items: center;">
+                        <input type="checkbox" id="shuffle-mode-checkbox" {{ 'checked' if mpd_info.shuffle_mode else ''
+                            }}>
+                        <label for="shuffle-mode-checkbox" style="margin-left: 8px;">Shuffle Mode</label>
+                    </span>
+                    <small style="color: #95a5a6; font-size: 0.8em; margin-left: 20px;">Random play order</small>
+                </span>
+                <span style="display: flex; flex-direction: column; align-items: flex-start;">
+                    <span style="display: flex; align-items: center;">
+                        <input type="checkbox" id="crossfade-checkbox" {{ 'checked' if mpd_info.crossfade_enabled else ''
+                            }}>
+                        <label for="crossfade-checkbox" style="margin-left: 8px;">Crossfade</label>
+                    </span>
+                    <small style="color: #95a5a6; font-size: 0.8em; margin-left: 20px;">5s between tracks</small>
+                </span>
+                <span style="display: flex; flex-direction: column; align-items: flex-start;">
+                    <span style="display: flex; align-items: center;">
+                        <input type="checkbox" id="auto-fill-toggle-index">
+                        <label for="auto-fill-toggle-index" style="margin-left: 8px;">Auto-Fill</label>
+                    </span>
+                    <span id="auto-fill-status-index"
+                        style="font-size: 0.8em; color: #95a5a6; margin-left: 20px;">Loading...</span>
+                </span>
+            </div>
+
+        </div>
+
+        {# NEW: View Playlist Button - MOVED TO TOP #}
+        <div class="controls playlist-btn">
+            <h2>Playlist</h2>
+            <a href="{{ url_for('playlist_page') }}"><button>View Playlist</button></a>
+        </div>
+
+        {# NEW: Recent Albums Button #}
+        <div class="controls recent-albums-btn">
+            <h2>Recently Added</h2>
+            <a href="{{ url_for('recent_albums_page') }}"><button>Recently Added</button></a>
+        </div>
+
+        {# NEW: Browse Database Button #}
+        <div class="controls browse-btn">
+            <h2>Browse Music</h2>
+            <a href="{{ url_for('browse_genres_page') }}"><button>Browse by Genre</button></a>
+        </div>
+
+        {# LOCAL SEARCH - Moved down in order #}
+        <div class="controls search-actions"
+            style="border-top: 2px solid #34495e; margin-top: 20px; padding-top: 20px;">
+            <h2>Local Music Search</h2>
+            <div class="button-row">
+                <a href="{{ url_for('search') }}"><button class="local-search-btn">Search Music Library</button></a>
+            </div>
+        </div>
+
+        {# NEW: Add Music Button - MOVED TO BOTTOM #}
+        <div class="controls add-music-btn">
+            <h2>Add Random Music</h2>
+            <a href="{{ url_for('add_music_page') }}"><button>Add Random Tracks</button></a>
+        </div>
+
+        {# External Information Section - MOVED HERE #}
+        <div class="controls search-actions"
+            style="border-top: 2px solid #34495e; margin-top: 20px; padding-top: 20px;">
+            <h2>External Information</h2>
+            <div class="button-row">
+                <button id="wikipedia-artist-search-btn">Wikipedia (Artist)</button>
+                <button id="musicbrainz-album-search-btn">MusicBrainz (Album)</button>
+            </div>
+            <div class="button-row">
+                <button id="allmusic-artist-search-btn">AllMusic (Artist)</button>
+                <button id="allmusic-album-search-btn">AllMusic (Album)</button>
+            </div>
+        </div>
+
+        {# MPD Actions - moved to bottom with smaller styling #}
+        <div class="controls mpd-actions-small">
+            <h3>Advanced MPD Actions</h3>
+            <div class="small-actions">
+                <a href="{{ url_for('restart_mpd') }}"><button class="small-btn">Restart MPD</button></a>
+                <a href="{{ url_for('update_mpd_db') }}" id="update-db-link"><button class="small-btn" id="update-db-btn">Update DB</button></a>
+                <button class="small-btn" id="clear-art-cache-btn">Clear Cache</button>
+            </div>
+            <div id="db-update-status" style="display: none; margin-top: 10px; padding: 10px; background-color: #3498db; color: white; border-radius: 5px; text-align: center; font-weight: bold;">
+                <span id="db-update-text">⏳ Updating database...</span>
+            </div>
+        </div>
+
+
+        {# NEW: Message Display Area #}
+        <div id="message-area"></div>
+
+        {# App Info + Settings (kept inside container so it’s always visible) #}
+        <div class="controls mpd-actions-small" style="margin-top: 18px;">
+            <span id="version-info">Loading version info...</span>
+            <a href="/settings" class="small-btn" style="background-color:#7f8c8d !important; padding: 4px 8px !important;">Settings</a>
+            <a href="/charts" class="small-btn" style="background-color:#7f8c8d !important; padding: 4px 8px !important;">Charts</a>
+        </div>
+
+    </div>
+
+    <script>
+        // Populate version info
+        (function () {
+            fetch('/api/version')
+                .then(r => r.json())
+                .then(data => {
+                    const el = document.getElementById('version-info');
+                    if (el) el.textContent = `${data.app_name} v${data.version} (${data.build_date})`;
+                })
+                .catch(() => {
+                    const el = document.getElementById('version-info');
+                    if (el) el.textContent = 'MPD Web Control';
+                });
+        })();
+
+        console.log('DEBUG: index.html script loaded');
+        document.addEventListener('DOMContentLoaded', function () {
+            // Connect to Socket.IO server
+            const socket = io();
+
+            // DOM elements to update
+            const mpdState = document.getElementById('mpd-state');
+            const mpdMessage = document.getElementById('mpd-message');
+            const currentArtistSpan = document.getElementById('current-artist');
+            const currentTitleSpan = document.getElementById('current-title');
+            const currentAlbumSpan = document.getElementById('current-album');
+            const currentGenreSpan = document.getElementById('current-genre');
+            const currentFormatSpan = document.getElementById('current-format');
+            const upNextArtistSpan = document.getElementById('up-next-artist');
+            const upNextTitleSpan = document.getElementById('up-next-title');
+            const playbackSummarySpan = document.getElementById('playback-summary');
+            const volumePercentageDisplay = document.getElementById('volume-percentage-display');
+            const muteBtn = document.getElementById('mute-btn');
+            const albumArtImg = document.getElementById('album-art-img');
+            const albumArtContainer = document.getElementById('album-art-container');
+            const songProgressBar = document.getElementById('song-progress-bar');
+            const messageArea = document.getElementById('message-area'); // Message area element
+
+            // Initialize progress bar width from data attributes (avoids inline Jinja in style)
+            if (songProgressBar && songProgressBar.dataset) {
+                const initialElapsed = parseFloat(songProgressBar.dataset.initialElapsed || '0');
+                const initialTotal = parseFloat(songProgressBar.dataset.initialTotal || '0');
+                if (initialTotal > 0 && !isNaN(initialElapsed) && !isNaN(initialTotal)) {
+                    const pct = Math.max(0, Math.min(100, (initialElapsed / initialTotal) * 100));
+                    songProgressBar.style.width = pct + '%';
+                } else {
+                    songProgressBar.style.width = '0%';
+                }
+            }
+
+            // Search buttons
+            const wikipediaArtistSearchBtn = document.getElementById('wikipedia-artist-search-btn');
+            const allmusicArtistSearchBtn = document.getElementById('allmusic-artist-search-btn');
+            const wikipediaAlbumSearchBtn = document.getElementById('allmusic-album-search-btn');
+            const allmusicAlbumSearchBtn = document.getElementById('musicbrainz-album-search-btn');
+
+            // Debug: Log if buttons are found
+            console.log('wikipediaArtistSearchBtn:', wikipediaArtistSearchBtn);
+            console.log('allmusicArtistSearchBtn:', allmusicArtistSearchBtn);
+            console.log('wikipediaAlbumSearchBtn:', wikipediaAlbumSearchBtn);
+            console.log('allmusicAlbumSearchBtn:', allmusicAlbumSearchBtn);
+
+            // NEW: Consume Mode Checkbox
+            const consumeModeCheckbox = document.getElementById('consume-mode-checkbox');
+
+            // Function to strip location tags like [down], [up], etc. from artist names
+            function stripLocation(text) {
+                if (!text) return text;
+                return text.replace(/\s*\[.*?\]\s*$/g, '').trim();
+            }
+            // NEW: Shuffle Mode Checkbox
+            const shuffleModeCheckbox = document.getElementById('shuffle-mode-checkbox');
+            // NEW: Crossfade Checkbox
+            const crossfadeCheckbox = document.getElementById('crossfade-checkbox');
+
+            // Check if elements exist before using them
+            if (!consumeModeCheckbox) {
+                console.error('consume-mode-checkbox element not found');
+            }
+            if (!shuffleModeCheckbox) {
+                console.error('shuffle-mode-checkbox element not found');
+            }
+            if (!crossfadeCheckbox) {
+                console.error('crossfade-checkbox element not found');
+            }
+
+            // NEW: Auto-Fill Toggle (index page)
+            const autoFillToggleIndex = document.getElementById('auto-fill-toggle-index');
+            const autoFillStatusIndex = document.getElementById('auto-fill-status-index');
+            // --- Socket.IO Listener for auto-fill status ---
+            socket.on('auto_fill_status', function (data) {
+                if (autoFillToggleIndex) autoFillToggleIndex.checked = data.active;
+                if (autoFillStatusIndex) {
+                    if (data.active) {
+                        autoFillStatusIndex.textContent = `Enabled, monitoring for < ${data.min_queue_length} tracks.`;
+                        autoFillStatusIndex.style.color = '#2ecc71';
+                    } else {
+                        autoFillStatusIndex.textContent = 'Disabled.';
+                        autoFillStatusIndex.style.color = '#e74c3c';
+                    }
+                }
+            });
+
+            // --- Initial fetch of auto-fill status on page load ---
+            fetch('/get_auto_fill_status')
+                .then(response => response.json())
+                .then(data => {
+                    if (autoFillToggleIndex) autoFillToggleIndex.checked = data.active;
+                    if (autoFillStatusIndex) {
+                        if (data.active) {
+                            autoFillStatusIndex.textContent = `Enabled, monitoring for < ${data.min_queue_length} tracks.`;
+                            autoFillStatusIndex.style.color = '#2ecc71';
+                        } else {
+                            autoFillStatusIndex.textContent = 'Disabled.';
+                            autoFillStatusIndex.style.color = '#e74c3c';
+                        }
+                    }
+                })
+                .catch(error => {
+                    if (autoFillStatusIndex) {
+                        autoFillStatusIndex.textContent = 'Could not load auto-fill status.';
+                        autoFillStatusIndex.style.color = '#e74c3c';
+                    }
+                });
+            // --- Auto-Fill Toggle Event Listener (index page) ---
+            if (autoFillToggleIndex) {
+                autoFillToggleIndex.addEventListener('change', function () {
+                    const newState = this.checked;
+                    fetch('/toggle_auto_fill', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ active: newState })
+                    })
+                        .then(response => {
+                            if (!response.ok) {
+                                displayMessage('error', 'Failed to toggle auto-fill.');
+                            }
+                            // Status will be updated via auto_fill_status SocketIO event
+                        })
+                        .catch(error => {
+                            displayMessage('error', `Error: ${error.message}`);
+                        });
+                });
+            }
+
+            // Clear Album Art Cache button
+            const clearArtCacheBtn = document.getElementById('clear-art-cache-btn');
+
+            // Debug: Log if event listeners are being attached
+            if (wikipediaArtistSearchBtn) console.log('Attaching event listener to wikipediaArtistSearchBtn');
+            if (allmusicArtistSearchBtn) console.log('Attaching event listener to allmusicArtistSearchBtn');
+            if (wikipediaAlbumSearchBtn) console.log('Attaching event listener to wikipediaAlbumSearchBtn');
+            if (allmusicAlbumSearchBtn) console.log('Attaching event listener to allmusicAlbumSearchBtn');
+
+            // Function to update the UI with new MPD status data
+            function updateUI(data) {
+                // Update MPD State
+                mpdState.textContent = data.state;
+                mpdState.className = data.state === 'disconnected' || data.state === 'error' ? 'disconnected' : 'connected';
+
+                // Update Message
+                mpdMessage.textContent = data.message;
+
+                // Update song details if connected and not in error
+                if (data.state !== 'disconnected' && data.state !== 'error') {
+                    const strippedArtist = stripLocation(data.artist);
+                    currentArtistSpan.innerHTML = `<a href="/search?query=${encodeURIComponent(strippedArtist)}&type=artist" style="color:#27ae60; text-decoration:underline;">${data.artist}</a>`;
+                    currentTitleSpan.textContent = data.song_title;
+                    currentAlbumSpan.textContent = data.album;
+                    if (currentGenreSpan) currentGenreSpan.textContent = data.genre || 'N/A';
+                    if (currentFormatSpan) currentFormatSpan.textContent = formatAudioFormat(data.sample_rate, data.bit_depth, data.file_format);
+
+                    // Update playback summary and volume controls display
+                    if (playbackSummarySpan) playbackSummarySpan.textContent = `Vol ${data.volume}% • ${data.elapsed_time} / ${data.total_time}`;
+                    if (volumePercentageDisplay) volumePercentageDisplay.textContent = data.volume + '%';
+
+                    // Update progress bar
+                    if (data.raw_total_time > 0) {
+                        const progress = (data.raw_elapsed_time / data.raw_total_time) * 100;
+                        songProgressBar.style.width = `${progress}%`;
+                    } else {
+                        songProgressBar.style.width = '0%';
+                    }
+
+                    // Update album art
+                    // Construct the URL for the album art route, passing current song info with cache busting
+                    const timestamp = new Date().getTime();
+                    const newArtSrc = `/album_art?song_file=${encodeURIComponent(data.song_file)}&artist=${encodeURIComponent(data.artist)}&album=${encodeURIComponent(data.album)}&t=${timestamp}`;
+                    if (albumArtImg.src.split('&t=')[0] !== newArtSrc.split('&t=')[0]) { // Only update if different (ignoring timestamp)
+                        albumArtImg.src = newArtSrc;
+                        albumArtImg.onerror = function () {
+                            this.onerror = null;
+                            this.src = "{{ url_for('static_placeholder_art') }}";
+                        };
+                    }
+                    albumArtContainer.style.display = 'block';
+
+                    // Enable/Disable search buttons based on data availability
+                    const hasArtist = (data.artist && data.artist !== 'N/A');
+                    const hasAlbum = (data.album && data.album !== 'N/A');
+
+                    wikipediaArtistSearchBtn.disabled = !hasArtist;
+                    allmusicArtistSearchBtn.disabled = !hasArtist;
+                    wikipediaAlbumSearchBtn.disabled = !(hasArtist && hasAlbum);
+                    allmusicAlbumSearchBtn.disabled = !(hasArtist && hasAlbum);
+
+                    // NEW: Update consume mode checkbox
+                    if (consumeModeCheckbox) {
+                        consumeModeCheckbox.checked = data.consume_mode;
+                    }
+                    // NEW: Update shuffle mode checkbox
+                    if (shuffleModeCheckbox) {
+                        shuffleModeCheckbox.checked = data.shuffle_mode;
+                    }
+                    // NEW: Update crossfade checkbox
+                    if (crossfadeCheckbox) {
+                        crossfadeCheckbox.checked = data.crossfade_enabled;
+                    }
+                    // NEW: Update Up Next
+                    if (upNextArtistSpan && typeof data.next_song_artist !== 'undefined') {
+                        const strippedNextArtist = stripLocation(data.next_song_artist);
+                        upNextArtistSpan.innerHTML = `<a href="/search?query=${encodeURIComponent(strippedNextArtist)}&type=artist" style="color:#27ae60; text-decoration:underline;">${data.next_song_artist}</a>`;
+                    }
+                    if (upNextTitleSpan && typeof data.next_song_title !== 'undefined') {
+                        upNextTitleSpan.textContent = data.next_song_title;
+                    }
+
+                } else {
+                    // Clear or set N/A for song details if disconnected/error
+                    currentArtistSpan.innerHTML = 'N/A';
+                    currentTitleSpan.textContent = 'N/A';
+                    currentAlbumSpan.textContent = 'N/A';
+                    if (currentGenreSpan) currentGenreSpan.textContent = 'N/A';
+                    if (currentFormatSpan) currentFormatSpan.textContent = 'N/A';
+                    if (playbackSummarySpan) playbackSummarySpan.textContent = 'Vol 0% • 00:00 / 00:00';
+                    if (volumePercentageDisplay) volumePercentageDisplay.textContent = '0%';
+                    songProgressBar.style.width = '0%';
+                    albumArtImg.src = "{{ url_for('static_placeholder_art') }}";
+                    albumArtContainer.style.display = 'block'; // Keep placeholder visible
+
+                    // Disable all search buttons
+                    wikipediaArtistSearchBtn.disabled = true;
+                    allmusicArtistSearchBtn.disabled = true;
+                    wikipediaAlbumSearchBtn.disabled = true;
+                    allmusicAlbumSearchBtn.disabled = true;
+
+                    // NEW: Set consume mode checkbox to false if disconnected
+                    consumeModeCheckbox.checked = false;
+                    shuffleModeCheckbox.checked = false;
+                    crossfadeCheckbox.checked = false;
+                    if (upNextArtistSpan) upNextArtistSpan.innerHTML = 'N/A';
+                    if (upNextTitleSpan) upNextTitleSpan.textContent = 'N/A';
+                }
+            }
+
+            // Function to display messages on the UI
+            let messageTimeout;
+            function displayMessage(type, text) {
+                clearTimeout(messageTimeout); // Clear any existing timeout
+                messageArea.textContent = text;
+                messageArea.className = `show ${type}`; // Add 'show' and type class
+                messageArea.style.opacity = 1; // Ensure it's visible
+
+                // Hide message after 5 seconds
+                messageTimeout = setTimeout(() => {
+                    messageArea.style.opacity = 0; // Fade out
+                    // Clear content after transition
+                    setTimeout(() => {
+                        messageArea.textContent = '';
+                        messageArea.className = ''; // Remove all classes
+                    }, 500); // Match CSS transition duration
+                }, 5000); // Display for 5 seconds
+            }
+
+            // Function to show version information
+            function showVersion() {
+                fetch('/api/version')
+                    .then(response => response.json())
+                    .then(data => {
+                        const versionText = `${data.app_name} v${data.version} (Build: ${data.build_date})`;
+                        displayMessage('info', versionText);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching version:', error);
+                        displayMessage('error', 'Error fetching version information');
+                    });
+            }
+            // Make showVersion globally available
+            window.showVersion = showVersion;
+
+
+            // Listen for 'mpd_status' events from the server
+            socket.on('mpd_status', function (data) {
+                console.log('Received MPD status:', data);
+                updateUI(data);
+            });
+
+            // Listen for 'server_message' events for system actions
+            socket.on('server_message', function (data) {
+                console.log('Server Message:', data);
+                displayMessage(data.type, data.text); // Display message on UI
+            });
+
+
+            // Volume slider event listener
+            // volumeSlider event listeners removed due to missing element
+            // If you add a slider with id="volume-slider", you can restore this code.
+
+            // Search button event listeners - now four of them
+            wikipediaArtistSearchBtn.addEventListener('click', function () {
+                const artist = currentArtistSpan.textContent || currentArtistSpan.innerText;
+                if (artist !== 'N/A') {
+                    const query = encodeURIComponent(stripLocation(artist));
+                    window.open(`https://en.wikipedia.org/w/index.php?search=${query}`, '_blank');
+                }
+            });
+
+            allmusicArtistSearchBtn.addEventListener('click', function () {
+                const artist = currentArtistSpan.textContent || currentArtistSpan.innerText;
+                if (artist !== 'N/A') {
+                    const query = encodeURIComponent(stripLocation(artist));
+                    window.open(`https://www.allmusic.com/search/all/${query}`, '_blank');
+                }
+            });
+
+            wikipediaAlbumSearchBtn.addEventListener('click', function () {
+                const artist = currentArtistSpan.textContent || currentArtistSpan.innerText;
+                const album = currentAlbumSpan.textContent;
+                if (artist !== 'N/A' && album !== 'N/A') {
+                    // AllMusic search - better for album reviews and information
+                    const query = encodeURIComponent(`${stripLocation(artist)} ${album}`);
+                    window.open(`https://www.allmusic.com/search/all/${query}`, '_blank');
+                }
+            });
+
+            allmusicAlbumSearchBtn.addEventListener('click', function () {
+                const artist = currentArtistSpan.textContent || currentArtistSpan.innerText;
+                const album = currentAlbumSpan.textContent;
+                if (artist !== 'N/A' && album !== 'N/A') {
+                    // MusicBrainz search - simpler format that works better
+                    const query = encodeURIComponent(`${album} ${stripLocation(artist)}`);
+                    window.open(`https://musicbrainz.org/search?query=${query}&type=release`, '_blank');
+                }
+            });
+
+            // NEW: Consume Mode Checkbox Event Listener
+            if (consumeModeCheckbox) {
+                consumeModeCheckbox.addEventListener('change', function () {
+                    const newState = this.checked;
+                    fetch('/toggle_consume_mode', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ active: newState })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'error') {
+                                displayMessage('error', data.message);
+                                // Revert checkbox state if server reported an error
+                                consumeModeCheckbox.checked = !newState;
+                            }
+                            // Success messages are handled by server_message SocketIO event
+                        })
+                        .catch(error => {
+                            console.error('Error toggling consume mode:', error);
+                            displayMessage('error', `Error toggling consume mode: ${error.message}`);
+                            // Revert checkbox state on network error
+                            consumeModeCheckbox.checked = !newState;
+                        });
+                });
+            }
+
+            // NEW: Shuffle Mode Checkbox Event Listener
+            if (shuffleModeCheckbox) {
+                shuffleModeCheckbox.addEventListener('change', function () {
+                    const newState = this.checked;
+                    fetch('/toggle_shuffle_mode', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ active: newState })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'error') {
+                                displayMessage('error', data.message);
+                                // Revert checkbox state if server reported an error
+                                shuffleModeCheckbox.checked = !newState;
+                            }
+                            // Success messages are handled by server_message SocketIO event
+                        })
+                        .catch(error => {
+                            console.error('Error toggling shuffle mode:', error);
+                            displayMessage('error', `Error toggling shuffle mode: ${error.message}`);
+                            // Revert checkbox state on network error
+                            shuffleModeCheckbox.checked = !newState;
+                        });
+                });
+            }
+
+            // NEW: Crossfade Checkbox Event Listener
+            if (crossfadeCheckbox) {
+                crossfadeCheckbox.addEventListener('change', function () {
+                    const newState = this.checked;
+                    fetch('/toggle_crossfade', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ active: newState })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'error') {
+                                displayMessage('error', data.message);
+                                // Revert checkbox state if server reported an error
+                                crossfadeCheckbox.checked = !newState;
+                            }
+                            // Success messages are handled by server_message SocketIO event
+                        })
+                        .catch(error => {
+                            console.error('Error toggling crossfade:', error);
+                            displayMessage('error', `Error toggling crossfade: ${error.message}`);
+                            // Revert checkbox state on network error
+                            crossfadeCheckbox.checked = !newState;
+                        });
+                });
+            }
+
+            // Clear Album Art Cache Event Listener
+            clearArtCacheBtn.addEventListener('click', function () {
+                fetch('/clear_art_cache', {
+                    method: 'POST'
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        displayMessage('info', 'Album art cache cleared! Refresh page to see updated artwork.');
+                    })
+                    .catch(error => {
+                        console.error('Error clearing cache:', error);
+                        displayMessage('error', 'Error clearing album art cache');
+                    });
+            });
+
+            // Database Update Monitoring
+            let dbUpdateCheckInterval = null;
+            const dbUpdateStatus = document.getElementById('db-update-status');
+            const dbUpdateText = document.getElementById('db-update-text');
+            const updateDbBtn = document.getElementById('update-db-btn');
+            const updateDbLink = document.getElementById('update-db-link');
+
+            function checkDbUpdateStatus() {
+                fetch('/api/db_update_status')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success' && data.updating) {
+                            // Update is in progress
+                            dbUpdateStatus.style.display = 'block';
+                            dbUpdateText.textContent = `⏳ Updating database... (Job #${data.job_id})`;
+                            updateDbBtn.disabled = true;
+                            updateDbBtn.style.opacity = '0.5';
+                        } else {
+                            // Update is complete or not running
+                            if (dbUpdateStatus.style.display === 'block') {
+                                // Was updating, now complete - show success message
+                                dbUpdateText.textContent = '✅ Database update complete!';
+                                dbUpdateStatus.style.backgroundColor = '#27ae60';
+                                setTimeout(() => {
+                                    dbUpdateStatus.style.display = 'none';
+                                    dbUpdateStatus.style.backgroundColor = '#3498db';
+                                }, 3000);
+                                
+                                // Stop polling
+                                if (dbUpdateCheckInterval) {
+                                    clearInterval(dbUpdateCheckInterval);
+                                    dbUpdateCheckInterval = null;
+                                }
+                            }
+                            updateDbBtn.disabled = false;
+                            updateDbBtn.style.opacity = '1';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error checking DB update status:', error);
+                    });
+            }
+
+            // Intercept Update DB link click to start monitoring
+            updateDbLink.addEventListener('click', function(e) {
+                // Let the link navigate normally, but start polling after a short delay
+                setTimeout(() => {
+                    dbUpdateStatus.style.display = 'block';
+                    dbUpdateText.textContent = '⏳ Starting database update...';
+                    
+                    // Start polling every 2 seconds
+                    if (dbUpdateCheckInterval) {
+                        clearInterval(dbUpdateCheckInterval);
+                    }
+                    dbUpdateCheckInterval = setInterval(checkDbUpdateStatus, 2000);
+                    
+                    // Initial check after 1 second
+                    setTimeout(checkDbUpdateStatus, 1000);
+                }, 500);
+            });
+
+            // Check on page load in case update is already in progress
+            checkDbUpdateStatus();
+
+
+            // Initial UI update on page load (ensures buttons are correctly disabled/enabled)
+            // This also sets the initial state of the consume mode checkbox based on Flask's render
+            const initialArtist = currentArtistSpan.textContent;
+            const initialAlbum = currentAlbumSpan.textContent;
+            const hasInitialArtist = (initialArtist && initialArtist !== 'N/A');
+            const hasInitialAlbum = (initialAlbum && initialAlbum !== 'N/A');
+
+            wikipediaArtistSearchBtn.disabled = !hasInitialArtist;
+            allmusicArtistSearchBtn.disabled = !hasInitialArtist;
+            wikipediaAlbumSearchBtn.disabled = !(hasInitialArtist && hasInitialAlbum);
+            allmusicAlbumSearchBtn.disabled = !(hasInitialArtist && hasInitialAlbum);
+        });
+
+        function formatAudioFormat(sr, bd, fmt) {
+            let parts = [];
+            if (typeof fmt === 'string' && fmt.length > 0) {
+                parts.push(fmt);
+            }
+            if (typeof sr === 'number' && !isNaN(sr) && sr > 0) {
+                const khz = (sr / 1000);
+                const text = (sr % 1000 === 0) ? `${Math.round(khz)} kHz` : `${khz.toFixed(1)} kHz`;
+                parts.push(text);
+            }
+            if (typeof bd === 'number' && !isNaN(bd) && bd > 0) {
+                parts.push(`${bd}-bit`);
+            }
+            return parts.length ? parts.join(' • ') : 'N/A';
+        }
+
+        // AJAX Playback Control Functions - moved outside DOMContentLoaded for global access
+        function playMusic() {
+            console.log('playMusic called'); // Debug log
+            fetch('/play?ajax=1', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    displayMessage('info', data.message || 'Play command sent');
+                })
+                .catch(error => {
+                    console.error('Play error:', error); // Debug log
+                    displayMessage('error', 'Error playing music: ' + error.message);
+                });
+        }
+
+        function pauseMusic() {
+            console.log('pauseMusic called'); // Debug log
+            fetch('/pause?ajax=1', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    displayMessage('info', data.message || 'Pause command sent');
+                })
+                .catch(error => {
+                    displayMessage('error', 'Error pausing music: ' + error.message);
+                });
+        }
+
+        function stopMusic() {
+            console.log('stopMusic called'); // Debug log
+            fetch('/stop?ajax=1', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    displayMessage('info', data.message || 'Stop command sent');
+                })
+                .catch(error => {
+                    displayMessage('error', 'Error stopping music: ' + error.message);
+                });
+        }
+
+        function nextTrack() {
+            console.log('nextTrack called'); // Debug log
+            fetch('/next?ajax=1', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    displayMessage('info', data.message || 'Next track command sent');
+                })
+                .catch(error => {
+                    displayMessage('error', 'Error skipping to next track: ' + error.message);
+                });
+        }
+
+        function previousTrack() {
+            console.log('previousTrack called'); // Debug log
+            fetch('/previous?ajax=1', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    displayMessage('info', data.message || 'Previous track command sent');
+                })
+                .catch(error => {
+                    displayMessage('error', 'Error skipping to previous track: ' + error.message);
+                });
+        }
+
+        // Simple Volume Control Functions
+        function adjustVolume(change) {
+            const formData = new FormData();
+            formData.append('volume', Math.max(0, Math.min(100, parseInt(document.getElementById('volume-percentage-display').textContent) + change)));
+
+            fetch('/set_volume', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        displayMessage('error', 'Failed to set volume');
+                    }
+                })
+                .catch(error => {
+                    displayMessage('error', 'Error setting volume');
+                });
+        }
+
+        function toggleMute() {
+            const muteBtn = document.getElementById('mute-btn');
+            const currentVol = parseInt(document.getElementById('volume-percentage-display').textContent);
+
+            if (currentVol > 0) {
+                // Mute
+                adjustVolume(-currentVol);
+                muteBtn.textContent = '🔈';
+                muteBtn.classList.add('muted');
+            } else {
+                // Unmute to 50%
+                adjustVolume(50);
+                muteBtn.textContent = '🔇';
+                muteBtn.classList.remove('muted');
+            }
+        }
+    </script>
+</body>
+
+</html>

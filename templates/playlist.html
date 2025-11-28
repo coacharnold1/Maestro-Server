@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MPD Playlist</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #1a1a1a;
+            color: #ecf0f1;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #2c3e50;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 18px rgba(0, 0, 0, 0.4);
+        }
+
+        h1 {
+            color: #ecf0f1;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        /* Logo styling */
+        .logo-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .logo-container img {
+            max-width: 600px;
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
+
+        .nav-links {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .nav-links a,
+        .nav-links button {
+            color: #3498db;
+            text-decoration: none;
+            margin: 0 15px;
+            padding: 8px 16px;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            transition: all 0.3s;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            display: inline-block;
+        }
+
+        .nav-links a:hover,
+        .nav-links button:hover {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .nav-links .current-page {
+            background-color: #e67e22 !important;
+            color: white !important;
+            border-color: #e67e22 !important;
+            font-weight: bold;
+        }
+
+        .nav-links .current-page:hover {
+            background-color: #d35400 !important;
+        }
+
+        .nav-links .main-btn {
+            background-color: #ff8c00 !important;
+            color: white !important;
+            border-color: #ff8c00 !important;
+        }
+
+        .nav-links .main-btn:hover {
+            background-color: #ff7700 !important;
+        }
+
+        .playlist-actions {
+            text-align: center;
+            margin: 15px 0;
+            padding: 10px 0;
+        }
+
+        .playlist-actions .clear-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: 1px solid #e74c3c;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .playlist-actions .clear-btn:hover {
+            background-color: #c0392b;
+            border-color: #c0392b;
+        }
+
+        .playback-controls {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #34495e;
+            border-radius: 8px;
+        }
+
+        .playback-controls h2 {
+            margin: 0 0 10px 0;
+            color: #ecf0f1;
+            font-size: 1.1em;
+        }
+
+        .playback-controls button {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .playback-controls button:hover {
+            background-color: #27ae60;
+        }
+
+        .stats {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #34495e;
+            border-radius: 8px;
+            color: #bdc3c7;
+            font-size: 1.1em;
+        }
+
+        /* Modern Playlist Container */
+        #playlist-container {
+            background-color: #34495e;
+            border-radius: 10px;
+            border-left: 4px solid #3498db;
+            margin-bottom: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .playlist-item {
+            background-color: #34495e;
+            margin-bottom: 2px;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border-bottom: 1px solid #4a6279;
+        }
+
+        .playlist-item:last-child {
+            border-bottom: none;
+        }
+
+        .playlist-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+            background-color: #3d566e;
+        }
+
+        .playlist-item-info {
+            flex: 1;
+            cursor: pointer;
+            padding-right: 15px;
+        }
+
+        .playlist-item-info .title {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #ecf0f1;
+            margin-bottom: 5px;
+        }
+
+        .playlist-item-info .artist-album {
+            color: #bdc3c7;
+            font-size: 0.9em;
+        }
+
+        .playlist-album-art {
+            width: 48px;
+            height: 48px;
+            border-radius: 6px;
+            object-fit: cover;
+            background-color: #2c3e50;
+            border: 2px solid #34495e;
+            flex-shrink: 0;
+            margin-right: 15px;
+        }
+
+        .playlist-album-art:hover {
+            border-color: #3498db;
+        }
+
+        .playlist-item button {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.3s;
+            font-weight: bold;
+        }
+
+        .playlist-item button:hover {
+            background-color: #c0392b;
+        }
+
+        /* MPD Options styling */
+        .mpd-options-controls {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #34495e;
+            border-radius: 8px;
+        }
+
+        .mpd-options-controls h2 {
+            margin: 0 0 10px 0;
+            color: #ecf0f1;
+            font-size: 1.1em;
+        }
+
+        .mpd-options-controls .form-group {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 5px;
+        }
+
+        .mpd-options-controls .form-group label {
+            margin-left: 8px;
+            font-weight: normal;
+            color: #bdc3c7;
+        }
+
+        /* Message display styling */
+        #message-area {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #message-area.show {
+            opacity: 1;
+        }
+
+        #message-area.info {
+            background-color: #2ecc71;
+            color: #1a1a1a;
+        }
+
+        #message-area.error {
+            background-color: #e74c3c;
+            color: #ffffff;
+        }
+
+        /* Minimal theme overrides so Settings theme applies */
+        body.light {
+            background-color: #f5f5f7;
+            color: #1a1a1a;
+        }
+        body.light .container {
+            background-color: #ffffff;
+            color: #1a1a1a;
+        }
+        /* Light theme: cards/boxes */
+        body.light .playback-controls,
+        body.light .stats,
+        body.light #playlist-container,
+        body.light .playlist-item,
+        body.light .mpd-options-controls {
+            background-color: #f0f3f6;
+            border-color: #d0d7de;
+            color: #1a1a1a;
+        }
+        body.light .playlist-item:hover {
+            background-color: #e6ebf0;
+        }
+        body.light .playlist-album-art {
+            background-color: #ffffff;
+            border-color: #d0d7de;
+        }
+        body.high-contrast {
+            background-color: #000000;
+            color: #ffff00;
+        }
+        body.high-contrast .container {
+            background-color: #000000;
+            color: #ffff00;
+            border: 2px solid #ffff00;
+        }
+        /* High-contrast: cards/boxes */
+        body.high-contrast .playback-controls,
+        body.high-contrast .stats,
+        body.high-contrast #playlist-container,
+        body.high-contrast .playlist-item,
+        body.high-contrast .mpd-options-controls {
+            background-color: #000000;
+            border: 2px solid #ffff00;
+            color: #ffff00;
+        }
+        body.high-contrast .playlist-item:hover {
+            background-color: #111111;
+        }
+        body.high-contrast .playlist-album-art {
+            background-color: #000000;
+            border-color: #ffff00;
+        }
+
+        /* Desert theme */
+        body.desert {
+            background-color: #2c1810;
+            color: #f4e4bc;
+        }
+        body.desert .container {
+            background-color: #3d2f20;
+            color: #f4e4bc;
+            border-color: #8b4513;
+        }
+        body.desert .playback-controls,
+        body.desert .stats,
+        body.desert #playlist-container,
+        body.desert .playlist-item,
+        body.desert .mpd-options-controls {
+            background-color: #4a3b2a;
+            border-color: #cd853f;
+        }
+        body.desert .playlist-item:hover {
+            background-color: #5d4c37;
+        }
+        body.desert .playlist-album-art {
+            background-color: #4a3b2a;
+            border-color: #cd853f;
+        }
+
+        /* Mobile responsive design */
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+                margin: 5px;
+            }
+
+            .nav-links {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                align-items: center;
+            }
+
+            .nav-links a,
+            .nav-links button {
+                margin: 0;
+                width: 80%;
+                max-width: 250px;
+                text-align: center;
+            }
+
+            .playlist-actions {
+                margin: 10px 0;
+                padding: 8px 0;
+            }
+
+            .playlist-actions .clear-btn {
+                width: 80%;
+                max-width: 250px;
+                padding: 10px;
+            }
+
+            .playlist-item {
+                flex-wrap: wrap;
+                padding: 12px;
+            }
+
+            .playlist-album-art {
+                width: 40px;
+                height: 40px;
+                margin-right: 10px;
+                order: 1;
+            }
+
+            .playlist-item-info {
+                padding-right: 0;
+                margin-bottom: 10px;
+                width: calc(100% - 50px);
+                order: 2;
+            }
+
+            .playlist-item button {
+                width: 100%;
+                padding: 10px;
+                order: 3;
+                margin-top: 8px;
+            }
+
+            .playback-controls button {
+                display: block;
+                width: 90%;
+                margin: 5px auto;
+                padding: 12px;
+            }
+
+            h1 {
+                font-size: 1.4em;
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="{{ app_theme }}">
+    <div class="container">
+        <!-- Animated SVG Logo -->
+        <div class="logo-container">
+            <img src="{{ url_for('static', filename='logo.svg') }}" alt="Maestro MPD Control">
+        </div>
+
+        <h1>🎵 Current Playlist</h1>
+
+        <div class="nav-links">
+            <a href="/">🏠 Main</a>
+            <a href="/playlist" class="current-page">🎵 Playlist</a>
+            <a href="/add_music">🎲 Add Music</a>
+            <a href="/search">🔍 Search</a>
+            <a href="/recent">📀 Recent</a>
+            <a href="/browse">🗂️ Browse</a>
+        </div>
+
+        <div class="playlist-actions">
+            <button onclick="clearPlaylist()" class="clear-btn">🗑️ Clear Playlist</button>
+        </div>
+
+        <div id="message-area"></div>
+
+        <div class="playback-controls">
+            <h2>Playback Controls</h2>
+            <button onclick="playbackAction('previous')" style="background-color: #9b59b6; color: white;">⏮️
+                Previous</button>
+            <button onclick="playbackAction('play')" style="background-color: #27ae60; color: white;">▶️ Play</button>
+            <button onclick="playbackAction('stop')" style="background-color: #f39c12; color: white;">⏹️ Stop</button>
+            <button onclick="playbackAction('pause')" style="background-color: #e74c3c; color: white;">⏸️ Pause</button>
+            <button onclick="playbackAction('next')" style="background-color: #3498db; color: white;">⏭️ Next</button>
+        </div>
+
+        <div class="stats">
+            <span id="playlist-count">{{ playlist|length if playlist else 0 }}</span> tracks in current playlist
+        </div>
+
+        <div id="playlist-container">
+            {% if playlist %}
+            {% for song in playlist %}
+            {% if song.artist is iterable and song.artist is not string %}
+                {% set artist_name = song.artist | join(', ') %}
+            {% else %}
+                {% set artist_name = song.artist if song.artist else '' %}
+            {% endif %}
+            {% set album_name = song.album if song.album else '' %}
+            {% set file_name = song.file if song.file else '' %}
+            <div class="playlist-item" data-pos="{{ song.pos }}">
+                <img class="playlist-album-art"
+                    src="/album_art?artist={{ artist_name | urlencode }}&album={{ album_name | urlencode }}&size=thumb&file={{ file_name | urlencode }}"
+                    alt="{{ song.album | default('Unknown Album') }} cover" loading="lazy"
+                    onerror="this.style.display='none'">
+                <div class="playlist-item-info" data-pos="{{ song.pos }}">
+                    <span class="title">{{ song.title | default('Unknown Title') }}</span>
+                    <span class="artist-album">{{ artist_name | default('Unknown Artist') }} - {{ song.album |
+                        default('Unknown Album') }}</span>
+                </div>
+                <button class="remove-btn" data-pos="{{ song.pos }}">Remove</button>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p style="text-align: center; color: #bdc3c7;">Playlist is empty.</p>
+            {% endif %}
+        </div>
+
+        <div class="mpd-options-controls">
+            <h2>🎛️ MPD Options</h2>
+            <div class="form-group">
+                <input type="checkbox" id="consume-mode-checkbox">
+                <label for="consume-mode-checkbox">Consume Mode (Remove played tracks)</label>
+            </div>
+            <div class="form-group">
+                <input type="checkbox" id="shuffle-mode-checkbox">
+                <label for="shuffle-mode-checkbox">Shuffle Mode (Random play order)</label>
+            </div>
+        </div>
+
+    </div>
+    <!-- App Info + Settings (inline, always visible) -->
+    <div style="text-align: center; margin: 18px auto; padding-top: 8px; border-top: 1px solid #34495e; max-width: 1000px;" class="app-footer">
+        <span id="version-info">Loading version info...</span>
+        <a href="/settings" style="color:#bdc3c7; text-decoration: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px;">Settings</a>
+        <a href="/charts" style="color:#bdc3c7; text-decoration: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px;">Charts</a>
+    </div>
+
+    <style>
+        @media (max-width: 600px) {
+            .app-footer {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                gap: 10px !important;
+                text-align: center !important;
+            }
+            
+            .app-footer span {
+                font-size: 0.9em !important;
+                margin-bottom: 5px !important;
+            }
+            
+            .app-footer a {
+                display: inline-block !important;
+                margin: 0 5px !important;
+                padding: 8px 16px !important;
+                min-width: 80px !important;
+            }
+        }
+    </style>
+    <script>
+        (function(){
+            fetch('/api/version')
+                .then(r=>r.json())
+                .then(d=>{var el=document.getElementById('version-info'); if(el) el.textContent = d.app_name+' v'+d.version+' ('+d.build_date+')';})
+                .catch(()=>{var el=document.getElementById('version-info'); if(el) el.textContent='MPD Web Control';});
+        })();
+    </script>
+
+    <script>
+        const socket = io();
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- Auto-Fill Toggle and Status (playlist page) ---
+            const autoFillTogglePlaylist = document.getElementById('auto-fill-toggle-playlist');
+            const autoFillStatusPlaylist = document.getElementById('auto-fill-status-playlist');
+            // --- Socket.IO Listener for auto-fill status ---
+            socket.on('auto_fill_status', function (data) {
+                if (autoFillTogglePlaylist) autoFillTogglePlaylist.checked = data.active;
+                if (autoFillStatusPlaylist) {
+                    if (data.active) {
+                        autoFillStatusPlaylist.textContent = `Enabled, monitoring for < ${data.min_queue_length} tracks.`;
+                        autoFillStatusPlaylist.style.color = '#2ecc71';
+                    } else {
+                        autoFillStatusPlaylist.textContent = 'Disabled.';
+                        autoFillStatusPlaylist.style.color = '#e74c3c';
+                    }
+                }
+            });
+
+            // --- Initial fetch of auto-fill status on page load ---
+            fetch('/get_auto_fill_status')
+                .then(response => response.json())
+                .then(data => {
+                    if (autoFillTogglePlaylist) autoFillTogglePlaylist.checked = data.active;
+                    if (autoFillStatusPlaylist) {
+                        if (data.active) {
+                            autoFillStatusPlaylist.textContent = `Enabled, monitoring for < ${data.min_queue_length} tracks.`;
+                            autoFillStatusPlaylist.style.color = '#2ecc71';
+                        } else {
+                            autoFillStatusPlaylist.textContent = 'Disabled.';
+                            autoFillStatusPlaylist.style.color = '#e74c3c';
+                        }
+                    }
+                })
+                .catch(error => {
+                    if (autoFillStatusPlaylist) {
+                        autoFillStatusPlaylist.textContent = 'Could not load auto-fill status.';
+                        autoFillStatusPlaylist.style.color = '#e74c3c';
+                    }
+                });
+
+            // --- Auto-Fill Toggle Event Listener (playlist page) ---
+            if (autoFillTogglePlaylist) {
+                autoFillTogglePlaylist.addEventListener('change', function () {
+                    const newState = this.checked;
+                    fetch('/toggle_auto_fill', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ active: newState })
+                    })
+                        .then(response => {
+                            if (!response.ok) {
+                                displayMessage('error', 'Failed to toggle auto-fill.');
+                            }
+                            // Status will be updated via auto_fill_status SocketIO event
+                        })
+                        .catch(error => {
+                            displayMessage('error', `Error: ${error.message}`);
+                        });
+                });
+            }
+            const playlistContainer = document.getElementById('playlist-container');
+            const messageArea = document.getElementById('message-area');
+            const consumeModeCheckbox = document.getElementById('consume-mode-checkbox');
+            const shuffleModeCheckbox = document.getElementById('shuffle-mode-checkbox');
+
+            // Check if elements exist
+            if (!consumeModeCheckbox) {
+                console.error('consume-mode-checkbox element not found');
+            }
+            if (!shuffleModeCheckbox) {
+                console.error('shuffle-mode-checkbox element not found');
+            }
+
+            let messageTimeout;
+            function displayMessage(type, text) {
+                clearTimeout(messageTimeout);
+                messageArea.textContent = text;
+                messageArea.className = `show ${type}`;
+                messageArea.style.opacity = 1;
+
+                messageTimeout = setTimeout(() => {
+                    messageArea.style.opacity = 0;
+                    setTimeout(() => {
+                        messageArea.textContent = '';
+                        messageArea.className = '';
+                    }, 500);
+                }, 5000);
+            }
+
+            // Playback control function
+            function playbackAction(action) {
+                fetch(`/${action}?ajax=1`, {
+                    method: 'GET'
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            displayMessage('info', data.message);
+                        } else {
+                            displayMessage('error', data.message || `Failed to ${action}`);
+                        }
+                    })
+                    .catch(err => {
+                        displayMessage('error', `Error: ${err.message}`);
+                    });
+            }
+
+            // Make playbackAction globally available
+            window.playbackAction = playbackAction;
+
+            // Clear playlist function
+            function clearPlaylist() {
+                if (confirm('Are you sure you want to clear the entire playlist?')) {
+                    fetch('/clear_playlist', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'error') {
+                                displayMessage('error', data.message);
+                            } else {
+                                displayMessage('info', 'Playlist cleared successfully');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error clearing playlist:', error);
+                            displayMessage('error', `Error clearing playlist: ${error.message}`);
+                        });
+                }
+            }
+
+            // Make clearPlaylist globally available
+            window.clearPlaylist = clearPlaylist;
+
+            // Function to update the playlist display
+            function updatePlaylistDisplay(playlist) {
+                playlistContainer.innerHTML = ''; // Clear current list
+                if (playlist && playlist.length > 0) {
+                    playlist.forEach(song => {
+                        const div = document.createElement('div');
+                        div.className = 'playlist-item';
+                        div.setAttribute('data-pos', song.pos); // Set data-pos on the parent item
+
+                        const artist = encodeURIComponent(song.artist || '');
+                        const album = encodeURIComponent(song.album || '');
+                        const file = encodeURIComponent(song.file || '');
+
+                        div.innerHTML = `
+                            <img class="playlist-album-art" 
+                                 src="/album_art?artist=${artist}&album=${album}&size=thumb&file=${file}" 
+                                 alt="${song.album || 'Unknown Album'} cover"
+                                 loading="lazy"
+                                 onerror="this.style.display='none'">
+                            <div class="playlist-item-info" data-pos="${song.pos}">
+                                <span class="title">${song.title || 'Unknown Title'}</span>
+                                <span class="artist-album">${song.artist || 'Unknown Artist'} - ${song.album || 'Unknown Album'}</span>
+                            </div>
+                            <button class="remove-btn" data-pos="${song.pos}">Remove</button>
+                        `;
+                        playlistContainer.appendChild(div);
+                    });
+                } else {
+                    playlistContainer.innerHTML = '<p style="text-align: center; color: #bdc3c7;">Playlist is empty.</p>';
+                }
+                attachEventListeners(); // Re-attach all listeners after updating
+            }
+
+            // Attach event listeners to both play and remove buttons
+            function attachEventListeners() {
+                // Attach click listener to the song info for playing
+                document.querySelectorAll('.playlist-item-info').forEach(infoDiv => {
+                    infoDiv.onclick = function () {
+                        const pos = this.getAttribute('data-pos');
+                        console.log(`Attempting to play song at position: ${pos}`);
+                        fetch('/play_song_at_pos', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: `pos=${pos}`
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.status === 'error') {
+                                    displayMessage('error', data.message);
+                                } else {
+                                    displayMessage('info', data.message);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error playing song:', error);
+                                displayMessage('error', `Error playing song: ${error.message}`);
+                            });
+                    };
+                });
+
+                // Attach click listener to remove buttons
+                document.querySelectorAll('.remove-btn').forEach(button => {
+                    button.onclick = function (event) {
+                        event.stopPropagation(); // Prevent the parent .playlist-item-info click from firing
+                        const pos = this.getAttribute('data-pos');
+                        console.log('[DEBUG] Remove button clicked. pos:', pos);
+                        const songTitle = this.parentNode.querySelector('.title') ? this.parentNode.querySelector('.title').textContent : '';
+                        if (confirm(`Are you sure you want to remove "${songTitle}"?`)) {
+                            console.log('[DEBUG] Sending POST to /remove_from_playlist with pos:', pos);
+                            fetch('/remove_from_playlist', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                                body: `pos=${pos}`
+                            })
+                                .then(response => {
+                                    console.log('[DEBUG] Response received from /remove_from_playlist:', response);
+                                    return response.json();
+                                })
+                                .then(data => {
+                                    console.log('[DEBUG] Data from /remove_from_playlist:', data);
+                                    if (data.status === 'error') {
+                                        displayMessage('error', data.message);
+                                    }
+                                    // Success/failure messages and playlist updates are handled by SocketIO
+                                })
+                                .catch(error => {
+                                    console.error('[DEBUG] Error removing song:', error);
+                                    displayMessage('error', `Error removing song: ${error.message}`);
+                                });
+                        }
+                    };
+                });
+            }
+
+
+            // Socket.IO listener for playlist updates
+            socket.on('playlist_updated', function (playlist) {
+                console.log('Received updated playlist:', playlist);
+                updatePlaylistDisplay(playlist);
+            });
+
+            // Socket.IO listener for server messages
+            socket.on('server_message', function (data) {
+                console.log('Server Message (Playlist Page):', data);
+                displayMessage(data.type, data.text);
+            });
+
+            // NEW: Socket.IO listener for MPD status (to update consume mode checkbox)
+            socket.on('mpd_status', function (data) {
+                console.log('Received MPD status on playlist page:', data);
+                // Update consume mode checkbox based on received status
+                if (data && typeof data.consume_mode !== 'undefined' && consumeModeCheckbox) {
+                    consumeModeCheckbox.checked = data.consume_mode;
+                }
+                // Update shuffle mode checkbox based on received status
+                if (data && typeof data.shuffle_mode !== 'undefined' && shuffleModeCheckbox) {
+                    shuffleModeCheckbox.checked = data.shuffle_mode;
+                }
+            });
+
+            // NEW: Consume Mode Checkbox Event Listener
+            if (consumeModeCheckbox) {
+                consumeModeCheckbox.addEventListener('change', function () {
+                    const newState = this.checked;
+                    fetch('/toggle_consume_mode', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ active: newState })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'error') {
+                                displayMessage('error', data.message);
+                                // Revert checkbox state if server reported an error
+                                consumeModeCheckbox.checked = !newState;
+                            }
+                            // Success messages are handled by server_message SocketIO event
+                        })
+                        .catch(error => {
+                            console.error('Error toggling consume mode:', error);
+                            displayMessage('error', `Error toggling consume mode: ${error.message}`);
+                            // Revert checkbox state on network error
+                            consumeModeCheckbox.checked = !newState;
+                        });
+                });
+            }
+
+            // NEW: Shuffle Mode Checkbox Event Listener
+            if (shuffleModeCheckbox) {
+                shuffleModeCheckbox.addEventListener('change', function () {
+                    const newState = this.checked;
+                    fetch('/toggle_shuffle_mode', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ active: newState })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'error') {
+                                displayMessage('error', data.message);
+                                // Revert checkbox state if server reported an error
+                                shuffleModeCheckbox.checked = !newState;
+                            }
+                            // Success messages are handled by server_message SocketIO event
+                        })
+                        .catch(error => {
+                            console.error('Error toggling shuffle mode:', error);
+                            displayMessage('error', `Error toggling shuffle mode: ${error.message}`);
+                            // Revert checkbox state on network error
+                            shuffleModeCheckbox.checked = !newState;
+                        });
+                });
+            }
+
+            // Initial attachment of listeners on page load
+            attachEventListeners();
+
+            // Initial fetch of MPD status to set consume mode checkbox on page load
+            // This is important because the playlist page doesn't receive mpd_info directly from Flask render
+            fetch('/get_mpd_status') // Assuming you have a route to get full MPD status
+                .then(response => response.json())
+                .then(data => {
+                    if (data && typeof data.consume_mode !== 'undefined' && consumeModeCheckbox) {
+                        consumeModeCheckbox.checked = data.consume_mode;
+                    }
+                    if (data && typeof data.shuffle_mode !== 'undefined' && shuffleModeCheckbox) {
+                        shuffleModeCheckbox.checked = data.shuffle_mode;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching initial MPD status for consume and shuffle mode:', error);
+                    displayMessage('error', 'Could not load initial MPD status.');
+                });
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,13 @@
+# Maestro Setup Configuration
+# This file is created by setup-windows.ps1 to remember your setup choices
+# DO NOT EDIT MANUALLY
+
+SETUP_TYPE=native
+# Options: native, containerized, external
+# native = Windows native MPD + Docker web interface
+# containerized = Full Docker stack (MPD + web)
+# external = Docker web only, connects to external MPD
+
+SETUP_DATE=2025-11-19
+MUSIC_DIRECTORY=C:/Users/username/Music
+AUTO_START=true

@@ -1,0 +1,56 @@
+# Maestro MPD Control - Windows Native MPD Configuration
+# This setup uses native Windows MPD for audio + containerized web interface
+# Use this if you want true Windows system audio output
+
+services:
+  # Web Application only - connects to native Windows MPD
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: mpd-web-control
+    environment:
+      # Connect to host machine's native MPD
+      - MPD_HOST=host.docker.internal
+      - MPD_PORT=${MPD_PORT:-6600}
+      - MPD_TIMEOUT=${MPD_TIMEOUT:-3}
+      - MUSIC_DIRECTORY=/music
+      - APP_PORT=5003
+      - APP_HOST=0.0.0.0
+      - DEFAULT_THEME=${DEFAULT_THEME:-dark}
+      - LASTFM_API_KEY=${LASTFM_API_KEY:-}
+      - LASTFM_SHARED_SECRET=${LASTFM_SHARED_SECRET:-}
+      - AUTO_FILL_ENABLED=${AUTO_FILL_ENABLED:-true}
+      - RECENT_MUSIC_DIRS=${RECENT_MUSIC_DIRS:-}
+      - SECRET_KEY=${SECRET_KEY:-mpd-web-control-native-${RANDOM}}
+    volumes:
+      # Mount music directory for metadata/browsing
+      - ${MUSIC_DIRECTORY}:/music:ro
+      - ./data:/app/data
+      - web_cache:/app/cache
+    ports:
+      - "${WEB_PORT:-5003}:5003"
+    restart: unless-stopped
+    networks:
+      - mpd-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5003/api/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    extra_hosts:
+      # Allow container to reach host machine's MPD
+      - "host.docker.internal:host-gateway"
+
+# Named volumes for persistent data
+volumes:
+  web_cache:
+    driver: local
+    name: mpd_web_control_cache_native
+
+# Custom network
+networks:
+  mpd-network:
+    name: mpd-network-native
+    driver: bridge

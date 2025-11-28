@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Music Library</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 5px;
+            background-color: #1a1a1a;
+            color: #ecf0f1;
+            display: flex;
+            flex-direction: column; /* Stack content and version row vertically */
+            justify-content: flex-start;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background-color: #2c3e50;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 18px rgba(0, 0, 0, 0.4);
+            box-sizing: border-box;
+        }
+
+        h1,
+        h2 {
+            color: #ecf0f1;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 1.5em;
+        }
+
+        /* Logo styling */
+        .logo-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .logo-container img {
+            max-width: 600px;
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
+
+        .nav-links {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px 0;
+            border-top: 1px solid #34495e;
+            border-bottom: 1px solid #34495e;
+        }
+
+        .nav-links a,
+        .nav-links button {
+            color: #3498db;
+            text-decoration: none;
+            margin: 0 8px;
+            padding: 8px 16px;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            transition: all 0.3s;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            display: inline-block;
+        }
+
+        .nav-links a:hover,
+        .nav-links button:hover {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .nav-links .current-page {
+            background-color: #e67e22 !important;
+            color: white !important;
+            border-color: #e67e22 !important;
+            font-weight: bold;
+        }
+
+        .nav-links .current-page:hover {
+            background-color: #d35400 !important;
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #34495e;
+        }
+
+        .controls:first-of-type {
+            border-top: none;
+            padding-top: 0;
+        }
+
+        .controls button {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            border: none;
+            padding: 7px 12px;
+            margin: 2px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            min-width: 70px;
+            font-weight: bold;
+        }
+
+        .controls button:hover {
+            background-color: #bdc3c7;
+            transform: translateY(-1px);
+        }
+
+        .search-form {
+            background-color: #34495e;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #ecf0f1;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+        }
+
+        .search-button {
+            background-color: #3498db !important;
+            color: white !important;
+            padding: 12px 24px !important;
+            font-size: 1em !important;
+            border-radius: 8px !important;
+            margin-top: 10px !important;
+        }
+
+        .search-button:hover {
+            background-color: #2980b9 !important;
+        }
+
+        /* Message display styling */
+        #message-area {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #message-area.show {
+            opacity: 1;
+        }
+
+        #message-area.info {
+            background-color: #3498db;
+        }
+
+        #message-area.error {
+            background-color: #e74c3c;
+        }
+
+        #message-area.success {
+            background-color: #27ae60;
+        }
+
+        /* Mobile responsive navigation */
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+
+            .nav-links {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                align-items: center;
+            }
+
+            .nav-links a {
+                margin: 0;
+                width: 80%;
+                max-width: 200px;
+                text-align: center;
+            }
+
+            .logo-container img {
+                max-width: 400px;
+            }
+        }
+
+        /* Minimal theme overrides to honor Settings theme across pages */
+        body.light {
+            background-color: #f5f5f7;
+            color: #1a1a1a;
+        }
+        body.light .container {
+            background-color: #ffffff;
+            color: #1a1a1a;
+        }
+        body.light .controls,
+        body.light .nav-links,
+        body.light .search-form {
+            background-color: #f0f3f6;
+            border-color: #d0d7de;
+        }
+        /* Light theme: form inputs/selects */
+        body.light .form-group select,
+        body.light .form-group input {
+            background-color: #ffffff !important;
+            color: #1a1a1a !important;
+            border-color: #d0d7de !important;
+        }
+        body.high-contrast {
+            background-color: #000000;
+            color: #ffff00;
+        }
+        body.high-contrast .container {
+            background-color: #000000;
+            color: #ffff00;
+            border: 2px solid #ffff00;
+        }
+        body.high-contrast .controls,
+        body.high-contrast .nav-links,
+        body.high-contrast .search-form {
+            background-color: #000000;
+            border: 2px solid #ffff00;
+        }
+        /* High-contrast: form inputs/selects */
+        body.high-contrast .form-group select,
+        body.high-contrast .form-group input {
+            background-color: #000000 !important;
+            color: #ffff00 !important;
+            border: 2px solid #ffff00 !important;
+        }
+
+        /* Desert theme */
+        body.desert {
+            background-color: #2c1810;
+            color: #f4e4bc;
+        }
+        body.desert .container {
+            background-color: #3d2f20;
+            color: #f4e4bc;
+            border-color: #8b4513;
+        }
+        body.desert .controls,
+        body.desert .nav-links,
+        body.desert .search-form {
+            background-color: #4a3b2a;
+            border-color: #cd853f;
+        }
+        body.desert .form-group select,
+        body.desert .form-group input {
+            background-color: #4a3b2a !important;
+            color: #f4e4bc !important;
+            border-color: #cd853f !important;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="{{ app_theme }}">
+    <div class="container">
+        <!-- Logo -->
+        <div class="logo-container">
+            <img src="/static/logo.svg" alt="Maestro MPD Control" onerror="this.style.display='none'">
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="nav-links">
+            <a href="/">🏠 Main</a>
+            <a href="/playlist">🎵 Playlist</a>
+            <a href="/add_music">🎲 Add Music</a>
+            <a href="/search" class="current-page">🔍 Search</a>
+            <a href="/recent">📀 Recent</a>
+            <a href="/browse">🗂️ Browse</a>
+        </div>
+
+        <div id="message-area"></div>
+
+        <h1>🔍 Search Music Library</h1>
+
+        <!-- Playback Controls -->
+        <div class="controls">
+            <h2>🎵 Playback Controls</h2>
+            <button onclick="playbackAction('previous')" style="background-color: #9b59b6; color: white;">⏮️
+                Previous</button>
+            <button onclick="playbackAction('play')" style="background-color: #27ae60; color: white;">▶️ Play</button>
+            <button onclick="playbackAction('stop')" style="background-color: #f39c12; color: white;">⏹️ Stop</button>
+            <button onclick="playbackAction('pause')" style="background-color: #e74c3c; color: white;">⏸️ Pause</button>
+            <button onclick="playbackAction('next')" style="background-color: #3498db; color: white;">⏭️ Next</button>
+        </div>
+
+        <!-- Search Form -->
+        <div class="search-form">
+            <form method="POST" action="{{ url_for('search') }}">
+                <div class="form-group">
+                    <label for="search_tag">Search By:</label>
+                    <select name="search_tag" id="search_tag">
+                        <option value="any">Any (Song List)</option>
+                        <option value="artist" selected>Artist</option>
+                        <option value="album">Album</option>
+                        <option value="title">Title</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="query">Search Query:</label>
+                    <input type="text" id="query" name="query" required placeholder="Enter your search term...">
+                </div>
+                <div style="text-align: center;">
+                    <button type="submit" class="search-button">🔍 Search Library</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- App Info + Settings (inline, always visible) -->
+    <div style="text-align: center; margin: 18px auto; padding-top: 8px; border-top: 1px solid #34495e; max-width: 1000px;">
+        <span id="version-info">Loading version info...</span>
+        &nbsp;•&nbsp;
+        <a href="/settings" style="color:#bdc3c7; text-decoration: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px;">Settings</a>
+        &nbsp;•&nbsp;
+        <a href="/charts" style="color:#bdc3c7; text-decoration: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px;">Charts</a>
+    </div>
+
+    <script>
+        (function(){
+            fetch('/api/version')
+                .then(r=>r.json())
+                .then(d=>{var el=document.getElementById('version-info'); if(el) el.textContent = d.app_name+' v'+d.version+' ('+d.build_date+')';})
+                .catch(()=>{var el=document.getElementById('version-info'); if(el) el.textContent='MPD Web Control';});
+        })();
+
+        // Auto-populate search form from URL parameters and auto-submit
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const query = urlParams.get('query');
+            const type = urlParams.get('type');
+
+            if (query) {
+                document.getElementById('query').value = query;
+            }
+            if (type) {
+                document.getElementById('search_tag').value = type;
+            }
+
+            // Auto-submit if both query and type are present
+            if (query && type) {
+                document.querySelector('form').submit();
+            }
+        });
+
+        // Playback control function
+        function playbackAction(action) {
+            fetch(`/${action}?ajax=1`, {
+                method: 'GET'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        console.log(data.message);
+                        displayMessage('info', data.message || `${action.charAt(0).toUpperCase() + action.slice(1)} command sent`);
+                    } else {
+                        console.error(data.message || `Failed to ${action}`);
+                        displayMessage('error', data.message || `Failed to ${action}`);
+                    }
+                })
+                .catch(err => {
+                    console.error(`Error: ${err.message}`);
+                    displayMessage('error', `Error: ${err.message}`);
+                });
+        }
+
+        function displayMessage(type, text) {
+            const messageArea = document.getElementById('message-area');
+            messageArea.textContent = text;
+            messageArea.className = `show ${type}`;
+            messageArea.style.opacity = 1;
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                messageArea.style.opacity = 0;
+                setTimeout(() => {
+                    messageArea.textContent = '';
+                    messageArea.className = '';
+                }, 300);
+            }, 5000);
+        }
+    </script>
+</body>
+
+</html>
