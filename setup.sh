@@ -273,6 +273,141 @@ setup_audio_permissions() {
     fi
 }
 
+# Function to check for existing Docker images
+check_existing_docker_images() {
+    local web_image_exists=false
+    local containers_running=false
+    
+    # Check if web image exists
+    if docker images maestro-mpd-control-web --format "{{.Repository}}" 2>/dev/null | grep -q "maestro-mpd-control-web"; then
+        web_image_exists=true
+    fi
+    
+    # Check if containers are running
+    if docker ps --format "{{.Names}}" 2>/dev/null | grep -q "mpd-web-control"; then
+        containers_running=true
+    fi
+    
+    if [ "$web_image_exists" = true ]; then
+        echo ""
+        print_warning "Existing Docker image found: maestro-mpd-control-web"
+        
+        if [ "$containers_running" = true ]; then
+            print_status "Containers are currently running"
+        fi
+        
+        echo ""
+        echo "Would you like to:"
+        echo "1) Use existing image (skip build)"
+        echo "2) Rebuild image (recommended for updates)"
+        echo "3) Remove existing image and rebuild"
+        echo "4) Exit setup"
+        echo ""
+        read -p "Choice [1/2/3/4]: " docker_choice
+        
+        case $docker_choice in
+            1)
+                print_success "Using existing Docker image"
+                SKIP_DOCKER_BUILD=true
+                return 0
+                ;;
+            2)
+                print_status "Will rebuild Docker image"
+                FORCE_DOCKER_BUILD=true
+                return 0
+                ;;
+            3)
+                print_status "Removing existing image and rebuilding..."
+                if [ "$containers_running" = true ]; then
+                    print_status "Stopping running containers..."
+                    docker-compose down 2>/dev/null || docker compose down 2>/dev/null || true
+                fi
+                
+                print_status "Removing Docker image..."
+                docker rmi maestro-mpd-control-web 2>/dev/null || true
+                
+                # Also remove related images
+                docker images --filter="reference=maestro-mpd-control*" -q | xargs -r docker rmi 2>/dev/null || true
+                
+                print_success "Existing image removed"
+                FORCE_DOCKER_BUILD=true
+                return 0
+                ;;
+            4)
+                echo "Setup cancelled."
+                exit 0
+                ;;
+            *)
+                print_status "Using existing Docker image (default)"
+                SKIP_DOCKER_BUILD=true
+                return 0
+                ;;
+        esac
+    else
+        # No existing image, need to build
+        FORCE_DOCKER_BUILD=true
+        return 0
+    fi
+}
+
+# Function to validate existing .env file
+validate_env_file() {
+    local env_file="$1"
+    local validation_failed=false
+    
+    if [ ! -f "$env_file" ]; then
+        return 1
+    fi
+    
+    print_status "Validating existing .env configuration..."
+    
+    # Check for syntax errors by attempting to source it in a subshell
+    if ! (set -e; source "$env_file" >/dev/null 2>&1); then
+        print_error "Syntax errors found in .env file"
+        validation_failed=true
+    fi
+    
+    # Check for common issues
+    if grep -q "RECENT_MUSIC_DIRS=.*[^,]\\s" "$env_file" 2>/dev/null; then
+        print_error "Unquoted spaces found in RECENT_MUSIC_DIRS"
+        validation_failed=true
+    fi
+    
+    # Check for required variables
+    local required_vars=("MUSIC_DIRECTORY" "MPD_HOST" "MPD_PORT" "WEB_PORT")
+    for var in "${required_vars[@]}"; do
+        if ! grep -q "^${var}=" "$env_file" 2>/dev/null; then
+            print_warning "Missing required variable: $var"
+        fi
+    done
+    
+    if [ "$validation_failed" = true ]; then
+        return 1
+    else
+        print_success "Configuration file validation passed"
+        return 0
+    fi
+}
+
+# Function to configure Recent Music Directories
+configure_recent_dirs() {
+    echo ""
+    echo -e "${CYAN}⚡ Recent Albums Performance${NC}"
+    echo "=============================="
+    echo ""
+    echo "For faster 'Recent Albums' loading, you can specify directories"
+    echo "within your music library that contain your newest music."
+    echo ""
+    echo "Examples:"
+    echo "  • New Releases,2024,2025"
+    echo "  • Latest Albums,Downloads"  
+    echo "  • Recent,New Music"
+    echo ""
+    echo "Leave empty to scan entire library (slower but comprehensive)"
+    echo ""
+    read -p "Recent music directories (comma-separated) []: " RECENT_DIRS
+}
+
 # Function to detect and resolve MPD port conflicts
 check_mpd_port_conflict() {
     local mpd_port=${1:-6600}
@@ -369,19 +504,87 @@ print_success "Docker and Docker Compose found"
 if [ -f .env ]; then
     echo ""
     print_warning "Existing .env configuration found"
-    echo ""
-    echo "Would you like to:"
-    echo "1) Keep existing configuration"
-    echo "2) Reconfigure from scratch"
-    echo "3) Exit setup"
-    echo ""
-    read -p "Choice [1/2/3]: " env_choice
     
-    case $env_choice in
-        2) rm -f .env && print_status "Removed existing configuration" ;;
-        3) echo "Setup cancelled." && exit 0 ;;
-        *) print_status "Using existing configuration" && SKIP_CONFIG=true ;;
-    esac
+    # Validate the existing .env file
+    if validate_env_file ".env"; then
+        echo ""
+        echo "Would you like to:"
+        echo "1) Keep existing configuration"
+        echo "2) Update Recent Music Directories only"
+        echo "3) Reconfigure from scratch"
+        echo "4) Exit setup"
+        echo ""
+        read -p "Choice [1/2/3/4]: " env_choice
+        
+        case $env_choice in
+            1) 
+                print_status "Using existing configuration"
+                SKIP_CONFIG=true
+                ;;
+            2)
+                print_status "Updating Recent Music Directories configuration"
+                SKIP_CONFIG=true
+                UPDATE_RECENT_DIRS=true
+                ;;
+            3) 
+                rm -f .env && print_status "Removed existing configuration" 
+                ;;
+            4) 
+                echo "Setup cancelled." && exit 0 
+                ;;
+            *) 
+                print_status "Using existing configuration"
+                SKIP_CONFIG=true
+                ;;
+        esac
+    else
+        echo ""
+        print_error "Configuration file has errors and cannot be used safely"
+        echo "Would you like to:"
+        echo "1) Reconfigure from scratch (recommended)"
+        echo "2) Exit setup"
+        echo ""
+        read -p "Choice [1/2]: " repair_choice
+        
+        case $repair_choice in
+            1) 
+                rm -f .env && print_status "Removed corrupted configuration" 
+                ;;
+            *) 
+                echo "Setup cancelled." && exit 0 
+                ;;
+        esac
+    fi
+fi
+
+# Handle Recent Directories update for existing configs
+if [ "$UPDATE_RECENT_DIRS" = "true" ]; then
+    echo ""
+    print_status "Updating Recent Music Directories configuration..."
+    
+    # Source existing .env to get current values
+    source .env 2>/dev/null || true
+    
+    configure_recent_dirs
+    
+    # Update just the RECENT_MUSIC_DIRS in existing .env
+    if [ -n "$RECENT_DIRS" ]; then
+        # Properly quote the value to handle spaces and commas
+        escaped_dirs=$(printf '%s' "$RECENT_DIRS" | sed 's/"/\\"/g')
+        if grep -q "^RECENT_MUSIC_DIRS=" .env; then
+            sed -i "s/^RECENT_MUSIC_DIRS=.*/RECENT_MUSIC_DIRS=\"$escaped_dirs\"/" .env
+        else
+            echo "RECENT_MUSIC_DIRS=\"$escaped_dirs\"" >> .env
+        fi
+    else
+        if grep -q "^RECENT_MUSIC_DIRS=" .env; then
+            sed -i "s/^RECENT_MUSIC_DIRS=.*/RECENT_MUSIC_DIRS=/" .env
+        else
+            echo "RECENT_MUSIC_DIRS=" >> .env
+        fi
+    fi
+    
+    print_success "Recent Music Directories updated in .env"
 fi
 
 # Configuration wizard
@@ -558,21 +761,7 @@ if [ "$SKIP_CONFIG" != "true" ]; then
     fi
     
     # Recent Albums performance configuration
-    echo ""
-    echo -e "${CYAN}⚡ Recent Albums Performance${NC}"
-    echo "=============================="
-    echo ""
-    echo "For faster 'Recent Albums' loading, you can specify directories"
-    echo "within your music library that contain your newest music."
-    echo ""
-    echo "Examples:"
-    echo "  • New Releases,2024,2025"
-    echo "  • Latest Albums,Downloads"  
-    echo "  • Recent,New Music"
-    echo ""
-    echo "Leave empty to scan entire library (slower but comprehensive)"
-    echo ""
-    read -p "Recent music directories (comma-separated) []: " RECENT_DIRS
+    configure_recent_dirs
     
     # Automatic audio system detection
     echo ""
@@ -608,7 +797,7 @@ AUTO_FILL_MIN_TRACKS=3
 AUTO_FILL_MAX_TRACKS=7
 
 # Recent Albums Performance
-RECENT_MUSIC_DIRS=$RECENT_DIRS
+RECENT_MUSIC_DIRS="$RECENT_DIRS"
 
 # Audio Configuration (auto-detected)
 AUDIO_SYSTEM=$AUDIO_SYSTEM
@@ -634,6 +823,9 @@ print_status "Created data directory for persistent storage"
 echo ""
 print_status "$DOCKER Starting Docker deployment..."
 
+# Check for existing Docker images
+check_existing_docker_images
+
 # Build and start services
 if [ -f .env ]; then
     source .env
@@ -647,9 +839,6 @@ else
     PROFILE_ARG=""
     print_status "Starting web interface (connecting to external MPD)"
 fi
-
-# Start services
-print_status "Building and starting containers..."
 
 # Pre-create and fix MPD volumes if using containerized MPD
 if [ "$USE_CONTAINER_MPD" = "true" ] || grep -q "COMPOSE_PROFILES.*with-mpd" .env 2>/dev/null; then
@@ -668,13 +857,28 @@ if [ "$USE_CONTAINER_MPD" = "true" ] || grep -q "COMPOSE_PROFILES.*with-mpd" .en
         " 2>/dev/null || print_warning "Volume preparation failed (may already exist)"
 fi
 
-if $COMPOSE_CMD $PROFILE_ARG up -d --build; then
-    print_success "Services started successfully"
+# Start services
+if [ "$SKIP_DOCKER_BUILD" = "true" ]; then
+    print_status "Starting services with existing Docker image..."
+    if $COMPOSE_CMD $PROFILE_ARG up -d; then
+        print_success "Services started successfully"
+    else
+        print_error "Failed to start services with existing image"
+        echo ""
+        echo "The existing image may be incompatible. Try rebuilding:"
+        echo "  $COMPOSE_CMD $PROFILE_ARG up -d --build"
+        exit 1
+    fi
 else
-    print_error "Failed to start services"
-    echo ""
-    echo "Check logs with: $COMPOSE_CMD logs"
-    exit 1
+    print_status "Building and starting containers..."
+    if $COMPOSE_CMD $PROFILE_ARG up -d --build; then
+        print_success "Services started successfully"
+    else
+        print_error "Failed to start services"
+        echo ""
+        echo "Check logs with: $COMPOSE_CMD logs"
+        exit 1
+    fi
 fi
 
 # Wait for services to be ready
