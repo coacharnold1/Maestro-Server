@@ -1,0 +1,44 @@
+# Personal configuration files
+config.env
+settings.json
+radio_stations.json
+maestro-setup.conf
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Backups
+*.bak
+*.backup
