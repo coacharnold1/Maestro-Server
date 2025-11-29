@@ -398,14 +398,23 @@ configure_recent_dirs() {
     echo "For faster 'Recent Albums' loading, you can specify directories"
     echo "within your music library that contain your newest music."
     echo ""
-    echo "Examples:"
+    echo -e "${YELLOW}IMPORTANT: Enter directory NAMES only, not full paths!${NC}"
+    echo ""
+    echo "If your music library is: /media/music/"
+    echo "And you have directories: /media/music/gidney and /media/music/down"
+    echo ""
+    echo -e "${GREEN}Correct examples:${NC}"
+    echo "  • gidney,down"
     echo "  • New Releases,2024,2025"
-    echo "  • Latest Albums,Downloads"  
-    echo "  • Recent,New Music"
+    echo "  • Latest Albums,Downloads"
+    echo ""
+    echo -e "${RED}Wrong examples:${NC}"
+    echo "  • /media/music/gidney (don't include full path)"
+    echo "  • /home/user/Music/2024 (don't include full path)"
     echo ""
     echo "Leave empty to scan entire library (slower but comprehensive)"
     echo ""
-    read -p "Recent music directories (comma-separated) []: " RECENT_DIRS
+    read -p "Recent music directory names (comma-separated) []: " RECENT_DIRS
 }
 
 # Function to detect and resolve MPD port conflicts
