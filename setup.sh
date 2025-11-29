@@ -1,642 +1,790 @@
 #!/bin/bash
-
-# MPD Web Control - Unified Setup Script
-# Intelligently detects and configures both native and containerized setups
-
 set -e
+
+# Maestro MPD Control - Docker Setup Script
+# Interactive configuration and deployment
 
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# Logging functions
-log_info() { echo -e "${BLUE}ℹ️ $1${NC}"; }
-log_success() { echo -e "${GREEN}✅ $1${NC}"; }
-log_warning() { echo -e "${YELLOW}⚠️ $1${NC}"; }
-log_error() { echo -e "${RED}❌ $1${NC}"; }
+# Emoji symbols
+MUSIC="🎵"
+DOCKER="🐳"
+GEAR="⚙️"
+ROCKET="🚀"
+CHECK="✅"
+WARN="⚠️"
+ERROR="❌"
 
-echo "=========================================="
-echo "🎵 MPD Web Control - Unified Setup"
-echo "=========================================="
-echo
+# Function to print status messages
+print_status() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
 
-# Check if running as root
-if [[ $EUID -eq 0 ]]; then
-   log_error "This script should not be run as root. Please run as a regular user."
-   exit 1
+print_success() {
+    echo -e "${GREEN}$CHECK${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}$WARN${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}$ERROR${NC} $1"
+}
+
+# New: Docker permission check and fix
+check_docker_permissions() {
+    echo -e "${BLUE}[INFO]${NC} Checking Docker permissions..."
+    
+    if ! command -v docker >/dev/null 2>&1; then
+        print_error "Docker is not installed. Please install Docker first:"
+        echo "  • Ubuntu/Debian: sudo apt update && sudo apt install docker.io"
+        echo "  • CentOS/RHEL: sudo yum install docker"
+        echo "  • Or visit: https://docs.docker.com/get-docker/"
+        exit 1
+    fi
+    
+    if ! docker ps >/dev/null 2>&1; then
+        echo -e "${YELLOW}$WARN${NC} Docker permissions need setup..."
+        echo "Adding user to docker group..."
+        
+        if sudo usermod -aG docker "$USER" 2>/dev/null; then
+            print_success "Added $USER to docker group"
+            echo -e "${YELLOW}$WARN${NC} You need to log out and log back in for Docker permissions to take effect."
+            echo "Then run this script again."
+            echo ""
+            echo -e "${BLUE}Quick alternative:${NC} Run 'newgrp docker' then './setup.sh' again"
+            exit 0
+        else
+            print_error "Failed to add user to docker group. You may need to run with sudo."
+            echo "Alternative: Try 'sudo ./setup.sh' (not recommended for production)"
+            exit 1
+        fi
+    fi
+    
+    print_success "Docker permissions OK"
+}
+
+# New: Check for Docker Compose
+check_docker_compose() {
+    if ! command -v docker-compose >/dev/null 2>&1; then
+        print_error "Docker Compose is not installed."
+        echo "Installing Docker Compose..."
+        
+        if command -v apt >/dev/null 2>&1; then
+            sudo apt update && sudo apt install docker-compose-plugin -y
+        elif command -v yum >/dev/null 2>&1; then
+            sudo yum install docker-compose -y
+        else
+            echo "Please install Docker Compose manually:"
+            echo "https://docs.docker.com/compose/install/"
+            exit 1
+        fi
+    fi
+    
+    print_success "Docker Compose available"
+}
+
+# New: Port conflict detection and resolution
+check_port_conflicts() {
+    echo -e "${BLUE}[INFO]${NC} Checking for port conflicts..."
+    
+    # Check MPD port
+    if command -v netstat >/dev/null 2>&1; then
+        if netstat -tuln 2>/dev/null | grep -q ":6600 "; then
+            echo -e "${YELLOW}$WARN${NC} Port 6600 is already in use (probably your existing MPD server)"
+            echo -e "${GREEN}$CHECK${NC} This is fine! Container will use port 6601 (isolated setup)"
+            export MPD_EXTERNAL_PORT=6601
+        fi
+        
+        # Check web port
+        WEB_PORT=${WEB_PORT:-5003}
+        if netstat -tuln 2>/dev/null | grep -q ":$WEB_PORT "; then
+            echo -e "${YELLOW}$WARN${NC} Port $WEB_PORT is already in use"
+            read -p "Enter alternative web port (e.g., 5004): " NEW_PORT
+            if [[ "$NEW_PORT" =~ ^[0-9]+$ ]] && [ "$NEW_PORT" -ge 1024 ] && [ "$NEW_PORT" -le 65535 ]; then
+                export WEB_PORT="$NEW_PORT"
+                echo -e "${GREEN}$CHECK${NC} Using port $WEB_PORT for web interface"
+            else
+                print_error "Invalid port number. Exiting."
+                exit 1
+            fi
+        fi
+    fi
+}
+
+# New: Comprehensive deployment validation
+validate_deployment() {
+    echo -e "${BLUE}[INFO]${NC} Validating deployment..."
+    local validation_failed=false
+    
+    # Check if containers are running
+    if docker-compose ps | grep -q "Up"; then
+        print_success "Containers are running"
+    else
+        print_error "Containers are not running properly"
+        validation_failed=true
+    fi
+    
+    # Test web interface
+    local web_port=${WEB_PORT:-5003}
+    echo -e "${BLUE}[INFO]${NC} Testing web interface on port $web_port..."
+    
+    if curl -s -f http://localhost:$web_port >/dev/null; then
+        print_success "Web interface responding at http://localhost:$web_port"
+    else
+        print_error "Web interface not responding"
+        echo "Try waiting 30 seconds and check: http://localhost:$web_port"
+        validation_failed=true
+    fi
+    
+    # Check MPD connection (if containerized)
+    if [ "$USE_CONTAINER_MPD" = "true" ] || grep -q "with-mpd" .env 2>/dev/null; then
+        if docker-compose ps | grep mpd-server | grep -q "Up"; then
+            print_success "MPD server container running"
+        else
+            print_warning "MPD server container not running - check logs"
+        fi
+    fi
+    
+    # Check music directory mount
+    if [ -n "$MUSIC_DIRECTORY" ] && [ -d "$MUSIC_DIRECTORY" ]; then
+        print_success "Music directory accessible: $MUSIC_DIRECTORY"
+    else
+        print_warning "Music directory may not be accessible"
+    fi
+    
+    if [ "$validation_failed" = false ]; then
+        echo ""
+        print_success "🎉 Deployment validation successful!"
+        echo ""
+        echo -e "${GREEN}$CHECK Quick Start:${NC}"
+        echo "  1. Open: ${BLUE}http://localhost:$web_port${NC}"
+        echo "  2. Browse your music library"
+        echo "  3. Click play on any song"
+        echo "  4. Audio streams through your browser or http://localhost:8000"
+        echo ""
+        echo -e "${CYAN}$INFO Useful Commands:${NC}"
+        echo "  View logs:     docker-compose logs -f"
+        echo "  Stop:          docker-compose down"
+        echo "  Restart:       docker-compose restart"
+        return 0
+    else
+        echo ""
+        print_error "Validation found issues"
+        echo ""
+        echo -e "${YELLOW}Troubleshooting:${NC}"
+        echo "  • Check container status: docker-compose ps"
+        echo "  • View detailed logs: docker-compose logs -f"
+        echo "  • Wait 1-2 minutes for services to fully start"
+        echo "  • Ensure music directory exists and is accessible"
+        return 1
+    fi
+}
+
+print_warning() {
+    echo -e "${YELLOW}$WARN${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}$ERROR${NC} $1"
+}
+
+## MAIN SCRIPT EXECUTION START ##
+
+echo -e "${PURPLE}$MUSIC Maestro MPD Control - Docker Setup $MUSIC${NC}"
+echo -e "${PURPLE}===========================================${NC}"
+echo ""
+
+# Pre-flight checks
+echo -e "${CYAN}$GEAR Pre-flight Checks${NC}"
+check_docker_permissions
+check_docker_compose  
+check_port_conflicts
+echo ""
+
+# Audio system detection and configuration
+auto_detect_audio() {
+    echo -e "${CYAN}🔊 Audio System Detection${NC}"
+    echo "=============================="
+    echo ""
+    
+    # Check what audio system is running
+    if pgrep -x "pipewire" > /dev/null; then
+        AUDIO_SYSTEM="pipewire"
+        AUDIO_METHOD="pulse"  # PipeWire uses PulseAudio protocol
+        echo "✅ Detected: PipeWire (modern audio)"
+    elif pgrep -x "pulseaudio" > /dev/null; then
+        AUDIO_SYSTEM="pulseaudio" 
+        AUDIO_METHOD="pulse"
+        echo "✅ Detected: PulseAudio"
+    elif ls /dev/snd/pcm* &>/dev/null; then
+        AUDIO_SYSTEM="alsa"
+        AUDIO_METHOD="alsa"
+        echo "✅ Detected: ALSA (direct hardware)"
+    else
+        AUDIO_SYSTEM="none"
+        AUDIO_METHOD="http"
+        echo "⚠️  No audio system detected - using HTTP streaming"
+    fi
+    
+    echo ""
+    echo "Audio configuration: $AUDIO_SYSTEM ($AUDIO_METHOD)"
+    
+    # Auto-configure based on detection
+    if [ "$AUDIO_SYSTEM" = "pipewire" ] || [ "$AUDIO_SYSTEM" = "pulseaudio" ]; then
+        echo "✅ Native audio will work automatically"
+        USE_PULSE_AUDIO="true"
+    elif [ "$AUDIO_SYSTEM" = "alsa" ]; then
+        echo "✅ Direct ALSA audio will be used"
+        USE_PULSE_AUDIO="false"
+    else
+        echo "ℹ️  Will use HTTP streaming (browser playback)"
+        USE_PULSE_AUDIO="false"
+    fi
+    
+    echo ""
+}
+
+# Docker audio permissions setup
+setup_audio_permissions() {
+    if [ "$USE_PULSE_AUDIO" = "true" ]; then
+        # Add user to audio group if not already
+        if ! groups "$USER" | grep -q "audio"; then
+            print_status "Adding $USER to audio group..."
+            sudo usermod -aG audio "$USER"
+            print_warning "Audio group added. You may need to log out/in for changes to take effect."
+        fi
+        
+        # Check PulseAudio socket
+        PULSE_SOCKET_DIR="/run/user/$(id -u)/pulse"
+        if [ -d "$PULSE_SOCKET_DIR" ]; then
+            print_success "PulseAudio socket found: $PULSE_SOCKET_DIR"
+        else
+            print_warning "PulseAudio socket not found. Audio may not work until after login."
+        fi
+    fi
+}
+
+# Function to detect and resolve MPD port conflicts
+check_mpd_port_conflict() {
+    local mpd_port=${1:-6600}
+    
+    if netstat -tln 2>/dev/null | grep -q ":${mpd_port}\\s"; then
+        print_warning "Port ${mpd_port} is already in use"
+        
+        # Check if it's MPD
+        if pgrep -x "mpd" > /dev/null; then
+            print_status "Detected existing MPD server running"
+            echo ""
+            echo "Options:"
+            echo "1) Use existing MPD server (recommended)"
+            echo "2) Use containerized MPD on different port"
+            echo "3) Stop existing MPD and use containerized"
+            echo ""
+            read -p "Choice [1/2/3]: " port_choice
+            
+            case $port_choice in
+                1)
+                    print_success "Will use existing MPD server"
+                    MPD_HOST="localhost"
+                    MPD_PORT="6600"
+                    USE_CONTAINER_MPD=false
+                    return 0
+                    ;;
+                2)
+                    print_success "Will use containerized MPD on port 6601"
+                    MPD_EXTERNAL_PORT="6601"
+                    return 0
+                    ;;
+                3)
+                    print_warning "Stopping existing MPD..."
+                    sudo systemctl stop mpd 2>/dev/null || sudo pkill mpd
+                    sleep 2
+                    if ! netstat -tln 2>/dev/null | grep -q ":${mpd_port}\\s"; then
+                        print_success "Existing MPD stopped"
+                        return 0
+                    else
+                        print_error "Could not stop existing MPD"
+                        exit 1
+                    fi
+                    ;;
+                *)
+                    print_success "Using existing MPD server (default)"
+                    MPD_HOST="localhost"
+                    MPD_PORT="6600"
+                    USE_CONTAINER_MPD=false
+                    return 0
+                    ;;
+            esac
+        else
+            print_warning "Port ${mpd_port} occupied by unknown service"
+            MPD_EXTERNAL_PORT="6601"
+            print_success "Will use port 6601 for containerized MPD"
+        fi
+    fi
+    
+    return 0
+}
+
+# Check Docker
+if ! command -v docker >/dev/null 2>&1; then
+    print_error "Docker is required but not installed."
+    echo ""
+    echo "Please install Docker:"
+    echo "• Ubuntu/Debian: curl -fsSL https://get.docker.com | sh"
+    echo "• macOS: Download Docker Desktop from docker.com"
+    echo "• Windows: Download Docker Desktop from docker.com"
+    echo ""
+    exit 1
 fi
 
-# Get the directory where this script is located
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-cd "$SCRIPT_DIR"
+# Check Docker Compose
+if ! command -v docker-compose >/dev/null 2>&1 && ! docker compose version >/dev/null 2>&1; then
+    print_error "Docker Compose is required but not installed."
+    echo ""
+    echo "Please install Docker Compose:"
+    echo "• Most Docker installations include Compose"
+    echo "• Try: 'docker compose version' or install separately"
+    echo ""
+    exit 1
+fi
 
-log_info "Working directory: $SCRIPT_DIR"
-echo
+# Determine compose command
+COMPOSE_CMD="docker-compose"
+if docker compose version >/dev/null 2>&1; then
+    COMPOSE_CMD="docker compose"
+fi
 
-# Function to check if MPD is already installed and running
-check_existing_mpd() {
-    log_info "Checking for existing MPD installation..."
-    
-    MPD_NATIVE_RUNNING=false
-    MPD_NATIVE_INSTALLED=false
-    MPD_PORT_IN_USE=false
-    
-    # Check if MPD is installed
-    if command -v mpd >/dev/null 2>&1; then
-        MPD_NATIVE_INSTALLED=true
-        log_success "Native MPD is installed"
-        
-        # Check if MPD service is running
-        if systemctl is-active --quiet mpd 2>/dev/null || pgrep -f "mpd" >/dev/null 2>&1; then
-            MPD_NATIVE_RUNNING=true
-            log_success "Native MPD is currently running"
-        fi
-    fi
-    
-    # Check if something is using port 6600
-    if command -v nc >/dev/null 2>&1; then
-        if nc -z localhost 6600 2>/dev/null; then
-            MPD_PORT_IN_USE=true
-            log_success "MPD service is accessible on port 6600"
-        fi
-    fi
-    
-    echo
-}
+print_success "Docker and Docker Compose found"
 
-# Function to detect Docker availability
-check_docker() {
-    log_info "Checking Docker availability..."
+# Check if .env already exists
+if [ -f .env ]; then
+    echo ""
+    print_warning "Existing .env configuration found"
+    echo ""
+    echo "Would you like to:"
+    echo "1) Keep existing configuration"
+    echo "2) Reconfigure from scratch"
+    echo "3) Exit setup"
+    echo ""
+    read -p "Choice [1/2/3]: " env_choice
     
-    DOCKER_AVAILABLE=false
-    DOCKER_COMPOSE_AVAILABLE=false
-    
-    if command -v docker >/dev/null 2>&1; then
-        if docker ps >/dev/null 2>&1 || sudo docker ps >/dev/null 2>&1; then
-            DOCKER_AVAILABLE=true
-            log_success "Docker is available"
-        else
-            log_warning "Docker is installed but not accessible (may need sudo or user group)"
-        fi
-    else
-        log_warning "Docker is not installed"
-    fi
-    
-    if command -v docker-compose >/dev/null 2>&1; then
-        DOCKER_COMPOSE_AVAILABLE=true
-        log_success "Docker Compose is available"
-    else
-        log_warning "Docker Compose is not installed"
-    fi
-    
-    echo
-}
+    case $env_choice in
+        2) rm -f .env && print_status "Removed existing configuration" ;;
+        3) echo "Setup cancelled." && exit 0 ;;
+        *) print_status "Using existing configuration" && SKIP_CONFIG=true ;;
+    esac
+fi
 
-# Function to present setup options based on what's available
-present_setup_options() {
-    echo "🔧 Setup Options"
-    echo "================"
+# Configuration wizard
+if [ "$SKIP_CONFIG" != "true" ]; then
+    echo ""
+    print_status "$GEAR Starting configuration wizard..."
+    echo ""
     
-    option_num=1
-    declare -g -A SETUP_OPTIONS
-    
-    # Option 1: Use existing MPD if available
-    if [ "$MPD_PORT_IN_USE" = true ]; then
-        echo "$option_num) Use existing MPD server (detected on port 6600)"
-        SETUP_OPTIONS[$option_num]="existing_mpd"
-        ((option_num++))
-    fi
-    
-    # Option 2: Install native Python setup (always available)
-    echo "$option_num) Native Python setup (requires manual MPD installation)"
-    SETUP_OPTIONS[$option_num]="native_python"
-    ((option_num++))
-    
-    # Option 3: Docker setup if available
-    if [ "$DOCKER_AVAILABLE" = true ] && [ "$DOCKER_COMPOSE_AVAILABLE" = true ]; then
-        echo "$option_num) Containerized setup (Docker - includes MPD + web interface)"
-        SETUP_OPTIONS[$option_num]="docker_full"
-        ((option_num++))
-    fi
-    
-    # Option 4: Manual Docker connection if available
-    if [ "$DOCKER_AVAILABLE" = true ] && [ "$DOCKER_COMPOSE_AVAILABLE" = true ]; then
-        echo "$option_num) Containerized web interface only (connect to external MPD)"
-        SETUP_OPTIONS[$option_num]="docker_web_only"
-        ((option_num++))
-    fi
-    
-    echo
-    read -p "Choose setup option [1-$((option_num-1))]: " SETUP_CHOICE
-    
-    CHOSEN_SETUP=${SETUP_OPTIONS[$SETUP_CHOICE]}
-    
-    if [ -z "$CHOSEN_SETUP" ]; then
-        log_error "Invalid choice. Please run setup again."
-        exit 1
-    fi
-    
-    log_success "Selected: $CHOSEN_SETUP"
-    echo
-}
-
-# Function for existing MPD setup
-setup_existing_mpd() {
-    log_info "Setting up web interface for existing MPD..."
-    
-    # Check Python and set up virtual environment
-    setup_python_environment
-    
-    # Create basic config
-    create_basic_config "localhost" "6600"
-    
-    log_success "Setup completed for existing MPD!"
-    echo
-    echo "🚀 To start the web interface:"
-    echo "   source venv/bin/activate"
-    echo "   python app.py"
-    echo
-    echo "🌐 Web interface will be available at: http://localhost:5003"
-}
-
-# Function for native Python setup
-setup_native_python() {
-    log_info "Setting up native Python installation..."
-    
-    # Check Python and set up virtual environment
-    setup_python_environment
-    
-    # Check if MPD is installed, offer to install if not
-    if [ "$MPD_NATIVE_INSTALLED" = false ]; then
-        echo
-        log_warning "MPD is not installed on this system"
-        echo "Options:"
-        echo "1) Install MPD now (requires sudo)"
-        echo "2) Continue without MPD (you'll need to install it manually)"
-        echo "3) Switch to containerized setup instead"
-        echo
-        read -p "Choose option [1-3]: " MPD_INSTALL_CHOICE
-        
-        case $MPD_INSTALL_CHOICE in
-            1)
-                install_native_mpd
-                ;;
-            2)
-                log_warning "MPD not installed - you'll need to install it manually"
-                ;;
-            3)
-                log_info "Switching to containerized setup..."
-                setup_docker_full
-                return
-                ;;
-            *)
-                log_error "Invalid choice"
-                exit 1
-                ;;
-        esac
-    fi
-    
-    # Create config for local MPD
-    create_basic_config "localhost" "6600"
-    
-    log_success "Native Python setup completed!"
-    echo
-    echo "🚀 To start the web interface:"
-    echo "   source venv/bin/activate" 
-    echo "   python app.py"
-    echo
-    echo "🌐 Web interface will be available at: http://localhost:5003"
-    
-    if [ "$MPD_NATIVE_RUNNING" = false ]; then
-        echo
-        log_warning "Don't forget to start MPD:"
-        echo "   sudo systemctl start mpd"
-        echo "   sudo systemctl enable mpd  # to start automatically"
-    fi
-}
-
-# Function to install native MPD
-install_native_mpd() {
-    log_info "Installing MPD..."
-    
-    # Detect distribution and install MPD
-    if command -v apt-get >/dev/null 2>&1; then
-        sudo apt-get update
-        sudo apt-get install -y mpd mpc
-    elif command -v dnf >/dev/null 2>&1; then
-        sudo dnf install -y mpd mpc
-    elif command -v pacman >/dev/null 2>&1; then
-        sudo pacman -S --noconfirm mpd mpc
-    else
-        log_error "Cannot auto-install MPD on this system. Please install manually."
-        exit 1
-    fi
-    
-    # Basic MPD configuration
-    sudo mkdir -p /etc/mpd
-    read -p "Enter path to your music directory: " MUSIC_DIR
-    
-    sudo tee /etc/mpd/mpd.conf > /dev/null << EOF
-music_directory     "$MUSIC_DIR"
-db_file             "/var/lib/mpd/mpd.db"
-log_file            "/var/log/mpd/mpd.log"
-state_file          "/var/lib/mpd/mpdstate"
-playlist_directory  "/var/lib/mpd/playlists"
-
-bind_to_address     "localhost"
-port                "6600"
-
-audio_output {
-    type    "pulse"
-    name    "PulseAudio"
-}
-
-audio_output {
-    type    "alsa"
-    name    "ALSA"
-}
-EOF
-    
-    # Start MPD service
-    sudo systemctl enable mpd
-    sudo systemctl start mpd
-    
-    log_success "MPD installed and started"
-}
-
-# Function for Docker full setup
-setup_docker_full() {
-    log_info "Setting up containerized MPD + web interface..."
-    
-    # Run the docker configuration
-    configure_docker_setup true
-}
-
-# Function for Docker web-only setup  
-setup_docker_web_only() {
-    log_info "Setting up containerized web interface only..."
-    
-    echo "📡 External MPD Configuration"
-    echo "============================="
-    read -p "Enter MPD host [localhost]: " MPD_HOST
-    MPD_HOST=${MPD_HOST:-localhost}
-    read -p "Enter MPD port [6600]: " MPD_PORT
-    MPD_PORT=${MPD_PORT:-6600}
-    
-    # Test connection
-    if command -v nc >/dev/null 2>&1; then
-        if nc -z "$MPD_HOST" "$MPD_PORT" 2>/dev/null; then
-            log_success "Successfully connected to MPD at $MPD_HOST:$MPD_PORT"
-        else
-            log_warning "Cannot connect to MPD at $MPD_HOST:$MPD_PORT"
-            echo "   Make sure MPD is running and accessible"
-        fi
-    fi
-    
-    # Run docker configuration for web-only
-    configure_docker_setup false "$MPD_HOST" "$MPD_PORT"
-}
-
-# Function to set up Python environment
-setup_python_environment() {
-    log_info "Setting up Python environment..."
-    
-    # Check Python version
-    PYTHON_VERSION=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
-    REQUIRED_VERSION="3.7"
-
-    if python3 -c "import sys; exit(0 if sys.version_info >= (3,7) else 1)"; then
-        log_success "Python $PYTHON_VERSION detected (>= $REQUIRED_VERSION required)"
-    else
-        log_error "Python $REQUIRED_VERSION or higher is required. Found: $PYTHON_VERSION"
-        exit 1
-    fi
-
-    # Create virtual environment if it doesn't exist
-    if [ ! -d "venv" ]; then
-        log_info "Creating virtual environment..."
-        python3 -m venv venv
-        log_success "Virtual environment created"
-    else
-        log_success "Virtual environment already exists"
-    fi
-
-    # Activate virtual environment
-    log_info "Installing Python dependencies..."
-    source venv/bin/activate
-
-    # Upgrade pip and install requirements
-    pip install --upgrade pip >/dev/null 2>&1
-    pip install -r requirements.txt >/dev/null 2>&1
-
-    log_success "Python dependencies installed"
-}
-
-# Function to create basic configuration
-create_basic_config() {
-    local mpd_host=$1
-    local mpd_port=$2
-    
-    log_info "Creating configuration..."
-    
-    if [ ! -f "config.env" ]; then
-        cp config.env.example config.env
-        
-        # Update with provided MPD settings
-        sed -i "s|MPD_HOST=.*|MPD_HOST=$mpd_host|" config.env
-        sed -i "s|MPD_PORT=.*|MPD_PORT=$mpd_port|" config.env
-        
-        # Ask for music directory
-        read -p "Enter path to your music directory [/home/$USER/Music]: " MUSIC_DIR
-        MUSIC_DIR=${MUSIC_DIR:-/home/$USER/Music}
-        sed -i "s|MUSIC_DIRECTORY=.*|MUSIC_DIRECTORY=$MUSIC_DIR|" config.env
-        
-        # Ask for recent directories
-        echo
-        echo "📁 Recent Added Configuration"
-        echo "=============================="
-        echo "The 'Recent Added' page can scan specific directories for newly added music."
-        echo "Examples: downloads, new_music, staging, incoming"
-        echo
-        read -p "Enter directories to scan for recent music (comma-separated) or leave blank for entire collection: " RECENT_DIRS
-        
-        if [ -n "$RECENT_DIRS" ]; then
-            # Add to config.env if it has RECENT_MUSIC_DIRS field
-            if grep -q "RECENT_MUSIC_DIRS" config.env; then
-                sed -i "s|RECENT_MUSIC_DIRS=.*|RECENT_MUSIC_DIRS=$RECENT_DIRS|" config.env
-            else
-                echo "RECENT_MUSIC_DIRS=$RECENT_DIRS" >> config.env
-            fi
-            log_success "Recent directories configured: $RECENT_DIRS"
-        else
-            log_info "Recent Added will scan entire music collection"
-        fi
-        
-        log_success "Configuration file created: config.env"
-    else
-        log_success "Configuration file already exists: config.env"
-    fi
-}
-
-# Function to configure Docker setup (reuse logic from docker-setup.sh)
-configure_docker_setup() {
-    local include_mpd=$1
-    local external_host=$2
-    local external_port=$3
-    
-    # Music directory
-    read -p "Enter path to your music directory: " MUSIC_DIR
-    while [ ! -d "$MUSIC_DIR" ]; do
-        log_error "Directory not found: $MUSIC_DIR"
-        read -p "Enter path to your music directory: " MUSIC_DIR
-    done
-    MUSIC_DIR=$(realpath "$MUSIC_DIR")
-    
-    # Recent music directories for "Recent Added" feature
-    echo
-    echo "📁 Recent Added Configuration"
+    # Music directory configuration
+    echo -e "${CYAN}📁 Music Library Setup${NC}"
     echo "=============================="
-    echo "The 'Recent Added' page can scan specific directories for newly added music."
-    echo "This is much faster than scanning your entire collection."
-    echo "Examples: downloads, new_music, staging, incoming"
-    echo
-    read -p "Enter directories to scan for recent music (comma-separated) or leave blank for entire collection: " RECENT_DIRS
+    echo ""
+    echo "Enter the path to your music directory:"
+    echo "Examples:"
+    echo "  • /home/username/Music"
+    echo "  • /media/music"
+    echo "  • /mnt/nas/music"
+    echo ""
     
-    if [ -n "$RECENT_DIRS" ]; then
-        # Validate recent directories exist
-        IFS=',' read -ra DIRS <<< "$RECENT_DIRS"
-        VALID_RECENT_DIRS=""
-        for dir in "${DIRS[@]}"; do
-            # Trim whitespace
-            dir=$(echo "$dir" | xargs)
-            # Check if it's a relative path under music directory
-            if [ -d "$MUSIC_DIR/$dir" ]; then
-                VALID_RECENT_DIRS="$VALID_RECENT_DIRS$dir,"
-                log_success "Found recent directory: $MUSIC_DIR/$dir"
-            elif [ -d "$dir" ]; then
-                VALID_RECENT_DIRS="$VALID_RECENT_DIRS$dir,"
-                log_success "Found recent directory: $dir"
+    while true; do
+        read -p "Music directory: " MUSIC_DIR
+        
+        if [ -z "$MUSIC_DIR" ]; then
+            print_error "Music directory cannot be empty"
+            continue
+        fi
+        
+        # Expand tilde
+        MUSIC_DIR="${MUSIC_DIR/#\~/$HOME}"
+        
+        if [ -d "$MUSIC_DIR" ]; then
+            # Check if directory has music files
+            if find "$MUSIC_DIR" -type f \( -name "*.mp3" -o -name "*.flac" -o -name "*.m4a" -o -name "*.ogg" -o -name "*.wav" \) -print -quit | grep -q .; then
+                print_success "Music directory found with audio files"
+                break
             else
-                log_warning "Directory not found, skipping: $dir"
+                print_warning "Directory exists but no audio files found"
+                echo "Continue anyway? [y/N]: "
+                read -r confirm
+                if [[ $confirm =~ ^[Yy]$ ]]; then
+                    break
+                fi
             fi
-        done
-        # Remove trailing comma
-        RECENT_DIRS=${VALID_RECENT_DIRS%,}
-    else
-        RECENT_DIRS=""
-        log_info "Recent Added will scan entire music collection"
-    fi
+        else
+            print_error "Directory not found: $MUSIC_DIR"
+            echo "Create it? [y/N]: "
+            read -r create_dir
+            if [[ $create_dir =~ ^[Yy]$ ]]; then
+                mkdir -p "$MUSIC_DIR" 2>/dev/null || {
+                    print_error "Failed to create directory. Check permissions."
+                    continue
+                }
+                print_success "Directory created"
+                break
+            fi
+        fi
+    done
     
-    # Port configuration
+    echo ""
+    # MPD server configuration
+    echo -e "${CYAN}🎛️  MPD Server Configuration${NC}"
+    echo "=============================="
+    echo ""
+    echo "Choose MPD setup:"
+    echo "1) Use containerized MPD (recommended for new users)"
+    echo "2) Connect to existing MPD server"
+    echo ""
+    read -p "Choice [1/2]: " mpd_choice
+    
+    case $mpd_choice in
+        2)
+            echo ""
+            echo "Enter MPD server details:"
+            read -p "MPD Host-(Some Users May need to put their local IP in here as opposed to) [localhost]: " MPD_HOST
+            MPD_HOST=${MPD_HOST:-localhost}
+            
+            read -p "MPD Port [6600]: " MPD_PORT
+            MPD_PORT=${MPD_PORT:-6600}
+            
+            # Test connection
+            print_status "Testing MPD connection..."
+            if timeout 3 bash -c "</dev/tcp/$MPD_HOST/$MPD_PORT" 2>/dev/null; then
+                print_success "MPD server is reachable"
+            else
+                print_warning "Cannot connect to $MPD_HOST:$MPD_PORT"
+                echo "Continue anyway? [y/N]: "
+                read -r continue_anyway
+                if [[ ! $continue_anyway =~ ^[Yy]$ ]]; then
+                    echo "Setup cancelled."
+                    exit 1
+                fi
+            fi
+            
+            USE_CONTAINER_MPD="false"
+            ;;
+        *)
+            print_status "Using containerized MPD"
+            MPD_HOST="mpd"
+            MPD_PORT="6600"
+            USE_CONTAINER_MPD="true"
+            
+            # Check for port conflicts with containerized MPD
+            check_mpd_port_conflict 6600
+            
+            if [ "$USE_CONTAINER_MPD" = "true" ]; then
+                print_success "Will use containerized MPD server"
+            else
+                print_success "Switched to existing MPD server"
+            fi
+            ;;
+    esac
+    
+    echo ""
+    # Web interface configuration
+    echo -e "${CYAN}🌐 Web Interface Configuration${NC}"
+    echo "=============================="
+    echo ""
     read -p "Web interface port [5003]: " WEB_PORT
     WEB_PORT=${WEB_PORT:-5003}
     
+    # Check if port is available
+    if command -v netstat >/dev/null 2>&1; then
+        if netstat -tuln 2>/dev/null | grep -q ":$WEB_PORT "; then
+            print_warning "Port $WEB_PORT appears to be in use"
+        fi
+    fi
+    
+    echo ""
     # Theme selection
-    echo
-    echo "🎨 Theme Selection"
-    echo "1) Dark (default) 2) Light 3) High Contrast 4) Desert"
-    read -p "Choose theme [1]: " THEME_CHOICE
-    case $THEME_CHOICE in
+    echo -e "${CYAN}🎨 Default Theme Selection${NC}"
+    echo "=============================="
+    echo ""
+    echo "Choose default theme:"
+    echo "1) Dark (default)"
+    echo "2) Light"
+    echo "3) High Contrast"
+    echo "4) Desert"
+    echo ""
+    read -p "Theme choice [1/2/3/4]: " theme_choice
+    
+    case $theme_choice in
         2) DEFAULT_THEME="light" ;;
         3) DEFAULT_THEME="high-contrast" ;;
         4) DEFAULT_THEME="desert" ;;
         *) DEFAULT_THEME="dark" ;;
     esac
     
+    echo ""
+    # Last.fm integration
+    echo -e "${CYAN}🎵 Last.fm Integration (Optional)${NC}"
+    echo "=============================="
+    echo ""
+    echo "Last.fm provides music charts and scrobbling features."
+    echo "You'll need API credentials from: https://www.last.fm/api"
+    echo ""
+    echo "Enable Last.fm integration? [y/N]: "
+    read -r enable_lastfm
+    
+    LASTFM_API_KEY=""
+    LASTFM_SECRET=""
+    if [[ $enable_lastfm =~ ^[Yy]$ ]]; then
+        echo ""
+        read -p "Last.fm API Key: " LASTFM_API_KEY
+        read -s -p "Last.fm Shared Secret: " LASTFM_SECRET
+        echo ""
+        
+        if [ -n "$LASTFM_API_KEY" ] && [ -n "$LASTFM_SECRET" ]; then
+            print_success "Last.fm credentials configured"
+        else
+            print_warning "Last.fm credentials incomplete, features will be disabled"
+            LASTFM_API_KEY=""
+            LASTFM_SECRET=""
+        fi
+    fi
+    
+    # Recent Albums performance configuration
+    echo ""
+    echo -e "${CYAN}⚡ Recent Albums Performance${NC}"
+    echo "=============================="
+    echo ""
+    echo "For faster 'Recent Albums' loading, you can specify directories"
+    echo "within your music library that contain your newest music."
+    echo ""
+    echo "Examples:"
+    echo "  • New Releases,2024,2025"
+    echo "  • Latest Albums,Downloads"  
+    echo "  • Recent,New Music"
+    echo ""
+    echo "Leave empty to scan entire library (slower but comprehensive)"
+    echo ""
+    read -p "Recent music directories (comma-separated) []: " RECENT_DIRS
+    
+    # Automatic audio system detection
+    echo ""
+    auto_detect_audio
+    setup_audio_permissions
+    
     # Generate .env file
+    print_status "Generating configuration..."
+    
     cat > .env << EOF
+# Maestro MPD Control - Docker Configuration
+# Generated on $(date)
+
+# Music Library
 MUSIC_DIRECTORY=$MUSIC_DIR
-RECENT_MUSIC_DIRS=$RECENT_DIRS
-WEB_PORT=$WEB_PORT
-APP_PORT=5003
-APP_HOST=0.0.0.0
-DEFAULT_THEME=$DEFAULT_THEME
+
+# MPD Configuration
+MPD_HOST=$MPD_HOST
+MPD_PORT=$MPD_PORT
 MPD_TIMEOUT=10
-SECRET_KEY=$(openssl rand -hex 32 2>/dev/null || echo "mpd-web-control-$(date +%s)")
-FLASK_ENV=production
-EOF
 
-    if [ "$include_mpd" = true ]; then
-        echo "MPD_HOST=mpd" >> .env
-        echo "MPD_PORT=6600" >> .env
-        echo "MPD_EXTERNAL_PORT=6600" >> .env
-        
-        # Configure audio and start with MPD
-        configure_audio_for_docker
-        docker-compose --profile with-mpd up -d --build
+# Web Interface
+WEB_PORT=$WEB_PORT
+DEFAULT_THEME=$DEFAULT_THEME
+
+# Last.fm Integration (Optional)
+LASTFM_API_KEY=$LASTFM_API_KEY
+LASTFM_SHARED_SECRET=$LASTFM_SECRET
+
+# Auto-Fill Settings
+AUTO_FILL_ENABLED=true
+AUTO_FILL_MIN_TRACKS=3
+AUTO_FILL_MAX_TRACKS=7
+
+# Recent Albums Performance
+RECENT_MUSIC_DIRS=$RECENT_DIRS
+
+# Audio Configuration (auto-detected)
+AUDIO_SYSTEM=$AUDIO_SYSTEM
+USE_PULSE_AUDIO=$USE_PULSE_AUDIO
+
+# Security
+SECRET_KEY=maestro-docker-$(date +%s)-$(shuf -i 1000-9999 -n 1)
+
+# Docker Settings
+EOF
+    
+    if [ "$USE_CONTAINER_MPD" = "true" ]; then
+        echo "COMPOSE_PROFILES=with-mpd" >> .env
+    fi
+    
+    print_success "Configuration saved to .env"
+fi
+
+# Create data directory for persistent storage
+mkdir -p data
+print_status "Created data directory for persistent storage"
+
+echo ""
+print_status "$DOCKER Starting Docker deployment..."
+
+# Build and start services
+if [ -f .env ]; then
+    source .env
+fi
+
+# Determine which profile to use
+if [ "$USE_CONTAINER_MPD" = "true" ] || grep -q "COMPOSE_PROFILES.*with-mpd" .env 2>/dev/null; then
+    PROFILE_ARG="--profile with-mpd"
+    print_status "Starting with containerized MPD server"
+else
+    PROFILE_ARG=""
+    print_status "Starting web interface (connecting to external MPD)"
+fi
+
+# Start services
+print_status "Building and starting containers..."
+
+# Pre-create and fix MPD volumes if using containerized MPD
+if [ "$USE_CONTAINER_MPD" = "true" ] || grep -q "COMPOSE_PROFILES.*with-mpd" .env 2>/dev/null; then
+    print_status "Preparing MPD volumes with correct permissions..."
+    
+    # Create volumes with proper ownership
+    docker run --rm \
+        -v mpd_web_control_db:/var/lib/mpd \
+        -v mpd_web_control_playlists:/var/lib/mpd/playlists \
+        --user root \
+        vimagick/mpd:latest \
+        sh -c "
+            mkdir -p /var/lib/mpd/playlists
+            chown -R 1000:1000 /var/lib/mpd
+            chmod -R 755 /var/lib/mpd
+        " 2>/dev/null || print_warning "Volume preparation failed (may already exist)"
+fi
+
+if $COMPOSE_CMD $PROFILE_ARG up -d --build; then
+    print_success "Services started successfully"
+else
+    print_error "Failed to start services"
+    echo ""
+    echo "Check logs with: $COMPOSE_CMD logs"
+    exit 1
+fi
+
+# Wait for services to be ready
+print_status "Waiting for services to start..."
+sleep 10
+
+# Health check
+print_status "Checking service health..."
+
+# Check web service
+if curl -s -f "http://localhost:${WEB_PORT:-5003}/api/version" >/dev/null 2>&1; then
+    print_success "Web interface is healthy"
+    WEB_HEALTHY=true
+else
+    print_warning "Web interface health check failed"
+    WEB_HEALTHY=false
+fi
+
+# Check MPD if containerized
+if [ "$USE_CONTAINER_MPD" = "true" ] || grep -q "COMPOSE_PROFILES.*with-mpd" .env 2>/dev/null; then
+    if echo "ping" | nc -w 2 localhost 6600 2>/dev/null | grep -q "OK"; then
+        print_success "MPD server is healthy"
+        MPD_HEALTHY=true
     else
-        echo "MPD_HOST=$external_host" >> .env
-        echo "MPD_PORT=$external_port" >> .env
+        print_warning "MPD server health check failed - attempting to fix..."
         
-        # Start web interface only
-        docker-compose up -d --build web
+        # Fix MPD volume permissions
+        print_status "Fixing MPD database permissions..."
+        
+        # Stop MPD container first
+        $COMPOSE_CMD stop mpd 2>/dev/null
+        
+        # Fix volume ownership using a temporary container
+        docker run --rm \
+            -v mpd_web_control_db:/var/lib/mpd \
+            -v mpd_web_control_playlists:/var/lib/mpd/playlists \
+            --user root \
+            vimagick/mpd:latest \
+            sh -c "
+                chown -R 1000:1000 /var/lib/mpd
+                chmod -R 755 /var/lib/mpd
+                mkdir -p /var/lib/mpd/playlists
+                chown -R 1000:1000 /var/lib/mpd/playlists
+            " 2>/dev/null
+            
+        print_success "Fixed MPD volume permissions"
+        
+        # Restart MPD container
+        print_status "Restarting MPD container..."
+        $COMPOSE_CMD $PROFILE_ARG up -d mpd
+        
+        # Wait and test again
+        sleep 5
+        if echo "ping" | nc -w 3 localhost 6600 2>/dev/null | grep -q "OK"; then
+            print_success "MPD server is now healthy"
+            MPD_HEALTHY=true
+        else
+            print_warning "MPD server still unhealthy - check logs: $COMPOSE_CMD logs mpd"
+            MPD_HEALTHY=false
+        fi
+    fi
+fi
+
+echo ""
+if [ "$WEB_HEALTHY" = "true" ]; then
+    echo -e "${GREEN}$ROCKET Setup Complete! $ROCKET${NC}"
+    echo ""
+    echo -e "${CYAN}🌐 Web Interface:${NC} http://localhost:${WEB_PORT:-5003}"
+    echo -e "${CYAN}🎨 Available Themes:${NC} Dark • Light • High Contrast • Desert"
+    echo -e "${CYAN}📱 Mobile Support:${NC} Fully responsive design"
+    
+    if [ -n "$LASTFM_API_KEY" ]; then
+        echo -e "${CYAN}🎵 Last.fm Features:${NC} Charts and scrobbling enabled"
     fi
     
-    log_success "Docker setup completed!"
-    echo "🌐 Web interface: http://localhost:$WEB_PORT"
-}
-
-# Function to configure audio for Docker (simplified from docker-setup.sh)
-configure_audio_for_docker() {
-    log_info "Configuring audio for containerized MPD..."
+    echo ""
+    echo -e "${BLUE}📋 Management Commands:${NC}"
+    echo "  View logs:     $COMPOSE_CMD logs -f"
+    echo "  Stop services: $COMPOSE_CMD down"
+    echo "  Restart:       $COMPOSE_CMD restart"
+    echo "  Update:        $COMPOSE_CMD pull && $COMPOSE_CMD up -d"
     
-    USER_ID=$(id -u)
-    GROUP_ID=$(id -g)
-    
-    # Ensure user is in audio group
-    if ! groups "$USER" | grep -q audio; then
-        log_info "Adding user to audio group for sound card access..."
-        sudo usermod -aG audio "$USER"
-        log_warning "Added to audio group - you may need to logout/login for audio to work"
+    if [ "$USE_CONTAINER_MPD" = "true" ] || grep -q "COMPOSE_PROFILES.*with-mpd" .env 2>/dev/null; then
+        echo ""
+        echo -e "${BLUE}🎛️  MPD Information:${NC}"
+        echo "  MPD Port:      localhost:6600"
+        echo "  Music Scan:    Automatic on container start"
+        echo "  Database:      Persistent across restarts"
     fi
     
-    # Detect audio system
-    PULSE_AVAILABLE=false
-    ALSA_AVAILABLE=false
+    echo ""
+    echo -e "${BLUE}💾 Data Persistence:${NC}"
+    echo "  Settings:      ./data/settings.json"
+    echo "  Radio Stations:./data/radio_stations.json"
+    echo "  Album Cache:   Docker volume 'mpd_web_control_cache'"
     
-    if command -v pulseaudio >/dev/null 2>&1 && pulseaudio --check; then
-        PULSE_AVAILABLE=true
-        log_success "PulseAudio detected and running"
-    fi
-    
-    if [ -e /dev/snd/controlC0 ]; then
-        ALSA_AVAILABLE=true
-        log_success "ALSA audio devices detected"
-    fi
-    
-    if [ "$PULSE_AVAILABLE" = false ] && [ "$ALSA_AVAILABLE" = false ]; then
-        log_warning "No audio system detected - audio may not work"
-    fi
-    
-    # Create MPD config with proper audio setup
-    mkdir -p docker
-    cat > docker/mpd.conf << EOF
-# MPD Configuration for Docker with Audio Support
-bind_to_address     "0.0.0.0"
-port                "6600"
-music_directory     "/music"
-db_file             "/var/lib/mpd/mpd.db"
-log_file            "/var/log/mpd/mpd.log"
-state_file          "/var/lib/mpd/mpdstate"
-playlist_directory  "/var/lib/mpd/playlists"
-pid_file            "/var/lib/mpd/mpd.pid"
+else
+    echo -e "${YELLOW}$WARN Setup completed with warnings${NC}"
+    echo ""
+    echo "Some services may not be ready yet. Check status with:"
+    echo "  $COMPOSE_CMD ps"
+    echo "  $COMPOSE_CMD logs"
+    echo ""
+    echo "Web interface should be available at: http://localhost:${WEB_PORT:-5003}"
+fi
 
-# Audio outputs (multiple for compatibility)
-EOF
+# Post-deployment validation
+echo ""
+echo -e "${CYAN}$ROCKET Post-Deployment Validation${NC}"
+validate_deployment
 
-    # Add PulseAudio if available
-    if [ "$PULSE_AVAILABLE" = true ]; then
-        cat >> docker/mpd.conf << EOF
-audio_output {
-    type        "pulse"
-    name        "PulseAudio Output"
-    enabled     "yes"
-    server      "unix:/run/user/$USER_ID/pulse/native"
-}
-
-EOF
-    fi
-    
-    # Always add ALSA as fallback
-    cat >> docker/mpd.conf << EOF
-audio_output {
-    type        "alsa"
-    name        "ALSA Output"
-    enabled     "yes"
-    device      "default"
-    mixer_type  "software"
-}
-
-# Alternative ALSA output
-audio_output {
-    type        "alsa"
-    name        "ALSA hw:0,0"
-    enabled     "no"
-    device      "hw:0,0"
-    mixer_type  "hardware"
-}
-
-# HTTP Streaming for web access
-audio_output {
-    type        "httpd"
-    name        "HTTP Audio Stream"
-    encoder     "lame"
-    port        "8002"
-    bind_to_address "0.0.0.0"
-    bitrate     "320"
-    format      "44100:16:2"
-    always_on   "yes"
-    enabled     "yes"
-}
-
-# Performance and compatibility settings
-max_connections             "20"
-connection_timeout          "60"
-auto_update                 "yes"
-follow_outside_symlinks     "yes"
-follow_inside_symlinks      "yes"
-save_absolute_paths_in_playlists "no"
-
-# Logging
-log_level                   "notice"
-EOF
-    
-    # Add comprehensive audio settings to .env
-    cat >> .env << EOF
-
-# Audio Configuration
-USER_ID=$USER_ID
-GROUP_ID=$GROUP_ID
-PULSE_SOCKET_PATH=/run/user/$USER_ID/pulse
-AUDIO_GID=$(getent group audio | cut -d: -f3)
-EOF
-
-    log_success "Audio configuration completed"
-    echo "   • PulseAudio: $([ "$PULSE_AVAILABLE" = true ] && echo "enabled" || echo "not available")"
-    echo "   • ALSA: $([ "$ALSA_AVAILABLE" = true ] && echo "enabled" || echo "not available")"
-    echo "   • HTTP streaming: enabled on port 8002"
-    echo "   • User ID: $USER_ID (audio group: $(getent group audio | cut -d: -f3 || echo "not found"))"
-}
-
-# Main execution flow
-main() {
-    check_existing_mpd
-    check_docker
-    present_setup_options
-    
-    case $CHOSEN_SETUP in
-        "existing_mpd")
-            setup_existing_mpd
-            ;;
-        "native_python")
-            setup_native_python
-            ;;
-        "docker_full")
-            setup_docker_full
-            ;;
-        "docker_web_only")
-            setup_docker_web_only
-            ;;
-        *)
-            log_error "Unknown setup type: $CHOSEN_SETUP"
-            exit 1
-            ;;
-    esac
-    
-    echo
-    echo "🎉 Setup completed successfully!"
-    echo
-    log_info "Useful commands:"
-    echo "  ./uninstall.sh        # Complete cleanup and reset"
-    if [ -f ".env" ]; then
-        echo "  docker-compose ps     # Check container status"
-        echo "  docker-compose logs   # View logs"
-    fi
-    echo
-}
-
-# Run main function
-main "$@"
+echo ""
+echo -e "${PURPLE}🎵 Enjoy your music! 🎵${NC}"
