@@ -1105,20 +1105,22 @@
                                                 .then(modeData => {
                                                     console.log('Radio station mode set:', modeData);
                                                     
-                                                    // Enable auto-fill for radio station mode
-                                                    fetch('/toggle_auto_fill', {
-                                                        method: 'POST',
-                                                        headers: { 'Content-Type': 'application/json' },
-                                                        body: JSON.stringify({ active: true })
-                                                    })
-                                                    .then(response => {
-                                                        if (response.ok) {
-                                                            console.log('Auto-fill enabled for radio station mode');
-                                                        }
-                                                    })
-                                                    .catch(error => {
-                                                        console.error('Error enabling auto-fill for radio station:', error);
-                                                    });
+                                                    // Auto-enable auto-fill when radio station is loaded
+                                                    if (!autoFillToggle.checked) {
+                                                        fetch('/toggle_auto_fill', {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({ active: true })
+                                                        })
+                                                        .then(response => response.json())
+                                                        .then(autoFillData => {
+                                                            console.log('Auto-fill enabled for radio station:', autoFillData);
+                                                            autoFillToggle.checked = true;
+                                                        })
+                                                        .catch(error => {
+                                                            console.error('Error enabling auto-fill:', error);
+                                                        });
+                                                    }
                                                     
                                                     // Trigger auto-fill status update to reflect radio station mode
                                                     fetch('/get_auto_fill_status')

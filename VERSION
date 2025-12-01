@@ -1,11 +1,11 @@
-MPD Web Control - Combined Edition (RADIO STATION AUTO-FILL)
-Export Date: Sat Nov 30 20:45:00 UTC 2025
-Export Version: 20251130_204500_RADIO_AUTO_FILL
+MPD Web Control - Combined Edition (RADIO STATION AUTO-FILL v3)
+Export Date: Sat Nov 30 21:30:00 UTC 2025
+Export Version: 20251130_213000_RADIO_AUTO_FILL_V3
 Features: 
 - MPD Control
 - Last.fm Integration  
 - Search Functionality (FIXED - POST forms, proper redirects)
-- Auto-fill Playlists with Radio Station Mode (NEW - genre-based auto-fill)
+- Auto-fill Playlists with Radio Station Mode v3 (ENHANCED - large genre list support)
 - Album Art Display
 - Real-time Updates
 - Systemd Service Integration (FIXED - proper venv activation)
@@ -18,7 +18,14 @@ Features:
 - Last.fm Charts (NEW - top artists/albums/tracks by time period)
 - Theme System (NEW - dark/light/high-contrast across all pages)
 
-Latest Major Features (Nov 30, 2025):
+Latest Major Features (Nov 30, 2025 - v3):
+✅ NEW: Large Genre List Support - handles 50+ genres without timeouts
+✅ ENHANCED: Batch processing with 15-genre batches and fresh MPD connections
+✅ SMART: Early stopping when 5x needed tracks found for performance
+✅ AUTO-ENABLE: Radio stations automatically enable auto-fill toggle
+✅ IMPROVED: Better error handling and connection stability
+
+Previous Major Features (Nov 30, 2025 - v2):
 ✅ NEW: Radio Station Auto-Fill Mode - preserves station genres during auto-fill
 ✅ NEW: Enhanced Toast Notifications with gradients and smooth animations
 ✅ ENHANCEMENT: Radio stations now enable auto-fill automatically when loaded
@@ -38,7 +45,15 @@ Previous Major Features (Nov 15, 2025):
 ✅ API: user.getTopArtists, user.getTopAlbums, user.getTopTracks endpoints
 ✅ SMART DESIGN: Charts show playcount rankings with period selector
 
-Technical Achievements (Nov 30, 2025):
+Technical Achievements (Nov 30, 2025 - v3):
+- Enhanced perform_radio_station_auto_fill() with batch processing (15 genres per batch)
+- Implemented fresh MPD connections per batch to prevent timeout errors
+- Added smart early stopping at 5x needed tracks for performance optimization
+- Improved auto-fill toggle behavior - only enables if not already checked
+- Added comprehensive error handling for large genre list processing
+- Better progress logging for debugging and monitoring
+
+Previous Technical Achievements (Nov 30, 2025 - v2):
 - Implemented Radio Station Auto-Fill with perform_radio_station_auto_fill() function
 - Enhanced auto_fill_monitor() with radio station mode detection and routing
 - Added automatic auto-fill enabling when radio stations are loaded

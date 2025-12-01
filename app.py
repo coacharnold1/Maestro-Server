@@ -1,8 +1,8 @@
 print("[DEBUG] app.py loaded and running", flush=True)
 
 # Application version information
-APP_VERSION = "1.4.1"
-APP_BUILD_DATE = "2025-11-29" 
+APP_VERSION = "1.6.0"
+APP_BUILD_DATE = "2025-11-30" 
 APP_NAME = "Maestro MPD Server"
 
 # Simple threading mode to avoid eventlet issues
@@ -1186,46 +1186,91 @@ def perform_add_random_tracks_logic(artist_name_input, num_tracks, clear_playlis
 def perform_radio_station_auto_fill(genres, num_tracks):
     """
     Radio station specific auto-fill function that adds tracks based on station genres.
-    Does not use Last.fm similar artists - only uses the station's genres for selection.
+    v3: Enhanced with batch processing for large genre lists (50+ genres) to prevent timeouts.
     """
-    print(f"Performing radio station auto-fill: genres={genres}, num_tracks={num_tracks}")
+    print(f"Performing radio station auto-fill v3: {len(genres)} genres, {num_tracks} tracks needed")
     
     try:
-        client = connect_mpd_client()
-        if not client:
-            socketio.emit('server_message', {'type': 'error', 'text': 'Could not connect to MPD for radio station auto-fill.'})
-            return
-
         candidate_uris = []
+        batch_size = 15  # Process genres in batches to prevent timeouts
+        target_candidates = num_tracks * 5  # Early stopping when we have 5x needed tracks
         
-        # Get songs from all station genres
-        for genre in genres:
+        # Process genres in batches
+        for batch_start in range(0, len(genres), batch_size):
+            batch_end = min(batch_start + batch_size, len(genres))
+            batch_genres = genres[batch_start:batch_end]
+            
+            print(f"Processing genre batch {batch_start//batch_size + 1}: genres {batch_start+1}-{batch_end}")
+            
+            # Fresh MPD connection for each batch
+            client = connect_mpd_client()
+            if not client:
+                socketio.emit('server_message', {
+                    'type': 'error', 
+                    'text': f'Could not connect to MPD for batch {batch_start//batch_size + 1}'
+                })
+                continue
+            
             try:
-                genre_songs = client.find('genre', genre)
-                print(f"Found {len(genre_songs)} songs for radio genre: {genre}")
-                
-                # Add all songs from this genre to candidates
-                for song in genre_songs:
-                    file_path = song.get('file')
-                    if file_path and file_path not in candidate_uris:
-                        candidate_uris.append(file_path)
+                # Get songs from current batch of genres
+                for genre in batch_genres:
+                    try:
+                        genre_songs = client.find('genre', genre)
+                        print(f"  Genre '{genre}': {len(genre_songs)} songs")
                         
+                        # Add all songs from this genre to candidates
+                        for song in genre_songs:
+                            file_path = song.get('file')
+                            if file_path and file_path not in candidate_uris:
+                                candidate_uris.append(file_path)
+                                
+                                # Early stopping if we have enough candidates
+                                if len(candidate_uris) >= target_candidates:
+                                    print(f"  Early stop: {len(candidate_uris)} candidates found")
+                                    break
+                        
+                        # Break out of genre loop if we have enough
+                        if len(candidate_uris) >= target_candidates:
+                            break
+                            
+                    except Exception as e:
+                        print(f"  Error fetching songs for genre '{genre}': {e}")
+                        continue
+                
+                client.disconnect()
+                
+                # Early exit if we have enough candidates
+                if len(candidate_uris) >= target_candidates:
+                    print(f"Early stopping: {len(candidate_uris)} candidates sufficient")
+                    break
+                    
             except Exception as e:
-                print(f"Error fetching songs for genre '{genre}': {e}")
+                print(f"Error processing batch: {e}")
+                client.disconnect()
+                continue
         
         if not candidate_uris:
             socketio.emit('server_message', {
                 'type': 'warning', 
-                'text': f'No songs found for radio station genres: {', '.join(genres)}'
+                'text': f'No songs found for radio station genres (processed {len(genres)} genres)'
             })
-            client.disconnect()
             return
+        
+        print(f"Radio station auto-fill: {len(candidate_uris)} total candidates collected")
         
         # Randomly select tracks from candidates
         random.shuffle(candidate_uris)
         tracks_to_add = candidate_uris[:num_tracks]
         
-        # Add selected tracks to playlist
+        # Add selected tracks to playlist with fresh connection
+        client = connect_mpd_client()
+        if not client:
+            socketio.emit('server_message', {
+                'type': 'error', 
+                'text': 'Could not connect to MPD for adding tracks'
+            })
+            return
+        
         added_count = 0
         for track_uri in tracks_to_add:
             try:
@@ -1236,17 +1281,17 @@ def perform_radio_station_auto_fill(genres, num_tracks):
         
         client.disconnect()
         
-        genre_names = ', '.join(genres)
+        # Success message with genre count
         socketio.emit('server_message', {
             'type': 'success', 
-            'text': f'🎵 Radio Station Auto-fill: Added {added_count} tracks from genres: {genre_names}'
+            'text': f'🎵 Radio Station Auto-fill: Added {added_count} tracks from {len(genres)} genres'
         })
         
         # Trigger status update
         socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))
         
     except Exception as e:
-        print(f"Error during radio station auto-fill: {e}")
+        print(f"Error during radio station auto-fill v3: {e}")
         socketio.emit('server_message', {
             'type': 'error', 
             'text': f'Radio station auto-fill error: {e}'
