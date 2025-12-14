@@ -1,4 +1,53 @@
-# Maestro MPD Control - Changelog
+# Maestro Server - Changelog
+
+## Version 2.0.0 - Admin API Integration (December 14, 2025)
+
+### 🎉 Major Release - Complete Music Server Solution
+
+### ⚙️ New Admin API (Port 5004)
+- **System Administration Dashboard**: Web-based system management interface
+- **Library Management**: Configure music library folders and mount network shares
+- **Network Mounts**: NFS and SMB/CIFS mount management with friendly names
+- **Audio Configuration**: Detect and configure audio devices
+- **System Monitoring**: CPU, memory, disk usage, and uptime tracking
+- **System Updates**: One-click OS package updates with real-time output
+- **Automatic fstab Reading**: Detects existing network mounts from /etc/fstab
+
+### 🚀 Installation & Deployment
+- **One-Command Installer**: Universal bash installer for Ubuntu/Debian/Arch
+- **Automatic Service Setup**: Creates systemd services for web UI and admin API
+- **Dependency Management**: Automatic installation of all required packages
+- **Port Configuration**: Web UI on 5003, Admin API on 5004, MPD on 6600
+- **No Docker Required**: Native Linux installation with systemd services
+
+### 🔄 Navigation Improvements
+- **Bidirectional Links**: Admin button in Web UI, MPD Control button in Admin
+- **Smart Navigation**: Admin button navigates directly, MPD Control opens new tab
+- **Consistent Branding**: Unified interface design across both applications
+
+### 🧹 Code Cleanup
+- **Removed Docker Support**: Streamlined for native Linux server deployment
+- **Removed Windows Scripts**: Focused on Linux server environment
+- **Removed Non-Functional Features**: Cleaned up mood auto-fill UI
+- **Documentation Updates**: Comprehensive v2.0 documentation
+
+### 🎨 User Interface
+- **Mood Auto-Fill Removed**: Cleaned up non-functional feature from UI
+- **Admin Integration**: Seamless navigation between Web UI and Admin API
+- **Responsive Design**: Both interfaces optimized for desktop and mobile
+
+### 🔧 Technical Changes
+- **Default Port Change**: Web UI now defaults to 5003 (was 5000)
+- **Enhanced fstab Parsing**: Generates friendly mount names from mount points
+- **Service Management**: Proper systemd integration for both services
+- **Environment Variables**: Configurable via .env or config.env
+
+### 📦 Repository Changes
+- **New Repository**: Maestro-Server (separate from Maestro-MPD-Control)
+- **Git Tag**: v2.0.0 release tag created
+- **GitHub Release**: Complete release with installer and documentation
+
+---
 
 ## Version 1.0.0 - Docker Release (November 2025)
 
