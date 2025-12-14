@@ -264,7 +264,10 @@
     <div class="container">
         <header>
             <h1>📚 Library Management</h1>
-            <a href="/" class="back-btn">← Back to Dashboard</a>
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
+                <a href="/" class="back-btn">← Back to Dashboard</a>
+                <a href="#" onclick="window.open('http://' + window.location.hostname + ':5003', '_blank'); return false;" class="back-btn" style="background: rgba(52, 152, 219, 0.2); border-color: #3498db; color: #3498db;">🎵 MPD Control</a>
+            </div>
         </header>
         
         <div id="message" class="message"></div>

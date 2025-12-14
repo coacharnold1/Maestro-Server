@@ -3839,11 +3839,11 @@ if __name__ == '__main__':
     # Get configuration from environment or use defaults
     if ENV_LOADED:
         app_host = os.environ.get('APP_HOST', '0.0.0.0')
-        app_port = int(os.environ.get('APP_PORT', '5000'))
+        app_port = int(os.environ.get('APP_PORT', '5003'))
         debug_mode = os.environ.get('DEBUG', 'False').lower() in ('true', '1', 'yes', 'on')
     else:
         app_host = '0.0.0.0'
-        app_port = 5000
+        app_port = 5003
         debug_mode = False
     
     print(f"Starting MPD Web Control on {app_host}:{app_port}")
