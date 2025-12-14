@@ -222,6 +222,9 @@ install_admin_api() {
     # Check if admin API exists
     if [ -d "$HOME/Maestro-Server/admin" ]; then
         cp -r "$HOME/Maestro-Server/admin"/* "$INSTALL_DIR/admin/"
+    elif [ -d "admin" ]; then
+        # Running from Maestro-Server directory
+        cp -r admin/* "$INSTALL_DIR/admin/"
     else
         # Create admin API from scratch
         mkdir -p "$INSTALL_DIR/admin/templates"
@@ -231,8 +234,9 @@ install_admin_api() {
 Flask==3.0.0
 flask-socketio==5.3.5
 psutil==5.9.6
-python-mpd2==3.1.1
-Werkzeug==3.0.1
+python-engineio==4.8.0
+python-socketio==5.10.0
+python-mpd2==3.1.0
 EOF
         
         echo -e "${YELLOW}Warning: Admin API source not found. Creating placeholder...${NC}"
@@ -245,7 +249,11 @@ EOF
     
     # Install dependencies
     pip install --upgrade pip
-    pip install -r requirements.txt
+    if [ -f requirements.txt ]; then
+        pip install -r requirements.txt
+    else
+        pip install Flask flask-socketio psutil python-mpd2
+    fi
     
     deactivate
     
