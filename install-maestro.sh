@@ -189,13 +189,19 @@ install_web_ui() {
     echo -e "${GREEN}[4/8] Installing Web UI...${NC}"
     
     # Copy web UI files
-    if [ -f "$HOME/Maestro-MPD-Control/app.py" ]; then
-        cp -r "$HOME/Maestro-MPD-Control"/{app.py,templates,static,requirements.txt} "$INSTALL_DIR/web/"
+    if [ -f "$HOME/Maestro-Server/app.py" ]; then
+        cp -r "$HOME/Maestro-Server"/{app.py,templates,static,requirements.txt} "$INSTALL_DIR/web/" 2>/dev/null || true
+        cp -r "$HOME/Maestro-Server"/data "$INSTALL_DIR/web/" 2>/dev/null || true
+    elif [ -f "app.py" ]; then
+        # Running from Maestro-Server directory
+        cp -r {app.py,templates,static,requirements.txt} "$INSTALL_DIR/web/" 2>/dev/null || true
+        cp -r data "$INSTALL_DIR/web/" 2>/dev/null || true
+    elif [ -f "$HOME/Maestro-MPD-Control/app.py" ]; then
+        cp -r "$HOME/Maestro-MPD-Control"/{app.py,templates,static,requirements.txt} "$INSTALL_DIR/web/" 2>/dev/null || true
     else
-        echo -e "${YELLOW}Warning: Web UI source not found. Skipping...${NC}"
+        echo -e "${YELLOW}Warning: Web UI source not found in ~/Maestro-Server, current directory, or ~/Maestro-MPD-Control${NC}"
         return
     fi
-    
     # Create virtual environment
     cd "$INSTALL_DIR/web"
     python3 -m venv venv
