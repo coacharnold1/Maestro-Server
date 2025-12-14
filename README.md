@@ -1,4 +1,4 @@
-# 🎵 Maestro MPD Serverv2.0
+# 🎵 Maestro MPD Server v2.0
 
 **Complete Music Server Solution** with Web UI and System Administration
 
