@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Management - Maestro Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #ecf0f1;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        h1 {
+            font-size: 2em;
+            color: #3498db;
+        }
+        
+        .back-btn {
+            background: rgba(52, 152, 219, 0.2);
+            color: #3498db;
+            border: 1px solid #3498db;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .back-btn:hover {
+            background: #3498db;
+            color: white;
+        }
+        
+        .section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .section-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #27ae60;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+        
+        .btn-danger:hover {
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12, #f1c40f);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #95a5a6;
+            font-weight: 500;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            color: #ecf0f1;
+            font-size: 1em;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .mount-list {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .mount-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .mount-info h3 {
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+        
+        .mount-details {
+            color: #95a5a6;
+            line-height: 1.6;
+        }
+        
+        .mount-actions {
+            display: flex;
+            gap: 10px;
+            flex-direction: column;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .status-mounted {
+            background: rgba(39, 174, 96, 0.2);
+            color: #27ae60;
+            border: 1px solid #27ae60;
+        }
+        
+        .status-unmounted {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+            border: 1px solid #e74c3c;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: #1a1a2e;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        
+        .modal-title {
+            font-size: 1.8em;
+            color: #3498db;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: #95a5a6;
+            font-size: 2em;
+            cursor: pointer;
+            padding: 0;
+            width: 40px;
+            height: 40px;
+        }
+        
+        .close-btn:hover {
+            color: #ecf0f1;
+        }
+        
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            white-space: pre-line;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .message.success {
+            background: rgba(39, 174, 96, 0.2);
+            border: 1px solid #27ae60;
+            color: #27ae60;
+        }
+        
+        .message.error {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+        }
+        
+        .message.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 Library Management</h1>
+            <a href="/" class="back-btn">← Back to Dashboard</a>
+        </header>
+        
+        <div id="message" class="message"></div>
+        
+        <!-- Current MPD Library Section -->
+        <div class="section">
+            <h2 class="section-title">🎵 Current MPD Library</h2>
+            <div id="mpd-info" style="margin-bottom: 15px;">
+                <p style="color: #95a5a6;">Loading MPD library info...</p>
+            </div>
+            <div id="existing-folders" class="mount-list">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+        
+        <div class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 class="section-title">Network Mounts</h2>
+                <button class="btn" onclick="openAddMountModal()">➕ Add Mount</button>
+            </div>
+            
+            <div id="mount-list" class="mount-list">
+                <p style="color: #95a5a6; text-align: center; padding: 40px;">Loading mounts...</p>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2 class="section-title">Library Actions</h2>
+            <button class="btn" onclick="updateLibrary()">🔄 Update MPD Library</button>
+        </div>
+    </div>
+    
+    <!-- Add Mount Modal -->
+    <div id="add-mount-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Add Network Mount</h2>
+                <button class="close-btn" onclick="closeAddMountModal()">×</button>
+            </div>
+            
+            <form id="add-mount-form" onsubmit="addMount(event)">
+                <div class="form-group">
+                    <label>Mount Type</label>
+                    <select id="mount-type" required>
+                        <option value="nfs">NFS</option>
+                        <option value="smb">SMB/CIFS</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="mount-name" placeholder="e.g., Music Server" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Server IP/Hostname</label>
+                    <input type="text" id="mount-server" placeholder="e.g., 192.168.1.100" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Share Path</label>
+                    <input type="text" id="mount-share" placeholder="e.g., /music or music" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Mount Point</label>
+                    <input type="text" id="mount-point" placeholder="e.g., /mnt/music" required>
+                </div>
+                
+                <div id="smb-credentials" style="display: none;">
+                    <div class="form-group">
+                        <label>Username (for SMB)</label>
+                        <input type="text" id="mount-username" placeholder="Username">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Password (for SMB)</label>
+                        <input type="password" id="mount-password" placeholder="Password">
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn" style="width: 100%;">Add Mount</button>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // Toggle SMB credentials fields
+        document.getElementById('mount-type').addEventListener('change', function() {
+            const smbCreds = document.getElementById('smb-credentials');
+            smbCreds.style.display = this.value === 'smb' ? 'block' : 'none';
+        });
+        
+        function showMessage(text, type) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = `message ${type} active`;
+            setTimeout(() => {
+                msg.classList.remove('active');
+            }, 5000);
+        }
+        
+        function openAddMountModal() {
+            document.getElementById('add-mount-modal').classList.add('active');
+        }
+        
+        function closeAddMountModal() {
+            document.getElementById('add-mount-modal').classList.remove('active');
+            document.getElementById('add-mount-form').reset();
+        }
+        
+        function loadMounts() {
+            fetch('/api/library/mounts')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        displayMounts(data.mounts);
+                    } else {
+                        showMessage('Error loading mounts: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    showMessage('Network error: ' + error.message, 'error');
+                });
+        }
+        
+        function displayMounts(mounts) {
+            const container = document.getElementById('mount-list');
+            
+            if (mounts.length === 0) {
+                container.innerHTML = '<p style="color: #95a5a6; text-align: center; padding: 40px;">No mounts configured. Click "Add Mount" to get started.</p>';
+                return;
+            }
+            
+            container.innerHTML = mounts.map(mount => `
+                <div class="mount-item">
+                    <div class="mount-info">
+                        <h3>
+                            ${mount.name}
+                            <span class="status-badge status-${mount.status}">${mount.status.toUpperCase()}</span>
+                        </h3>
+                        <div class="mount-details">
+                            <div><strong>Type:</strong> ${mount.type.toUpperCase()}</div>
+                            <div><strong>Server:</strong> ${mount.server}</div>
+                            <div><strong>Share:</strong> ${mount.share_path}</div>
+                            <div><strong>Mount Point:</strong> ${mount.mount_point}</div>
+                        </div>
+                    </div>
+                    <div class="mount-actions">
+                        ${mount.status === 'unmounted' 
+                            ? `<button class="btn" onclick="mountShare(${mount.id})">Mount</button>`
+                            : `<button class="btn btn-warning" onclick="unmountShare(${mount.id})">Unmount</button>`
+                        }
+                        <button class="btn btn-danger" onclick="deleteMount(${mount.id})">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function addMount(event) {
+            event.preventDefault();
+            
+            const data = {
+                type: document.getElementById('mount-type').value,
+                name: document.getElementById('mount-name').value,
+                server: document.getElementById('mount-server').value,
+                share_path: document.getElementById('mount-share').value,
+                mount_point: document.getElementById('mount-point').value,
+                username: document.getElementById('mount-username').value,
+                password: document.getElementById('mount-password').value
+            };
+            
+            fetch('/api/library/mounts', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showMessage('Mount added successfully', 'success');
+                    closeAddMountModal();
+                    loadMounts();
+                } else {
+                    showMessage('Error: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('Network error: ' + error.message, 'error');
+            });
+        }
+        
+        function mountShare(mountId) {
+            fetch(`/api/library/mounts/${mountId}/mount`, {method: 'POST'})
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showMessage(data.message, 'success');
+                        loadMounts();
+                    } else {
+                        showMessage('Error: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => showMessage('Network error: ' + error.message, 'error'));
+        }
+        
+        function unmountShare(mountId) {
+            fetch(`/api/library/mounts/${mountId}/unmount`, {method: 'POST'})
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showMessage(data.message, 'success');
+                        loadMounts();
+                    } else {
+                        showMessage('Error: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => showMessage('Network error: ' + error.message, 'error'));
+        }
+        
+        function deleteMount(mountId) {
+            if (!confirm('Are you sure you want to delete this mount configuration?')) return;
+            
+            fetch(`/api/library/mounts/${mountId}`, {method: 'DELETE'})
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showMessage(data.message, 'success');
+                        loadMounts();
+                    } else {
+                        showMessage('Error: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => showMessage('Network error: ' + error.message, 'error'));
+        }
+        
+        function updateLibrary() {
+            showMessage('🔄 Connecting to MPD and updating library...\n⏳ Please wait...', 'success');
+            
+            const startTime = Date.now();
+            
+            fetch('/api/library/update', {method: 'POST'})
+                .then(response => response.json())
+                .then(data => {
+                    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+                    
+                    if (data.status === 'success') {
+                        const stats = data.stats || {};
+                        let message = `✅ MPD Library Update Complete!\n\n`;
+                        message += `⏱️  Duration: ${duration} seconds\n\n`;
+                        message += `📊 Current Library Stats:\n`;
+                        message += `  🎵 Songs: ${stats.songs?.toLocaleString() || 0}\n`;
+                        message += `  💿 Albums: ${stats.albums?.toLocaleString() || 0}\n`;
+                        message += `  🎤 Artists: ${stats.artists?.toLocaleString() || 0}\n\n`;
+                        
+                        if (stats.songs_added !== 0 || stats.albums_added !== 0 || stats.artists_added !== 0) {
+                            message += `📈 Changes:\n`;
+                            if (stats.songs_added !== 0) message += `  🎵 Songs: ${stats.songs_added > 0 ? '+' : ''}${stats.songs_added}\n`;
+                            if (stats.albums_added !== 0) message += `  💿 Albums: ${stats.albums_added > 0 ? '+' : ''}${stats.albums_added}\n`;
+                            if (stats.artists_added !== 0) message += `  🎤 Artists: ${stats.artists_added > 0 ? '+' : ''}${stats.artists_added}\n`;
+                        } else {
+                            message += `✨ Library is up to date (no changes detected)`;
+                        }
+                        
+                        showMessage(message, 'success');
+                        
+                        // Reload MPD info to refresh folder stats
+                        setTimeout(() => loadMPDInfo(), 1000);
+                    } else {
+                        showMessage(`❌ Library Update Failed!\n\n${data.message}\n\nDuration: ${duration} seconds`, 'error');
+                    }
+                })
+                .catch(error => {
+                    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+                    showMessage(`❌ Network Error!\n\n${error.message}\n\nDuration: ${duration} seconds`, 'error');
+                });
+        }
+        
+        function loadMPDInfo() {
+            fetch('/api/library/mpd-info')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        displayMPDInfo(data);
+                    } else {
+                        document.getElementById('mpd-info').innerHTML = 
+                            `<p style="color: #e74c3c;">Error loading MPD info: ${data.message}</p>`;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('mpd-info').innerHTML = 
+                        `<p style="color: #e74c3c;">Network error: ${error.message}</p>`;
+                });
+        }
+        
+        function displayMPDInfo(data) {
+            const infoDiv = document.getElementById('mpd-info');
+            infoDiv.innerHTML = `
+                <p style="color: #3498db; font-size: 1.1em; margin-bottom: 15px;">
+                    <strong>MPD Music Directory:</strong> <code style="background: rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 5px;">${data.music_directory}</code>
+                    <span style="color: #95a5a6; margin-left: 15px;">${data.total_folders} folder(s) found</span>
+                </p>
+            `;
+            
+            const foldersDiv = document.getElementById('existing-folders');
+            
+            if (data.directories.length === 0) {
+                foldersDiv.innerHTML = '<p style="color: #95a5a6; text-align: center; padding: 20px;">No folders found in music directory</p>';
+                return;
+            }
+            
+            foldersDiv.innerHTML = data.directories.map(dir => `
+                <div class="mount-item">
+                    <div class="mount-info">
+                        <h3>
+                            📁 ${dir.name}
+                            ${dir.is_mount 
+                                ? '<span class="status-badge status-mounted">MOUNTED</span>' 
+                                : '<span class="status-badge" style="background: rgba(52, 152, 219, 0.2); color: #3498db; border: 1px solid #3498db;">LOCAL</span>'
+                            }
+                        </h3>
+                        <div class="mount-details">
+                            <div><strong>Path:</strong> ${dir.path}</div>
+                            <div><strong>Type:</strong> ${dir.is_mount ? 'Network Mount' : 'Local Directory'}</div>
+                            <div><strong>Files:</strong> ${dir.file_count} (shallow scan)</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Set default mount point to /media/music when adding new mount
+            document.getElementById('mount-point').placeholder = `${data.music_directory}/<share_name>`;
+        }
+        
+        function openAddMountModal() {
+            document.getElementById('add-mount-modal').classList.add('active');
+            
+            // Pre-fill mount point with music directory path
+            fetch('/api/library/mpd-info')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const nameInput = document.getElementById('mount-name');
+                        const pointInput = document.getElementById('mount-point');
+                        
+                        // When name changes, update mount point suggestion
+                        nameInput.addEventListener('input', function() {
+                            const safeName = this.value.toLowerCase().replace(/[^a-z0-9]/g, '_');
+                            if (safeName) {
+                                pointInput.value = `${data.music_directory}/${safeName}`;
+                            }
+                        });
+                    }
+                });
+        }
+        
+        // Load both MPD info and mounts on page load
+        loadMPDInfo();
+        loadMounts();
+        
+        // Refresh mounts every 10 seconds
+        setInterval(loadMounts, 10000);
+    </script>
+</body>
+</html>

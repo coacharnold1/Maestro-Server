@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maestro Admin Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #ecf0f1;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #3498db, #27ae60);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            color: #95a5a6;
+            font-size: 1.1em;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .card-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+        
+        .card h2 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            color: #3498db;
+        }
+        
+        .card p {
+            color: #95a5a6;
+            line-height: 1.6;
+        }
+        
+        .system-info {
+            background: rgba(52, 152, 219, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+            border: 1px solid rgba(52, 152, 219, 0.3);
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+        
+        .info-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .info-label {
+            color: #95a5a6;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #27ae60;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60, #2ecc71);
+            transition: width 0.3s ease;
+        }
+        
+        .progress-fill.warning {
+            background: linear-gradient(90deg, #f39c12, #f1c40f);
+        }
+        
+        .progress-fill.danger {
+            background: linear-gradient(90deg, #e74c3c, #c0392b);
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎵 Maestro Admin Dashboard</h1>
+            <p class="subtitle">System Administration & Configuration</p>
+        </header>
+        
+        <div class="dashboard-grid">
+            <div class="card" onclick="location.href='/library'">
+                <div class="card-icon">📚</div>
+                <h2>Library Management</h2>
+                <p>Configure music library folders, mount NFS and SMB network shares, manage media sources</p>
+            </div>
+            
+            <div class="card" onclick="location.href='/audio'">
+                <div class="card-icon">🎛️</div>
+                <h2>Audio Tweaks</h2>
+                <p>Configure audio output devices, adjust buffer settings, optimize sound quality and performance</p>
+            </div>
+            
+            <div class="card" onclick="location.href='/system'">
+                <div class="card-icon">⚙️</div>
+                <h2>System Administration</h2>
+                <p>Update operating system, reboot server, view system status and resource usage</p>
+            </div>
+        </div>
+        
+        <div class="system-info">
+            <h2 style="color: #3498db; margin-bottom: 15px;">📊 Quick System Overview</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">IP Address</div>
+                    <div class="info-value" id="ip-address">Loading...</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Hostname</div>
+                    <div class="info-value" id="hostname">Loading...</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">CPU Usage</div>
+                    <div class="info-value" id="cpu-usage">Loading...</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="cpu-progress"></div>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Memory Usage</div>
+                    <div class="info-value" id="memory-usage">Loading...</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="memory-progress"></div>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Disk Usage</div>
+                    <div class="info-value" id="disk-usage">Loading...</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="disk-progress"></div>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Uptime</div>
+                    <div class="info-value" id="uptime">Loading...</div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            Maestro MPD Control System v1.0 | Admin Interface
+        </footer>
+    </div>
+    
+    <script>
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+        
+        function updateSystemInfo() {
+            fetch('/api/system/info')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const info = data.info;
+                        
+                        // Update text values
+                        document.getElementById('ip-address').textContent = info.ip_address;
+                        document.getElementById('hostname').textContent = info.hostname;
+                        document.getElementById('cpu-usage').textContent = info.cpu_percent + '%';
+                        document.getElementById('memory-usage').textContent = info.memory.percent + '%';
+                        document.getElementById('disk-usage').textContent = info.disk.percent + '%';
+                        document.getElementById('uptime').textContent = info.uptime_hours + ' hrs';
+                        
+                        // Update progress bars
+                        updateProgressBar('cpu-progress', info.cpu_percent);
+                        updateProgressBar('memory-progress', info.memory.percent);
+                        updateProgressBar('disk-progress', info.disk.percent);
+                    }
+                })
+                .catch(error => console.error('Error fetching system info:', error));
+        }
+        
+        function updateProgressBar(elementId, percent) {
+            const element = document.getElementById(elementId);
+            element.style.width = percent + '%';
+            
+            // Change color based on usage
+            element.className = 'progress-fill';
+            if (percent > 80) {
+                element.classList.add('danger');
+            } else if (percent > 60) {
+                element.classList.add('warning');
+            }
+        }
+        
+        // Load system info on page load
+        updateSystemInfo();
+        
+        // Refresh every 5 seconds
+        setInterval(updateSystemInfo, 5000);
+    </script>
+</body>
+</html>
