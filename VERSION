@@ -1,11 +1,12 @@
-MPD Web Control - Combined Edition (RADIO STATION AUTO-FILL v3)
-Export Date: Sat Nov 30 21:30:00 UTC 2025
-Export Version: 20251130_213000_RADIO_AUTO_FILL_V3
+MPD Web Control - Combined Edition (MULTI-DISC ALBUMS v1.7)
+Export Date: Fri Dec 13 00:00:00 UTC 2025
+Export Version: 20251213_000000_MULTI_DISC_V17
 Features: 
 - MPD Control
 - Last.fm Integration  
 - Search Functionality (FIXED - POST forms, proper redirects)
 - Auto-fill Playlists with Radio Station Mode v3 (ENHANCED - large genre list support)
+- Multi-Disc Album Support (NEW - nested disc display with individual add buttons)
 - Album Art Display
 - Real-time Updates
 - Systemd Service Integration (FIXED - proper venv activation)
@@ -18,7 +19,16 @@ Features:
 - Last.fm Charts (NEW - top artists/albums/tracks by time period)
 - Theme System (NEW - dark/light/high-contrast across all pages)
 
-Latest Major Features (Nov 30, 2025 - v3):
+Latest Major Features (Dec 13, 2025 - v1.7):
+✅ NEW: Multi-Disc Album Support - Single album entry with nested disc sections
+✅ SMART: Individual "Add Disc X" buttons for each disc in multi-disc albums
+✅ UI: Nested disc display in Recent Albums, Browse Albums, and Search Results
+✅ BACKEND: New extract_disc_number() and organize_album_by_disc() helper functions
+✅ ENHANCED: Album addition endpoint accepts optional disc_number parameter
+✅ METADATA: Automatic disc detection from 'disc' tags in music files
+✅ EXAMPLE: "Wish You Were Here 50" shows Disc 1, Disc 2, Disc 3 separately
+
+Previous Major Features (Nov 30, 2025 - v3):
 ✅ NEW: Large Genre List Support - handles 50+ genres without timeouts
 ✅ ENHANCED: Batch processing with 15-genre batches and fresh MPD connections
 ✅ SMART: Early stopping when 5x needed tracks found for performance
@@ -45,7 +55,16 @@ Previous Major Features (Nov 15, 2025):
 ✅ API: user.getTopArtists, user.getTopAlbums, user.getTopTracks endpoints
 ✅ SMART DESIGN: Charts show playcount rankings with period selector
 
-Technical Achievements (Nov 30, 2025 - v3):
+Technical Achievements (Dec 13, 2025 - v1.7):
+- Implemented extract_disc_number() to parse disc metadata (handles "1", "1/2" formats)
+- Created organize_album_by_disc() to group tracks by disc number
+- Modified /add_album_to_playlist to accept optional disc_number parameter
+- Updated /api/album_tracks to return disc_structure for multi-disc albums
+- Enhanced recent_albums.html, browse_albums.html, search_results.html with nested disc UI
+- Added displayMultiDiscTracks() JavaScript function for disc section rendering
+- Integrated disc count badge (💿×3) in album listings for multi-disc identification
+
+Previous Technical Achievements (Nov 30, 2025 - v3):
 - Enhanced perform_radio_station_auto_fill() with batch processing (15 genres per batch)
 - Implemented fresh MPD connections per batch to prevent timeout errors
 - Added smart early stopping at 5x needed tracks for performance optimization

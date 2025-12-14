@@ -603,18 +603,31 @@
         }
 
         // Add to playlist functions
-        function addAlbumToPlaylist(artist, album, showConfirm = true) {
-            const formData = new FormData();
-            formData.append('artist', artist);
-            formData.append('album', album);
+        function addAlbumToPlaylist(album, artist, discNumber = null) {
+            const payload = {
+                album: album,
+                artist: artist
+            };
+            
+            if (discNumber !== null) {
+                payload.disc_number = discNumber;
+            }
 
             return fetch('/add_album_to_playlist', {
                 method: 'POST',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
             })
-                .then(response => response.text())
+                .then(response => response.json())
                 .then(data => {
-                    displayMessage('info', `Album "${album}" by ${artist} added to playlist`);
+                    if (data.status === 'success') {
+                        const discInfo = discNumber ? ` (Disc ${discNumber})` : '';
+                        displayMessage('info', `Album "${album}" by ${artist}${discInfo} added to playlist`);
+                    } else {
+                        displayMessage('error', data.message || 'Failed to add album');
+                    }
                 })
                 .catch(error => {
                     displayMessage('error', 'Error adding album: ' + error.message);
@@ -660,15 +673,18 @@
                 body: formData
             })
                 .then(response => response.json())
-                .then(songs => {
-                    showAlbumSongs(artist, album, songs);
+                .then(data => {
+                    // Handle both old format (array) and new format (object with songs/disc_structure)
+                    const songs = Array.isArray(data) ? data : data.songs;
+                    const discStructure = data.disc_structure || null;
+                    showAlbumSongs(artist, album, songs, discStructure);
                 })
                 .catch(error => {
                     displayMessage('error', 'Error loading album songs: ' + error.message);
                 });
         }
 
-        function showAlbumSongs(artist, album, songs) {
+        function showAlbumSongs(artist, album, songs, discStructure) {
             // Hide search results and show album songs section
             const resultsSection = document.querySelector('.song-list');
             const albumSection = document.getElementById('album-songs-section');
@@ -684,11 +700,54 @@
             albumArtLarge.innerHTML = `<img src="${artUrl}" alt="${album} cover" style="max-width:300px; max-height:300px; border-radius:12px; box-shadow:0 4px 18px #222; margin-bottom:18px; background:#222;" onerror="this.src='/static_placeholder_art'">`;
 
             // Update album info
-            albumInfo.innerHTML = `<div class="results-info">Songs in "${album}" by <strong>${artist}</strong> (${songs.length} tracks)</div>`;
+            const discInfo = discStructure ? ` - ${Object.keys(discStructure).length} discs` : '';
+            albumInfo.innerHTML = `<div class="results-info">Songs in "${album}" by <strong>${artist}</strong> (${songs.length} tracks${discInfo})</div>`;
 
             // Clear and populate songs list
             songsList.innerHTML = '';
-            songs.forEach((song, index) => {
+            
+            // If multi-disc album, display by disc
+            if (discStructure) {
+                const discNumbers = Object.keys(discStructure).map(Number).sort((a, b) => a - b);
+                
+                discNumbers.forEach(discNum => {
+                    const discTracks = discStructure[discNum];
+                    
+                    // Create disc header with add button
+                    const discHeader = document.createElement('div');
+                    discHeader.style.cssText = 'background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%); padding: 12px 18px; margin: 20px 0 10px 0; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #3498db;';
+                    discHeader.innerHTML = `
+                        <h3 style="margin: 0; color: #ecf0f1; font-size: 1.1em;">💿 Disc ${discNum}</h3>
+                        <button onclick="addAlbumToPlaylist('${album.replace(/'/g, "\\'")}', '${artist.replace(/'/g, "\\'")}', ${discNum})" 
+                                style="background: #27ae60; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background 0.3s;"
+                                onmouseover="this.style.background='#229954'" 
+                                onmouseout="this.style.background='#27ae60'">
+                            ➕ Add Disc ${discNum}
+                        </button>
+                    `;
+                    songsList.appendChild(discHeader);
+                    
+                    // Add tracks for this disc
+                    discTracks.forEach((song, index) => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <div class="song-info">
+                                <div class="title">${index + 1}. ${song.title || 'Unknown Title'}</div>
+                                <div class="artist">${song.artist || artist}</div>
+                                <div class="album">${song.album || album}</div>
+                                ${song.time ? `<div class="duration">⏱️ ${formatDuration(song.time)}</div>` : ''}
+                            </div>
+                            <div class="song-actions">
+                                <button onclick="clearAndAddSingleSong('${song.file.replace(/'/g, "\\'")}', '${(song.title || 'Unknown Title').replace(/'/g, "\\'")}')">🔄 Start Playing</button>
+                                <button onclick="addSongToPlaylist('${song.file.replace(/'/g, "\\'")}')">➕ Add Song</button>
+                            </div>
+                        `;
+                        songsList.appendChild(li);
+                    });
+                });
+            } else {
+                // Single disc - display normally
+                songs.forEach((song, index) => {
                 const li = document.createElement('li');
                 li.innerHTML = `
                     <div class="song-info">
@@ -701,9 +760,10 @@
                         <button onclick="clearAndAddSingleSong('${song.file.replace(/'/g, "\\'")}', '${(song.title || 'Unknown Title').replace(/'/g, "\\'")}")">🔄 Start Playing</button>
                         <button onclick="addSongToPlaylist('${song.file.replace(/'/g, "\\'")}")">➕ Add Song</button>
                     </div>
-                `;
-                songsList.appendChild(li);
-            });
+                    `;
+                    songsList.appendChild(li);
+                });
+            }
 
             // Hide search results, show album songs
             if (resultsSection) resultsSection.style.display = 'none';

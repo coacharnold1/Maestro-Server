@@ -1,8 +1,8 @@
 print("[DEBUG] app.py loaded and running", flush=True)
 
 # Application version information
-APP_VERSION = "1.6.0"
-APP_BUILD_DATE = "2025-11-30" 
+APP_VERSION = "1.7.0"
+APP_BUILD_DATE = "2025-12-13" 
 APP_NAME = "Maestro MPD Server"
 
 # Simple threading mode to avoid eventlet issues
@@ -1961,6 +1961,127 @@ def add_random_by_genre():
         socketio.emit('server_message', {'type': 'error', 'text': error_msg})
         return jsonify({'status': 'error', 'message': error_msg}), 500
 
+# ============================================================================
+# MULTI-DISC ALBUM ORGANIZATION FUNCTIONS
+# ============================================================================
+
+def extract_disc_number(song):
+    """
+    Extract disc number from song metadata.
+    Returns integer disc number, or None if not available.
+    
+    Handles formats:
+    - disc: "1", "2" (just number)
+    - disc: "1/2" (disc/total_discs)
+    - Returns 1 by default for single-disc albums
+    """
+    disc_field = song.get('disc', '')
+    
+    # Handle disc field which can be a string or list
+    if isinstance(disc_field, list):
+        disc_str = disc_field[0] if disc_field else ''
+    else:
+        disc_str = str(disc_field)
+    
+    disc_str = disc_str.strip()
+    if not disc_str:
+        return 1  # Default to disc 1 if no disc info
+    
+    # Handle "1/2" format (disc/total)
+    if '/' in disc_str:
+        disc_str = disc_str.split('/')[0]
+    
+    try:
+        disc_num = int(disc_str)
+        return disc_num if disc_num > 0 else 1
+    except (ValueError, TypeError):
+        return 1  # Default to disc 1 on parse error
+
+
+def organize_album_by_disc(songs):
+    """
+    Group songs by disc number.
+    Returns dict {disc_num: [songs]} if multi-disc, or None if single-disc.
+    
+    Args:
+        songs: List of song dicts from MPD (each has 'file' and optional 'disc' field)
+    
+    Returns:
+        dict: {1: [...], 2: [...]} if multi-disc detected, None otherwise
+    """
+    if not songs:
+        return None
+    
+    disc_map = {}
+    max_disc = 0
+    
+    for song in songs:
+        disc_num = extract_disc_number(song)
+        max_disc = max(max_disc, disc_num)
+        
+        if disc_num not in disc_map:
+            disc_map[disc_num] = []
+        disc_map[disc_num].append(song)
+    
+    # Only return disc map if actually multi-disc
+    if max_disc > 1:
+        print(f"[DISC] Multi-disc album detected: {max_disc} discs", flush=True)
+        for disc_num in sorted(disc_map.keys()):
+            print(f"[DISC] Disc {disc_num}: {len(disc_map[disc_num])} tracks", flush=True)
+        return disc_map
+    
+    return None  # Single-disc, no organization needed
+
+
+def adjust_file_paths_for_disc(songs, disc_map):
+    """
+    Adjust file paths to include disc subdirectory structure.
+    
+    Converts paths like:
+      'Artist/Album/01-Track.mp3' 
+    To:
+      'Artist/Album/disc1/01-Track.mp3'
+    
+    Args:
+        songs: List of song dicts from MPD
+        disc_map: Dict {disc_num: [songs]} from organize_album_by_disc()
+    
+    Returns:
+        List of songs with updated 'file' paths
+    """
+    if not disc_map:
+        return songs
+    
+    adjusted_songs = []
+    
+    for disc_num in sorted(disc_map.keys()):
+        disc_songs = disc_map[disc_num]
+        
+        for song in disc_songs:
+            song_copy = song.copy()  # Don't modify original
+            old_file = song_copy.get('file', '')
+            
+            if not old_file:
+                adjusted_songs.append(song_copy)
+                continue
+            
+            # Insert disc directory before filename
+            # e.g., 'Artist/Album/track.mp3' -> 'Artist/Album/disc1/track.mp3'
+            parts = old_file.rsplit('/', 1)  # Split into directory and filename
+            
+            if len(parts) == 2:
+                directory, filename = parts
+                new_file = f"{directory}/disc{disc_num}/{filename}"
+            else:
+                # Just filename, no directory
+                new_file = f"disc{disc_num}/{old_file}"
+            
+            song_copy['file'] = new_file
+            print(f"[DISC] D{disc_num}: {old_file} -> {new_file}", flush=True)
+            adjusted_songs.append(song_copy)
+    
+    return adjusted_songs
+
 @app.route('/add_album_to_playlist', methods=['POST'])
 def add_album_to_playlist():
     """Add an entire album to the playlist."""
@@ -1971,14 +2092,17 @@ def add_album_to_playlist():
             if not s:
                 return ''
             return re.sub(r"[^a-z0-9]+", "", s.lower())
+        
         # Handle both JSON and form data
         if request.is_json:
             data = request.get_json()
             artist = data.get('original_artist') or data.get('artist')  # Try original_artist first
             album = data.get('album')
+            disc_number = data.get('disc_number')  # New: optional disc number
         else:
             artist = request.form.get('original_artist') or request.form.get('artist')
             album = request.form.get('album')
+            disc_number = request.form.get('disc_number')  # New: optional disc number
         
         if not artist or not album:
             if request.is_json:
@@ -1992,7 +2116,8 @@ def add_album_to_playlist():
             return redirect(url_for('index'))
 
         try:
-            print(f"[DEBUG] Searching for album: artist='{artist}', album='{album}'", flush=True)
+            print(f"[DEBUG] Searching for album: artist='{artist}', album='{album}'" + 
+                  (f", disc={disc_number}" if disc_number else ""), flush=True)
             # Find all songs from this album - try AlbumArtist first, then Artist
             songs = []
             try:
@@ -2001,7 +2126,7 @@ def add_album_to_playlist():
                     print(f"[DEBUG] Found {len(songs)} songs using AlbumArtist", flush=True)
             except Exception as e:
                 print(f"[DEBUG] AlbumArtist search failed: {e}", flush=True)
-                
+                    
             # If no songs found by AlbumArtist, try by Artist
             if not songs:
                 songs = client.find('artist', artist, 'album', album)
@@ -2069,15 +2194,43 @@ def add_album_to_playlist():
                             print(f"[DEBUG] Fallback2 found {len(songs)} tracks with adjusted album name", flush=True)
                 except Exception as e:
                     print(f"[DEBUG] Fallback2 error while listing artist albums: {e}", flush=True)
-            
+                
             if not songs:
                 print(f"[DEBUG] Total failure - no songs found for '{album}' by '{artist}'", flush=True)
                 client.disconnect()
                 if request.is_json:
                     return jsonify({'status': 'error', 'message': f'No songs found for "{album}" by {artist}'}), 404
                 return redirect(url_for('index'))
-            
-            # Add all songs to playlist
+                
+            # ========================================================================
+            # MULTI-DISC ALBUM: Detect if album spans multiple discs
+            # Note: File paths already include Disc XX/ directories on disk, 
+            # so we don't need to adjust paths - just detect for metadata purposes
+            # ========================================================================
+            disc_structure = organize_album_by_disc(songs)
+                
+            if disc_number:
+                # User requested a specific disc - only add that disc
+                disc_num = int(disc_number)
+                if disc_structure and disc_num in disc_structure:
+                    songs = disc_structure[disc_num]
+                    print(f"[DISC] Adding only Disc {disc_num} with {len(songs)} tracks", flush=True)
+                else:
+                    print(f"[DISC] ERROR: Disc {disc_number} not found in album structure", flush=True)
+                    client.disconnect()
+                    if request.is_json:
+                        return jsonify({'status': 'error', 'message': f'Disc {disc_number} not found'}), 404
+                    return redirect(url_for('index'))
+            else:
+                # No specific disc requested - add all tracks
+                if disc_structure:
+                    disc_count = len(disc_structure)
+                    track_info = ", ".join([f"Disc {d}: {len(disc_structure[d])} tracks" for d in sorted(disc_structure.keys())])
+                    print(f"[DISC] Multi-disc album detected: {disc_count} discs - {track_info}", flush=True)
+                else:
+                    print(f"[DISC] Single-disc album (or no disc metadata) - all tracks on one disc", flush=True)
+                
+            # Add selected songs to playlist
             added_count = 0
             for song in songs:
                 file_path = song.get('file')
@@ -2087,7 +2240,7 @@ def add_album_to_playlist():
                         added_count += 1
                     except CommandError as e:
                         print(f"Error adding {file_path}: {e}")
-            
+                
             client.disconnect()
             
             if added_count > 0:
@@ -2110,7 +2263,7 @@ def add_album_to_playlist():
             if request.is_json:
                 return jsonify({'status': 'error', 'message': f'Error adding album: {str(e)}'}), 500
             return redirect(url_for('index'))
-            
+                
     except Exception as e:
         print(f"Error in add_album_to_playlist: {e}")
         if request.is_json:
@@ -2119,16 +2272,18 @@ def add_album_to_playlist():
 
 @app.route('/clear_and_add_album', methods=['POST'])
 def clear_and_add_album():
-    """Clear playlist and add an entire album."""
+    """Clear playlist and add an entire album (or just a disc)."""
     try:
         # Handle both JSON and form data
         if request.is_json:
             data = request.get_json()
             artist = data.get('original_artist') or data.get('artist')
             album = data.get('album')
+            disc_number = data.get('disc_number')  # New: optional disc number
         else:
             artist = request.form.get('original_artist') or request.form.get('artist')
             album = request.form.get('album')
+            disc_number = request.form.get('disc_number')  # New: optional disc number
         
         if not artist or not album:
             if request.is_json:
@@ -2142,7 +2297,8 @@ def clear_and_add_album():
             return redirect(url_for('index'))
 
         try:
-            print(f"[DEBUG] Clear+Add - Searching for album: artist='{artist}', album='{album}'", flush=True)
+            print(f"[DEBUG] Clear+Add - Searching for album: artist='{artist}', album='{album}'" + 
+                  (f", disc={disc_number}" if disc_number else ""), flush=True)
             # First, clear the current playlist
             client.clear()
             
@@ -2169,6 +2325,19 @@ def clear_and_add_album():
                     return jsonify({'status': 'error', 'message': f'No songs found for "{album}" by {artist}'}), 404
                 return redirect(url_for('index'))
             
+            # If disc number specified, filter to just that disc
+            if disc_number:
+                disc_structure = organize_album_by_disc(songs)
+                disc_num = int(disc_number)
+                if disc_structure and disc_num in disc_structure:
+                    songs = disc_structure[disc_num]
+                    print(f"[DISC] Clear+Add - Adding only Disc {disc_num} with {len(songs)} tracks", flush=True)
+                else:
+                    client.disconnect()
+                    if request.is_json:
+                        return jsonify({'status': 'error', 'message': f'Disc {disc_number} not found'}), 404
+                    return redirect(url_for('index'))
+            
             # Add all songs to playlist
             added_count = 0
             for song in songs:
@@ -2191,7 +2360,8 @@ def clear_and_add_album():
             client.disconnect()
             
             if added_count > 0:
-                socketio.emit('server_message', {'type': 'success', 'text': f'Playlist cleared and added {added_count} songs from "{album}" by {artist}. Now playing!'})
+                disc_text = f" (Disc {disc_number})" if disc_number else ""
+                socketio.emit('server_message', {'type': 'success', 'text': f'Playlist cleared and added {added_count} songs from "{album}"{disc_text} by {artist}. Now playing!'})
                 # Trigger a status update
                 socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))
                 
@@ -2261,8 +2431,29 @@ def get_album_songs():
             # Sort by track number if available
             formatted_songs.sort(key=lambda x: int(x['track'].split('/')[0]) if x['track'] and x['track'].split('/')[0].isdigit() else 999)
             
+            # Check if this is a multi-disc album
+            disc_structure = organize_album_by_disc(songs)
+            
+            response = {'songs': formatted_songs}
+            
+            if disc_structure and len(disc_structure) > 1:
+                disc_structure_serializable = {}
+                for disc_num, disc_tracks in disc_structure.items():
+                    disc_structure_serializable[str(disc_num)] = [
+                        {
+                            'file': track.get('file', ''),
+                            'title': track.get('title', 'Unknown Title'),
+                            'artist': track.get('artist', artist),
+                            'album': track.get('album', album),
+                            'track': track.get('track', ''),
+                            'time': track.get('time', '0')
+                        }
+                        for track in disc_tracks
+                    ]
+                response['disc_structure'] = disc_structure_serializable
+            
             client.disconnect()
-            return jsonify(formatted_songs)
+            return jsonify(response)
             
         except Exception as e:
             if client:
@@ -2880,8 +3071,14 @@ def get_recent_albums_from_mpd(limit=25, force_refresh=False):
                     # Skip non-music files
                     if 'file' not in song or 'album' not in song:
                         continue
-                        
-                    album_name = song.get('album', '').strip()
+                    
+                    # Handle album field which can be a string or list
+                    album_field = song.get('album', '')
+                    if isinstance(album_field, list):
+                        album_name = album_field[0] if album_field else ''
+                    else:
+                        album_name = str(album_field).strip()
+                    
                     if not album_name:
                         continue
                     
@@ -2940,6 +3137,13 @@ def get_recent_albums_from_mpd(limit=25, force_refresh=False):
         album_info_list = []
         
         for album_key, album_data in all_albums_dict.items():
+            # ========================================================================
+            # MULTI-DISC DETECTION: Check if album has multiple discs
+            # Organize by disc but keep as single album entry
+            # ========================================================================
+            disc_structure = organize_album_by_disc(album_data['songs'])
+            
+            # Calculate total duration for all tracks
             total_duration = 0
             for song in album_data['songs']:
                 if 'time' in song:
@@ -2960,6 +3164,7 @@ def get_recent_albums_from_mpd(limit=25, force_refresh=False):
             # Add source directory to artist display for clarity, but keep original for searching
             artist_display = f"{album_data['artist']} [{album_data['source_dir']}]"
             
+            # Build album info - include disc structure if multi-disc
             album_info = {
                 'album': album_data['album'],
                 'artist': artist_display,           # For display in UI
@@ -2968,8 +3173,14 @@ def get_recent_albums_from_mpd(limit=25, force_refresh=False):
                 'file_count': len(album_data['songs']),
                 'duration': total_duration,
                 'duration_formatted': duration_formatted,
-                'sample_file': album_data['sample_file']
+                'sample_file': album_data['sample_file'],
+                'songs': album_data['songs'],  # All songs for the album
+                'disc_structure': disc_structure if disc_structure else None,  # Disc organization
+                'is_multi_disc': bool(disc_structure and len(disc_structure) > 1)  # Flag for multi-disc
             }
+            
+            if disc_structure:
+                print(f"[DISC] Album '{album_data['album']}' has {len(disc_structure)} discs")
             
             album_info_list.append(album_info)
         
@@ -2990,7 +3201,9 @@ def get_recent_albums_from_mpd(limit=25, force_refresh=False):
         return recent_albums[:limit]
         
     except Exception as e:
+        import traceback
         print(f"Error in get_recent_albums_from_mpd: {e}")
+        print(f"Traceback: {traceback.format_exc()}")
         if client:
             client.disconnect()
         return []
@@ -3538,6 +3751,9 @@ def api_album_tracks():
             print("[DEBUG] No tracks found for given album", flush=True)
             return jsonify({'status': 'error', 'message': 'No tracks found for this album'}), 404
         
+        # Check if this is a multi-disc album
+        disc_structure = organize_album_by_disc(tracks)
+        
         # Sort tracks by track number if available
         def get_track_number(track):
             track_num = track.get('track', '0')
@@ -3560,8 +3776,33 @@ def api_album_tracks():
                 'track': track.get('track', str(idx+1))
             })
         
-        print(f"[DEBUG] Returning {len(track_list)} tracks", flush=True)
-        return jsonify({'status': 'success', 'tracks': track_list})
+        # Build response with disc structure if multi-disc
+        response = {
+            'status': 'success',
+            'tracks': track_list
+        }
+        
+        if disc_structure and len(disc_structure) > 1:
+            print(f"[DEBUG] Multi-disc album detected: {len(disc_structure)} discs", flush=True)
+            # Convert disc_structure to serializable format
+            disc_structure_serializable = {}
+            for disc_num, disc_tracks in disc_structure.items():
+                disc_structure_serializable[str(disc_num)] = [
+                    {
+                        'title': track.get('title', ''),
+                        'file': track.get('file', ''),
+                        'time': track.get('time', None),
+                        'artist': track.get('artist', ''),
+                        'track': track.get('track', '')
+                    }
+                    for track in disc_tracks
+                ]
+            response['disc_structure'] = disc_structure_serializable
+        
+        print(f"[DEBUG] Returning {len(track_list)} tracks" + 
+              (f" organized into {len(disc_structure)} discs" if disc_structure and len(disc_structure) > 1 else ""), 
+              flush=True)
+        return jsonify(response)
         
     except Exception as e:
         try:

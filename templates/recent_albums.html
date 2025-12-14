@@ -514,10 +514,12 @@
 
         // Load recent albums when page loads
         document.addEventListener('DOMContentLoaded', function () {
+            console.log('[Recent Albums] Page loaded, starting fetch...');
             loadRecentAlbums();
         });
 
         function loadRecentAlbums(forceRefresh = false) {
+            console.log('[Recent Albums] loadRecentAlbums called, forceRefresh:', forceRefresh);
             const loading = document.getElementById('loading');
             const error = document.getElementById('error');
             const albumList = document.getElementById('album-list');
@@ -530,31 +532,55 @@
             stats.style.display = 'none';
 
             const url = forceRefresh ? '/recent_albums?force_refresh=1' : '/recent_albums';
+            console.log('[Recent Albums] Fetching from:', url);
 
             fetch(url)
-                .then(response => response.json())
+                .then(response => {
+                    console.log('[Recent Albums] Got response:', response.status, response.statusText);
+                    if (!response.ok) {
+                        return response.text().then(text => {
+                            console.error('[Recent Albums] Non-OK response body:', text.substring(0, 500));
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        });
+                    }
+                    return response.text().then(text => {
+                        console.log('[Recent Albums] Response text (first 200 chars):', text.substring(0, 200));
+                        try {
+                            return JSON.parse(text);
+                        } catch (e) {
+                            console.error('[Recent Albums] JSON parse error. Full text:', text);
+                            throw new Error('Invalid JSON: ' + e.message);
+                        }
+                    });
+                })
                 .then(data => {
+                    console.log('[Recent Albums] Got data:', data);
                     loading.style.display = 'none';
 
                     if (data.status === 'success') {
+                        console.log('[Recent Albums] Calling displayAlbums with', data.albums.length, 'albums');
                         displayAlbums(data.albums);
                         document.getElementById('album-count').textContent = data.count;
                         stats.style.display = 'block';
                     } else {
+                        console.error('[Recent Albums] Error status:', data);
                         showError(data.message || 'Failed to load recent albums');
                     }
                 })
                 .catch(err => {
+                    console.error('[Recent Albums] Fetch error:', err);
                     loading.style.display = 'none';
                     showError('Network error loading recent albums: ' + err.message);
                 });
         }
 
         function displayAlbums(albums) {
+            console.log('[Recent Albums] displayAlbums called with', albums.length, 'albums');
             const albumList = document.getElementById('album-list');
             albumList.innerHTML = '';
 
             if (albums.length === 0) {
+                console.log('[Recent Albums] No albums to display');
                 albumList.innerHTML = '<li style="text-align: center; padding: 40px; color: #bdc3c7;">No recent albums found</li>';
                 albumList.style.display = 'block';
                 return;
@@ -569,7 +595,8 @@
                     date: album.date || new Date().toISOString(),
                     file_count: Number(album.file_count) || 0,
                     duration_formatted: String(album.duration_formatted || '--:--'),
-                    sample_file: String(album.sample_file || '')
+                    sample_file: String(album.sample_file || ''),
+                    is_multi_disc: Boolean(album.is_multi_disc)  // New: flag for multi-disc albums
                 };
                 
                 const listItem = document.createElement('li');
@@ -578,6 +605,10 @@
                 // Format the date nicely
                 const date = new Date(safeAlbum.date);
                 const dateString = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                
+                // Build title - add disc icon for multi-disc albums
+                const titleDisplay = `${escapeHtml(safeAlbum.album)}` + 
+                    (safeAlbum.is_multi_disc ? ' 💿×' + (album.disc_structure ? Object.keys(album.disc_structure).length : '?') : '');
 
                 listItem.innerHTML = `
                     <div class="album-content">
@@ -589,7 +620,7 @@
                         <div class="album-info-container" style="flex: 1;">
                             <div class="album-header">
                                 <div class="album-info">
-                                    <div class="album-title">${escapeHtml(safeAlbum.album)}</div>
+                                    <div class="album-title">${titleDisplay}</div>
                                     <div class="album-artist">by <a href="/search?query=${encodeURIComponent(stripLocation(safeAlbum.artist))}&type=artist" style="color:#27ae60; text-decoration:underline;">${escapeHtml(safeAlbum.artist)}</a></div>
                                     <div class="album-meta">
                                         📀 ${safeAlbum.file_count} songs • ⏱️ ${safeAlbum.duration_formatted}
@@ -600,10 +631,10 @@
                                 </div>
                                 <div class="album-actions">
                                     <button class="btn btn-primary" onclick="addAlbumToPlaylist('${safeAlbum.album.replace(/'/g, "\\'")}', '${safeAlbum.artist.replace(/'/g, "\\'")}', '${safeAlbum.original_artist.replace(/'/g, "\\'")}')">
-                                        ➕ Add to Playlist
+                                        ➕ Add Album
                                     </button>
                                     <button class="btn btn-secondary" onclick="toggleAlbumDetails('${safeAlbum.album.replace(/'/g, "\\'")}', '${safeAlbum.original_artist.replace(/'/g, "\\'")}', ${index})">
-                                        🔍 Show Tracks
+                                        🔍 View Tracks
                                     </button>
                                 </div>
                             </div>
@@ -623,19 +654,27 @@
             albumList.style.display = 'block';
         }
 
-        function addAlbumToPlaylist(albumName, artistDisplayName, originalArtistName) {
-            showMessage('Adding album to playlist...', 'info');
+        function addAlbumToPlaylist(albumName, artistDisplayName, originalArtistName, discNumber) {
+            const discText = discNumber ? ` (Disc ${discNumber})` : '';
+            showMessage(`Adding album${discText} to playlist...`, 'info');
+
+            const payload = {
+                album: albumName,
+                artist: artistDisplayName,
+                original_artist: originalArtistName
+            };
+            
+            // Add disc number if provided
+            if (discNumber) {
+                payload.disc_number = discNumber;
+            }
 
             fetch('/add_album_to_playlist', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    album: albumName,
-                    artist: artistDisplayName,
-                    original_artist: originalArtistName
-                })
+                body: JSON.stringify(payload)
             })
                 .then(response => response.json())
                 .then(data => {
@@ -669,7 +708,12 @@
                     .then(data => {
                         loadingDiv.style.display = 'none';
                         if (data.status === 'success' && data.tracks && data.tracks.length > 0) {
-                            displayTracks(data.tracks, index);
+                            // Check if this is a multi-disc album
+                            if (data.disc_structure) {
+                                displayMultiDiscTracks(data.disc_structure, albumName, originalArtistName, index);
+                            } else {
+                                displayTracks(data.tracks, index);
+                            }
                         } else {
                             tracksDiv.innerHTML = '<p style="color: #bdc3c7; text-align: center;">No tracks found</p>';
                         }
@@ -715,6 +759,67 @@
             });
 
             tracksDiv.innerHTML = tracksHtml;
+        }
+
+        function displayMultiDiscTracks(discStructure, albumName, originalArtistName, index) {
+            const tracksDiv = document.getElementById(`tracks-${index}`);
+            
+            let discsHtml = '';
+            const discNumbers = Object.keys(discStructure).map(Number).sort((a, b) => a - b);
+            
+            discNumbers.forEach(discNum => {
+                const discTracks = discStructure[discNum];
+                
+                // Calculate disc duration
+                let discDuration = 0;
+                discTracks.forEach(track => {
+                    if (track.time) {
+                        discDuration += parseInt(track.time);
+                    }
+                });
+                const discDurationFormatted = formatDuration(discDuration);
+                
+                discsHtml += `
+                    <div class="disc-section" style="margin-bottom: 20px; border: 1px solid #34495e; border-radius: 5px; padding: 15px; background-color: #1e2a35;">
+                        <div class="disc-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #27ae60;">
+                            <div>
+                                <h3 style="margin: 0; color: #27ae60;">💿 Disc ${discNum}</h3>
+                                <div style="color: #bdc3c7; font-size: 0.9em; margin-top: 5px;">
+                                    ${discTracks.length} tracks • ${discDurationFormatted}
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" onclick="addAlbumToPlaylist('${albumName.replace(/'/g, "\\'")}', '${originalArtistName.replace(/'/g, "\\'")}', '${originalArtistName.replace(/'/g, "\\'")}', ${discNum})">
+                                ➕ Add Disc ${discNum}
+                            </button>
+                        </div>
+                        <div class="disc-tracks">
+                `;
+                
+                discTracks.forEach((track, trackIndex) => {
+                    const duration = track.time ? formatDuration(parseInt(track.time)) : '--:--';
+                    discsHtml += `
+                        <div class="track-item">
+                            <div class="track-info">
+                                <div class="track-title">${trackIndex + 1}. ${escapeHtml(track.title || 'Unknown Title')}</div>
+                                <div class="track-duration">${duration}</div>
+                            </div>
+                            <div class="track-actions">
+                                <button class="btn btn-primary" style="padding: 4px 8px; font-size: 0.8em;" 
+                                        onclick="addTrackToPlaylist('${escapeHtml(track.file)}')">
+                                    ➕ Add
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                discsHtml += `
+                        </div>
+                    </div>
+                `;
+            });
+            
+            tracksDiv.innerHTML = discsHtml;
         }
 
         function addTrackToPlaylist(filePath) {

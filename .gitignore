@@ -42,3 +42,6 @@ htmlcov/
 # Backups
 *.bak
 *.backup
+# Update staging folder
+Maestro_Update/
+Maestro-Update/

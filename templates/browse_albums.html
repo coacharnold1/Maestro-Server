@@ -628,6 +628,11 @@
                 } else {
                     thumbnailUrl = `/album_art?artist=${encodeURIComponent(album.artist)}&album=${encodeURIComponent(album.album)}&size=thumb`;
                 }
+                
+                // Build title - add disc number if this is a disc entry
+                const titleDisplay = album.disc_number 
+                    ? `${escapeHtml(album.album)} - Disc ${album.disc_number}`
+                    : `${escapeHtml(album.album)}`;
 
                 listItem.innerHTML = `
                     <div class="album-content">
@@ -639,7 +644,7 @@
                         <div class="album-info-container" style="flex: 1;">
                             <div class="album-header">
                                 <div class="album-info">
-                                    <div class="album-title">${escapeHtml(album.album)}</div>
+                                    <div class="album-title">${titleDisplay}</div>
                                     <div class="album-artist">by <a href="/search?query=${encodeURIComponent(stripLocation(album.artist))}&type=artist" style="color:#27ae60; text-decoration:underline;">${escapeHtml(album.artist)}</a></div>
                                     <div class="album-meta">
                                         📀 ${album.track_count} tracks
@@ -647,11 +652,11 @@
                                     </div>
                                 </div>
                                 <div class="album-actions">
-                                    <button class="btn btn-warning" onclick="clearAndAddAlbum('${jsString(album.artist)}', '${jsString(album.album)}')">
-                                        🔄 Replace Playlist
+                                    <button class="btn btn-warning" onclick="clearAndAddAlbum('${jsString(album.artist)}', '${jsString(album.album)}'${album.disc_number ? `, ${album.disc_number}` : ''})">
+                                        🔄 Replace
                                     </button>
-                                    <button class="btn btn-primary" onclick="addAlbumToPlaylist('${jsString(album.artist)}', '${jsString(album.album)}')">
-                                        ➕ Add Album
+                                    <button class="btn btn-primary" onclick="addAlbumToPlaylist('${jsString(album.artist)}', '${jsString(album.album)}'${album.disc_number ? `, ${album.disc_number}` : ''})">
+                                        ➕ Add ${album.disc_number ? `Disc ${album.disc_number}` : 'Album'}
                                     </button>
                                     <button class="btn btn-secondary" onclick="toggleAlbumDetails('${jsString(album.album)}', '${jsString(album.artist)}', ${index})">
                                         🔍 Show Tracks
@@ -674,18 +679,25 @@
             albumList.style.display = 'block';
         }
 
-        function addAlbumToPlaylist(artistName, albumName) {
-            showMessage('Adding album to playlist...', 'info');
+        function addAlbumToPlaylist(artistName, albumName, discNumber) {
+            const discText = discNumber ? ` (Disc ${discNumber})` : '';
+            showMessage(`Adding album${discText} to playlist...`, 'info');
+
+            const payload = {
+                album: albumName,
+                artist: artistName
+            };
+            
+            if (discNumber) {
+                payload.disc_number = discNumber;
+            }
 
             fetch('/add_album_to_playlist', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    album: albumName,
-                    artist: artistName
-                })
+                body: JSON.stringify(payload)
             })
                 .then(response => response.json())
                 .then(data => {
@@ -700,18 +712,25 @@
                 });
         }
 
-        function clearAndAddAlbum(artistName, albumName) {
-            showMessage('Clearing playlist and adding album...', 'info');
+        function clearAndAddAlbum(artistName, albumName, discNumber) {
+            const discText = discNumber ? ` (Disc ${discNumber})` : '';
+            showMessage(`Clearing playlist and adding album${discText}...`, 'info');
+
+            const payload = {
+                album: albumName,
+                artist: artistName
+            };
+            
+            if (discNumber) {
+                payload.disc_number = discNumber;
+            }
 
             fetch('/clear_and_add_album', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    album: albumName,
-                    artist: artistName
-                })
+                body: JSON.stringify(payload)
             })
                 .then(response => response.json())
                 .then(data => {
@@ -743,7 +762,12 @@
                     .then(data => {
                         loadingDiv.style.display = 'none';
                         if (data.status === 'success' && data.tracks && data.tracks.length > 0) {
-                            displayTracks(data.tracks, index);
+                            // Check if this is a multi-disc album
+                            if (data.disc_structure) {
+                                displayMultiDiscTracks(data.disc_structure, albumName, artistName, index);
+                            } else {
+                                displayTracks(data.tracks, index);
+                            }
                         } else {
                             tracksDiv.innerHTML = '<p style="color: #bdc3c7; text-align: center;">No tracks found</p>';
                         }
@@ -788,6 +812,67 @@
             });
 
             tracksDiv.innerHTML = tracksHtml;
+        }
+
+        function displayMultiDiscTracks(discStructure, albumName, artistName, index) {
+            const tracksDiv = document.getElementById(`tracks-${index}`);
+            
+            let discsHtml = '';
+            const discNumbers = Object.keys(discStructure).map(Number).sort((a, b) => a - b);
+            
+            discNumbers.forEach(discNum => {
+                const discTracks = discStructure[discNum];
+                
+                // Calculate disc duration
+                let discDuration = 0;
+                discTracks.forEach(track => {
+                    if (track.time) {
+                        discDuration += parseInt(track.time);
+                    }
+                });
+                const discDurationFormatted = formatDuration(discDuration);
+                
+                discsHtml += `
+                    <div class="disc-section" style="margin-bottom: 20px; border: 1px solid #34495e; border-radius: 5px; padding: 15px; background-color: #1e2a35;">
+                        <div class="disc-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #27ae60;">
+                            <div>
+                                <h3 style="margin: 0; color: #27ae60;">💿 Disc ${discNum}</h3>
+                                <div style="color: #bdc3c7; font-size: 0.9em; margin-top: 5px;">
+                                    ${discTracks.length} tracks • ${discDurationFormatted}
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" onclick="addAlbumToPlaylist('${artistName.replace(/'/g, "\\'")}', '${albumName.replace(/'/g, "\\'")}', ${discNum})">
+                                ➕ Add Disc ${discNum}
+                            </button>
+                        </div>
+                        <div class="disc-tracks">
+                `;
+                
+                discTracks.forEach((track, trackIndex) => {
+                    const duration = track.time ? formatDuration(parseInt(track.time)) : '--:--';
+                    discsHtml += `
+                        <div class="track-item">
+                            <div class="track-info">
+                                <div class="track-title">${trackIndex + 1}. ${escapeHtml(track.title || 'Unknown Title')}</div>
+                                <div class="track-duration">${duration}</div>
+                            </div>
+                            <div class="track-actions">
+                                <button class="btn btn-primary" style="padding: 4px 8px; font-size: 0.8em;" 
+                                        onclick="addTrackToPlaylist('${escapeHtml(track.file)}')">
+                                    ➕ Add
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                discsHtml += `
+                        </div>
+                    </div>
+                `;
+            });
+            
+            tracksDiv.innerHTML = discsHtml;
         }
 
         function addTrackToPlaylist(filePath) {
