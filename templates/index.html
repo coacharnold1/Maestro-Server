@@ -987,20 +987,6 @@
                     <span id="auto-fill-status-index"
                         style="font-size: 0.8em; color: #95a5a6; margin-left: 20px;">Loading...</span>
                 </span>
-                
-                {# NEW: Mood-based Auto-Fill Controls #}
-                <span style="display: flex; flex-direction: column; align-items: flex-start; margin-top: 12px;">
-                    <label style="font-size: 0.9em; margin-bottom: 8px;">🎭 Mood Auto-Fill:</label>
-                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                        <button id="mood-happy-btn" class="mood-btn" style="background-color: #f39c12; color: white; padding: 6px 12px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.85em;">😊 Happy</button>
-                        <button id="mood-sad-btn" class="mood-btn" style="background-color: #3498db; color: white; padding: 6px 12px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.85em;">😢 Sad</button>
-                        <button id="mood-energetic-btn" class="mood-btn" style="background-color: #e74c3c; color: white; padding: 6px 12px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.85em;">⚡ Energetic</button>
-                        <button id="mood-calm-btn" class="mood-btn" style="background-color: #27ae60; color: white; padding: 6px 12px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.85em;">🧘 Calm</button>
-                        <button id="mood-dark-btn" class="mood-btn" style="background-color: #34495e; color: white; padding: 6px 12px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.85em;">🌑 Dark</button>
-                        <button id="mood-clear-btn" style="background-color: #95a5a6; color: white; padding: 6px 12px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.85em;">✕ Clear</button>
-                    </div>
-                    <small id="mood-status" style="color: #95a5a6; font-size: 0.75em; margin-top: 6px;">No mood selected</small>
-                </span>
             </div>
 
         </div>
@@ -1246,81 +1232,6 @@
                         })
                         .catch(error => {
                             displayMessage('error', `Error: ${error.message}`);
-                        });
-                });
-            }
-
-            // --- Mood Auto-Fill Button Handlers ---
-            const moodButtons = document.querySelectorAll('.mood-btn');
-            const moodClearBtn = document.getElementById('mood-clear-btn');
-            const moodStatus = document.getElementById('mood-status');
-            let currentMood = null;
-            
-            console.log(`[MOOD DEBUG] Found ${moodButtons.length} mood buttons, moodStatus element: ${moodStatus ? 'found' : 'NOT FOUND'}`);
-
-            moodButtons.forEach((btn, idx) => {
-                console.log(`[MOOD DEBUG] Attaching listener to mood button ${idx}: ${btn.id}`);
-                btn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const mood = this.id.replace('mood-', '').replace('-btn', '');
-                    console.log(`[MOOD DEBUG] Clicked mood button: ${this.id}, extracted mood: ${mood}`);
-                    
-                    // Update UI - highlight selected button
-                    moodButtons.forEach(b => b.style.opacity = '0.6');
-                    this.style.opacity = '1';
-                    
-                    // Send mood to server
-                    console.log(`[MOOD DEBUG] Sending mood to server: ${mood}`);
-                    fetch('/set_auto_fill_mood', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ mood: mood })
-                    })
-                        .then(response => {
-                            console.log(`[MOOD DEBUG] Server response status: ${response.status}`);
-                            return response.json();
-                        })
-                        .then(data => {
-                            console.log(`[MOOD DEBUG] Server data: ${JSON.stringify(data)}`);
-                            currentMood = mood;
-                            if (moodStatus) {
-                                moodStatus.textContent = `✓ ${mood.charAt(0).toUpperCase() + mood.slice(1)} mood selected`;
-                                moodStatus.style.color = '#2ecc71';
-                            }
-                            displayMessage('info', `Mood set to: ${mood}`);
-                        })
-                        .catch(error => {
-                            console.error(`[MOOD DEBUG] Error setting mood: ${error.message}`);
-                            if (moodStatus) {
-                                moodStatus.textContent = 'Error setting mood';
-                                moodStatus.style.color = '#e74c3c';
-                            }
-                            displayMessage('error', `Error setting mood: ${error.message}`);
-                        });
-                });
-            });
-
-            if (moodClearBtn) {
-                moodClearBtn.addEventListener('click', function() {
-                    // Reset UI
-                    moodButtons.forEach(b => b.style.opacity = '1');
-                    currentMood = null;
-                    
-                    // Send clear to server
-                    fetch('/set_auto_fill_mood', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ mood: '' })
-                    })
-                        .then(response => response.json())
-                        .then(data => {
-                            moodStatus.textContent = 'No mood selected';
-                            moodStatus.style.color = '#95a5a6';
-                            displayMessage('info', 'Mood cleared');
-                        })
-                        .catch(error => {
-                            displayMessage('error', `Error clearing mood: ${error.message}`);
                         });
                 });
             }

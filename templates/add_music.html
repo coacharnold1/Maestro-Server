@@ -532,82 +532,7 @@
             <button onclick="playbackAction('next')" style="background-color: #3498db; color: white;">⏭️ Next</button>
         </div>
 
-        <div class="controls action-buttons">
-            <h2>Manual Track Addition</h2>
-            <div class="form-group">
-                <label for="artist-input">Artist:</label>
-                <input type="text" id="artist-input" value="{{ current_artist }}" placeholder="e.g., Motorhead">
-            </div>
-            <div class="form-group">
-                <label for="num-tracks-input">Number of Tracks to Add:</label>
-                <input type="number" id="num-tracks-input" value="25" min="1" max="50">
-            </div>
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="clear-playlist-checkbox"> Clear current playlist before adding
-                </label>
-            </div>
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="filter-by-genre-checkbox"> Filter by current genre. - {{ current_genre if
-                    current_genre != 'N/A' else 'N/A' }}
-                </label>
-            </div>
-            <button id="add-random-btn">Add Random Tracks</button>
-        </div>
-
-        {# NEW: Genre-Based Random Music Section #}
-        <div class="controls">
-            <h2>Add Random Songs by Genre</h2>
-            <div class="form-group">
-                <label for="genre-select">Select Genres:</label>
-                <select multiple id="genre-select"
-                    style="width: 100%; height: 150px; background: #34495e; color: #ecf0f1; border: 1px solid #3498db; border-radius: 5px; padding: 5px;">
-                    <option value="">Loading genres...</option>
-                </select>
-                <small style="color: #bdc3c7; margin-top: 5px; display: block;">Hold Ctrl (Cmd on Mac) to select
-                    multiple genres</small>
-            </div>
-            <p style="color: #bdc3c7; font-size: 0.9em; margin: 10px 0;">
-                Track count will use Auto-Fill settings below (Min-Max range)
-            </p>
-            <button id="add-random-by-genre-btn">Add Random Songs from Selected Genres</button>
-        </div>
-
-        {# NEW: Auto-Fill Section #}
-        <div class="controls auto-fill-buttons">
-            <h2>Auto-Fill Playlist</h2>
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="auto-fill-toggle"> Enable Auto-Fill
-                </label>
-            </div>
-            <p>Current Status: <span id="auto-fill-status-display">Loading...</span></p>
-
-            <h3>Settings:</h3>
-            <div class="form-group">
-                <label for="min-queue-length-input">Min Queue Length:</label>
-                <input type="number" id="min-queue-length-input" value="5" min="1" max="25">
-            </div>
-            <div class="form-group">
-                <label for="num-tracks-min-input">Tracks to Add (Min):</label>
-                <input type="number" id="num-tracks-min-input" value="3" min="1" max="25">
-            </div>
-            <div class="form-group">
-                <label for="num-tracks-max-input">Tracks to Add (Max):</label>
-                <input type="number" id="num-tracks-max-input" value="7" min="1" max="25">
-            </div>
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="auto-fill-genre-filter-checkbox"> Filter Auto-Fill by current playing
-                    genre.<br>
-                    <span style="margin-left: 20px;">{{ current_genre if current_genre }}</span>
-                </label>
-            </div>
-            <button id="save-auto-fill-settings-btn">Save Auto-Fill Settings</button>
-        </div>
-
-        {# NEW: Radio Stations Section #}
+        {# Radio Stations Section - Moved to top #}
         <div class="controls auto-fill-buttons">
             <h2>📻 Radio Stations</h2>
             <p style="text-align: center; margin-bottom: 15px; color: #bdc3c7;">
@@ -640,6 +565,81 @@
                 <h3>Manage Stations:</h3>
                 <div id="stations-container"></div>
             </div>
+        </div>
+
+        {# Genre-Based Random Music Section - Moved to top #}
+        <div class="controls">
+            <h2>Add Random Songs by Genre</h2>
+            <div class="form-group">
+                <label for="genre-select">Select Genres:</label>
+                <select multiple id="genre-select"
+                    style="width: 100%; height: 150px; background: #34495e; color: #ecf0f1; border: 1px solid #3498db; border-radius: 5px; padding: 5px;">
+                    <option value="">Loading genres...</option>
+                </select>
+                <small style="color: #bdc3c7; margin-top: 5px; display: block;">Hold Ctrl (Cmd on Mac) to select
+                    multiple genres</small>
+            </div>
+            <p style="color: #bdc3c7; font-size: 0.9em; margin: 10px 0;">
+                Track count will use Auto-Fill settings below (Min-Max range)
+            </p>
+            <button id="add-random-by-genre-btn">Add Random Songs from Selected Genres</button>
+        </div>
+
+        <div class="controls action-buttons">
+            <h2>Manual Track Addition</h2>
+            <div class="form-group">
+                <label for="artist-input">Artist:</label>
+                <input type="text" id="artist-input" value="{{ current_artist }}" placeholder="e.g., Motorhead">
+            </div>
+            <div class="form-group">
+                <label for="num-tracks-input">Number of Tracks to Add:</label>
+                <input type="number" id="num-tracks-input" value="25" min="1" max="50">
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="clear-playlist-checkbox"> Clear current playlist before adding
+                </label>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="filter-by-genre-checkbox"> Filter by current genre. - {{ current_genre if
+                    current_genre != 'N/A' else 'N/A' }}
+                </label>
+            </div>
+            <button id="add-random-btn">Add Random Tracks</button>
+        </div>
+
+        {# Auto-Fill Section #}
+        <div class="controls auto-fill-buttons">
+            <h2>Auto-Fill Playlist</h2>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="auto-fill-toggle"> Enable Auto-Fill
+                </label>
+            </div>
+            <p>Current Status: <span id="auto-fill-status-display">Loading...</span></p>
+
+            <h3>Settings:</h3>
+            <div class="form-group">
+                <label for="min-queue-length-input">Min Queue Length:</label>
+                <input type="number" id="min-queue-length-input" value="5" min="1" max="25">
+            </div>
+            <div class="form-group">
+                <label for="num-tracks-min-input">Tracks to Add (Min):</label>
+                <input type="number" id="num-tracks-min-input" value="3" min="1" max="25">
+            </div>
+            <div class="form-group">
+                <label for="num-tracks-max-input">Tracks to Add (Max):</label>
+                <input type="number" id="num-tracks-max-input" value="7" min="1" max="25">
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="auto-fill-genre-filter-checkbox"> Filter Auto-Fill by current playing
+                    genre.<br>
+                    <span style="margin-left: 20px;">{{ current_genre if current_genre }}</span>
+                </label>
+            </div>
+            <button id="save-auto-fill-settings-btn">Save Auto-Fill Settings</button>
         </div>
 
     </div>
@@ -1216,6 +1216,219 @@
                         console.error('Error deleting station:', error);
                         displayMessage('error', 'Error deleting station');
                     });
+            }
+
+            // --- Mood Playlist Generator ---
+            const moodButtons = document.querySelectorAll('.mood-btn');
+            const moodPlaylistSizeInput = document.getElementById('mood-playlist-size');
+            const moodSizeDisplay = document.getElementById('mood-size-display');
+            const moodHighConfidenceCheckbox = document.getElementById('mood-high-confidence');
+            const generateMoodPlaylistBtn = document.getElementById('generate-mood-playlist-btn');
+            const moodPlaylistResults = document.getElementById('mood-playlist-results');
+            const moodPlaylistList = document.getElementById('mood-playlist-list');
+            const moodPlayBtn = document.getElementById('mood-play-btn');
+            const moodAddToQueueBtn = document.getElementById('mood-add-to-queue-btn');
+            const moodReplaceBtn = document.getElementById('mood-replace-btn');
+
+            let currentMoodPlaylist = [];
+            let selectedMood = null;
+
+            // Only setup mood playlist generator if the elements exist on this page
+            if (moodPlaylistSizeInput && moodSizeDisplay && moodHighConfidenceCheckbox && generateMoodPlaylistBtn) {
+                // Update size display when slider moves
+                moodPlaylistSizeInput.addEventListener('input', function() {
+                    moodSizeDisplay.textContent = this.value;
+                });
+
+                // Mood button selection
+                moodButtons.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        // Remove selection from all buttons
+                        moodButtons.forEach(b => b.style.opacity = '0.6');
+                        // Highlight selected button
+                        this.style.opacity = '1';
+                        selectedMood = this.dataset.mood;
+                    });
+                });
+
+                // Generate mood playlist
+                generateMoodPlaylistBtn.addEventListener('click', function() {
+                    if (!selectedMood) {
+                        displayMessage('error', 'Please select a mood first');
+                        return;
+                    }
+
+                    const playlistSize = parseInt(moodPlaylistSizeInput.value);
+                    const highConfidenceOnly = moodHighConfidenceCheckbox.checked;
+
+                    displayMessage('info', `Generating ${selectedMood} playlist with ${playlistSize} tracks...`);
+                    generateMoodPlaylistBtn.disabled = true;
+
+                const params = new URLSearchParams({
+                    size: playlistSize,
+                    high_confidence: highConfidenceOnly ? 'true' : 'false'
+                });
+
+                fetch(`/api/playlist/mood/${selectedMood}?${params}`, {
+                    method: 'GET'
+                })
+                    .then(response => {
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.status === 'success') {
+                            const playlist = data.data || data.playlist || data;
+                            currentMoodPlaylist = playlist.tracks || [];
+                            displayMoodPlaylist(playlist);
+                            displayMessage('success', `Generated ${currentMoodPlaylist.length} ${selectedMood} tracks`);
+                        } else {
+                            displayMessage('error', data.message || 'Failed to generate playlist');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error generating mood playlist:', error);
+                        displayMessage('error', `Error: ${error.message}`);
+                    })
+                    .finally(() => {
+                        generateMoodPlaylistBtn.disabled = false;
+                    });
+            });
+
+            function displayMoodPlaylist(playlist) {
+                moodPlaylistList.innerHTML = '';
+                const tracks = playlist.tracks || [];
+
+                if (tracks.length === 0) {
+                    moodPlaylistList.innerHTML = '<p style="color: #bdc3c7; text-align: center;">No tracks found for this mood</p>';
+                    moodPlaylistResults.style.display = 'block';
+                    return;
+                }
+
+                tracks.forEach((track, index) => {
+                    const trackDiv = document.createElement('div');
+                    trackDiv.style.cssText = 'padding: 8px; margin: 4px 0; background-color: #2c3e50; border-radius: 5px; border-left: 3px solid #16a085;';
+                    const mood = track.primary_mood || 'unknown';
+                    const confidence = track.confidence ? (track.confidence * 100).toFixed(0) : '?';
+                    const score = track.mood_score ? (track.mood_score * 100).toFixed(0) : '?';
+                    trackDiv.innerHTML = `
+                        <div style="font-weight: bold; color: #ecf0f1;">${index + 1}. ${track.title}</div>
+                        <div style="font-size: 0.9em; color: #bdc3c7;">
+                            ${track.artist || 'Unknown Artist'} | 
+                            🎭 ${mood} (Match: ${score}%, Confidence: ${confidence}%)
+                        </div>
+                    `;
+                    moodPlaylistList.appendChild(trackDiv);
+                });
+
+                moodPlaylistResults.style.display = 'block';
+            }
+
+                // Mood playlist actions
+                if (moodPlayBtn) {
+                    moodPlayBtn.addEventListener('click', function() {
+                        if (currentMoodPlaylist.length === 0) {
+                            displayMessage('error', 'No playlist to play');
+                            return;
+                        }
+
+                        const formData = new FormData();
+                        formData.append('tracks', JSON.stringify(currentMoodPlaylist));
+                        formData.append('clear_first', 'true');
+
+                        fetch('/add_tracks_list', {
+                            method: 'POST',
+                            body: formData
+                        })
+                            .then(response => {
+                                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                                return response.json();
+                            })
+                            .then(data => {
+                                if (data.status === 'success') {
+                                    // Play first track
+                                    playbackAction('play');
+                                    displayMessage('success', 'Playlist loaded and playing');
+                                } else {
+                                    displayMessage('error', data.message || 'Failed to load playlist');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error playing mood playlist:', error);
+                                displayMessage('error', `Error: ${error.message}`);
+                            });
+                    });
+                }
+
+                if (moodAddToQueueBtn) {
+                    moodAddToQueueBtn.addEventListener('click', function() {
+                        if (currentMoodPlaylist.length === 0) {
+                            displayMessage('error', 'No playlist to add');
+                            return;
+                        }
+
+                        const formData = new FormData();
+                        formData.append('tracks', JSON.stringify(currentMoodPlaylist));
+                        formData.append('clear_first', 'false');
+
+                        fetch('/add_tracks_list', {
+                            method: 'POST',
+                            body: formData
+                        })
+                            .then(response => {
+                                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                                return response.json();
+                            })
+                            .then(data => {
+                                if (data.status === 'success') {
+                                    displayMessage('success', `Added ${currentMoodPlaylist.length} tracks to queue`);
+                                } else {
+                                    displayMessage('error', data.message || 'Failed to add tracks');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error adding mood playlist:', error);
+                                displayMessage('error', `Error: ${error.message}`);
+                            });
+                    });
+                }
+
+                if (moodReplaceBtn) {
+                    moodReplaceBtn.addEventListener('click', function() {
+                        if (currentMoodPlaylist.length === 0) {
+                            displayMessage('error', 'No playlist to replace with');
+                            return;
+                        }
+
+                        if (!confirm(`Replace current playlist with ${currentMoodPlaylist.length} ${selectedMood} tracks?`)) {
+                            return;
+                        }
+
+                        const formData = new FormData();
+                        formData.append('tracks', JSON.stringify(currentMoodPlaylist));
+                        formData.append('clear_first', 'true');
+
+                        fetch('/add_tracks_list', {
+                            method: 'POST',
+                            body: formData
+                        })
+                            .then(response => {
+                                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                                return response.json();
+                            })
+                            .then(data => {
+                                if (data.status === 'success') {
+                                    displayMessage('success', `Replaced playlist with ${currentMoodPlaylist.length} ${selectedMood} tracks`);
+                                } else {
+                                    displayMessage('error', data.message || 'Failed to replace playlist');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error replacing mood playlist:', error);
+                                displayMessage('error', `Error: ${error.message}`);
+                            });
+                    });
+                }
             }
 
             // --- Radio Station Event Listeners ---
