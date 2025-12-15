@@ -551,29 +551,32 @@ def api_get_mpd_info():
                     # Get basic info
                     stat_info = os.stat(path)
                     
-                    # Count files recursively (with timeout/limit for performance)
-                    file_count = '?'
-                    try:
-                        # Use find command with timeout for large directories
-                        # Check if directory is readable first
-                        if os.access(path, os.R_OK):
-                            count_result = subprocess.run(
-                                ['find', path, '-type', 'f', '-readable'],
-                                capture_output=True,
-                                text=True,
-                                timeout=15  # 15 second limit for network shares
-                            )
-                            if count_result.returncode == 0:
-                                lines = count_result.stdout.strip().split('\n') if count_result.stdout.strip() else []
-                                file_count = len([l for l in lines if l])  # Filter empty lines
-                            else:
-                                file_count = '?'
-                        else:
-                            file_count = 'no access'
-                    except subprocess.TimeoutExpired:
-                        file_count = '10000+'  # Lots of files!
-                    except Exception as e:
+                    # Count files - skip for network mounts (too slow)
+                    if is_mount:
+                        # For network mounts, just show that it's a network share
+                        file_count = 'network'
+                    else:
+                        # Count files for local directories only
                         file_count = '?'
+                        try:
+                            if os.access(path, os.R_OK):
+                                count_result = subprocess.run(
+                                    ['find', path, '-type', 'f', '-readable'],
+                                    capture_output=True,
+                                    text=True,
+                                    timeout=5  # Quick timeout for local dirs
+                                )
+                                if count_result.returncode == 0:
+                                    lines = count_result.stdout.strip().split('\n') if count_result.stdout.strip() else []
+                                    file_count = len([l for l in lines if l])
+                                else:
+                                    file_count = '?'
+                            else:
+                                file_count = 'no access'
+                        except subprocess.TimeoutExpired:
+                            file_count = '10000+'
+                        except Exception as e:
+                            file_count = '?'
                     
                     directories.append({
                         'name': item,
