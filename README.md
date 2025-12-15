@@ -11,19 +11,25 @@ A modern, feature-rich Music Player Daemon (MPD) controller with web interface a
 ### 🎧 Web UI (Port 5003)
 - Full MPD control (play, pause, volume, playlists)
 - Album/artist/genre browsing
+- **Recent albums** page (configurable directory)
 - Search functionality
 - Queue management
 - HTTP audio streaming
+- **Multiple themes** (Dark, Light, High Contrast, Desert)
 - Mobile-responsive design
+- Last.fm scrobbling support
 
 ### ⚙️ Admin API (Port 5004)
 - **System Monitoring**: Real-time CPU, RAM, disk, network stats
 - **Library Management**: 
   - Configure NFS/SMB network mounts
-  - View existing MPD library structure
+  - View existing MPD library structure with mount status
   - Trigger library updates with verification
+  - Smart file counting (optimized for network shares)
 - **Audio Configuration**:
-  - Audio device scanning
+  - Audio device scanning and selection
+  - Current device display
+  - Automatic MPD config updates
   - Bit-perfect playback settings
   - System audio optimizations (CPU governor, swappiness)
 - **System Administration**:
@@ -38,18 +44,19 @@ A modern, feature-rich Music Player Daemon (MPD) controller with web interface a
 ### Fresh Ubuntu/Debian Server
 
 ```bash
-git clone https://github.com/coacharnold1/Maestro-MPD-Control.git
-cd Maestro-MPD-Control
+git clone https://github.com/coacharnold1/Maestro-Server.git
+cd Maestro-Server
 ./install-maestro.sh
 ```
 
 The installer will:
-1. Install MPD and system dependencies
-2. Configure MPD with audiophile defaults
-3. Set up Web UI (port 5003)
-4. Set up Admin API (port 5004)
-5. Create systemd services
-6. Configure sudo permissions
+1. **Detect existing MPD** or install new (preserves custom builds)
+2. Configure music directory and recent albums folder
+3. **Select UI theme** (Dark, Light, High Contrast, Desert)
+4. Set up Web UI (port 5003)
+5. Set up Admin API (port 5004)
+6. Create systemd services
+7. Configure sudo permissions and audio group membership
 
 **Installation time:** ~5 minutes
 
@@ -167,6 +174,34 @@ journalctl -u maestro-admin -f
 # MPD
 journalctl -u mpd -f
 ```
+
+---
+
+## 🌟 Smart Features
+
+### MPD Detection
+- Automatically detects existing MPD installations
+- Preserves custom-built MPD binaries
+- Option to use existing, install new, or skip
+
+### Safe Uninstallation
+- Never removes user music files
+- Preserves MPD configurations and data
+- Only removes Maestro-installed components
+- Tracks installation info to avoid conflicts
+
+### Audio Device Management
+- Scans and displays available audio hardware
+- Shows currently configured device
+- One-click device switching
+- Automatic MPD configuration updates
+- Requires MPD restart to apply changes
+
+### Performance Optimizations
+- Smart file counting skips network mounts
+- Fast page loads even with large libraries
+- Configurable timeouts for slow storage
+- Optimized for NFS/SMB shares
 
 ---
 
