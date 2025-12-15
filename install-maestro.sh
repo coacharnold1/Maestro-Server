@@ -21,6 +21,9 @@ WEB_PORT=5003
 ADMIN_PORT=5004
 MPD_PORT=6600
 MUSIC_DIR="/media/music"
+RECENT_DIR=""
+MPD_INSTALL_TYPE=""
+MPD_BINARY_PATH=""
 
 # Detect OS
 detect_os() {
@@ -58,15 +61,106 @@ check_root() {
     fi
 }
 
+# Detect existing MPD installation
+detect_mpd() {
+    echo ""
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}MPD Installation Check${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    
+    local mpd_locations=("/usr/local/bin/mpd" "/usr/bin/mpd" "/opt/mpd/bin/mpd" "$HOME/.local/bin/mpd" "$HOME/mpd/bin/mpd")
+    local found_mpd=""
+    
+    for loc in "${mpd_locations[@]}"; do
+        if [ -x "$loc" ]; then
+            found_mpd="$loc"
+            break
+        fi
+    done
+    
+    if [ -z "$found_mpd" ] && command -v mpd &> /dev/null; then
+        found_mpd=$(which mpd)
+    fi
+    
+    if [ -n "$found_mpd" ]; then
+        echo -e "${GREEN}✓ Found existing MPD: ${YELLOW}$found_mpd${NC}"
+        if $found_mpd --version &> /dev/null; then
+            echo -e "  Version: ${YELLOW}$($found_mpd --version 2>&1 | head -1)${NC}"
+        fi
+        
+        local is_package=false
+        case "$OS" in
+            ubuntu|debian)
+                dpkg -l mpd 2>/dev/null | grep -q "^ii" && is_package=true
+                ;;
+            arch|manjaro)
+                pacman -Q mpd 2>/dev/null && is_package=true
+                ;;
+        esac
+        
+        [ "$is_package" = true ] && echo -e "  Type: ${YELLOW}System package${NC}" || echo -e "  Type: ${YELLOW}Custom/Local build${NC}"
+        
+        echo ""
+        echo "1) Use existing MPD"
+        echo "2) Install new MPD from package manager"
+        echo "3) Skip MPD installation"
+        read -p "Choice (1-3): " mpd_choice
+        
+        case $mpd_choice in
+            1) MPD_INSTALL_TYPE="existing"; MPD_BINARY_PATH="$found_mpd"; echo -e "${GREEN}✓ Using existing MPD${NC}" ;;
+            2) MPD_INSTALL_TYPE="package"; echo -e "${YELLOW}⚠ Will install MPD package${NC}" ;;
+            3) MPD_INSTALL_TYPE="skip"; echo -e "${YELLOW}⚠ MPD installation skipped${NC}" ;;
+            *) MPD_INSTALL_TYPE="existing"; MPD_BINARY_PATH="$found_mpd"; echo -e "${GREEN}✓ Using existing MPD${NC}" ;;
+        esac
+    else
+        echo -e "${YELLOW}No existing MPD found${NC}"
+        read -p "Install MPD from package manager? (Y/n): "
+        [[ ! $REPLY =~ ^[Nn]$ ]] && MPD_INSTALL_TYPE="package" || MPD_INSTALL_TYPE="skip"
+    fi
+    echo ""
+}
+
+# Prompt for directories
+prompt_directories() {
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}Directory Configuration${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    
+    if [ -d "/media/music" ]; then
+        echo -e "Found: ${GREEN}/media/music${NC}"
+        read -p "Use this directory? (Y/n): "
+        [[ ! $REPLY =~ ^[Nn]$ ]] && MUSIC_DIR="/media/music" || read -p "Enter music directory: " MUSIC_DIR
+    else
+        read -p "Music directory (default /media/music): " MUSIC_DIR
+        MUSIC_DIR=${MUSIC_DIR:-/media/music}
+    fi
+    
+    echo ""
+    echo -e "${YELLOW}Recent Albums Directory (Optional)${NC}"
+    read -p "Enter path (or press Enter to skip): " RECENT_DIR
+    
+    echo ""
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "Music: ${YELLOW}$MUSIC_DIR${NC}"
+    [ -n "$RECENT_DIR" ] && echo -e "Recent: ${YELLOW}$RECENT_DIR${NC}" || echo -e "Recent: ${YELLOW}Not configured${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+}
+
 # Install system dependencies
 install_dependencies() {
     echo -e "${GREEN}[1/8] Installing system dependencies...${NC}"
+    
+    local mpd_packages=""
+    [ "$MPD_INSTALL_TYPE" = "package" ] && mpd_packages="mpd mpc" && echo -e "  ${YELLOW}Including MPD${NC}" || echo -e "  ${YELLOW}Skipping MPD ($MPD_INSTALL_TYPE)${NC}"
     
     case "$OS" in
         ubuntu|debian)
             sudo apt update
             sudo apt install -y \
-                mpd mpc \
+                $mpd_packages \
                 python3 python3-pip python3-venv \
                 alsa-utils \
                 nfs-common cifs-utils \
@@ -75,7 +169,7 @@ install_dependencies() {
             ;;
         arch|manjaro)
             sudo pacman -Syu --noconfirm \
-                mpd mpc \
+                $mpd_packages \
                 python python-pip \
                 alsa-utils \
                 nfs-utils cifs-utils \
@@ -87,6 +181,11 @@ install_dependencies() {
             exit 1
             ;;
     esac
+    
+    mkdir -p "$INSTALL_DIR"
+    echo "MPD_INSTALL_TYPE=$MPD_INSTALL_TYPE" > "$INSTALL_DIR/.maestro_install_info"
+    echo "MPD_BINARY_PATH=$MPD_BINARY_PATH" >> "$INSTALL_DIR/.maestro_install_info"
+    echo "INSTALL_DATE=$(date +%Y-%m-%d)" >> "$INSTALL_DIR/.maestro_install_info"
     
     echo -e "${GREEN}✓ Dependencies installed${NC}"
 }
@@ -435,6 +534,9 @@ main() {
     echo -e "${BLUE}Detected OS:${NC} $OS $VERSION"
     echo -e "${BLUE}Installation Directory:${NC} $INSTALL_DIR"
     echo ""
+    
+    detect_mpd
+    prompt_directories
     
     read -p "Press Enter to begin installation or Ctrl+C to cancel..."
     echo ""

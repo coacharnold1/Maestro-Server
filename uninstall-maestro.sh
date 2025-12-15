@@ -100,49 +100,65 @@ remove_install_dir() {
 
 # Remove MPD
 remove_mpd() {
-    echo -e "${GREEN}[4/7] Removing MPD...${NC}"
+    echo -e "${GREEN}[4/7] Checking MPD...${NC}"
     
-    # Detect OS
-    if [ -f /etc/os-release ]; then
-        . /etc/os-release
-        OS=$ID
+    local install_info="$INSTALL_DIR/.maestro_install_info"
+    local mpd_type=""
+    
+    [ -f "$install_info" ] && mpd_type=$(grep "^MPD_INSTALL_TYPE=" "$install_info" | cut -d= -f2)
+    
+    if [ "$mpd_type" = "package" ]; then
+        echo -e "  ${YELLOW}Removing MPD (installed by Maestro)${NC}"
+        if [ -f /etc/os-release ]; then
+            . /etc/os-release
+            OS=$ID
+        fi
+        
+        case "$OS" in
+            ubuntu|debian) apt remove -y mpd mpc; apt autoremove -y ;;
+            arch|manjaro) pacman -R --noconfirm mpd mpc ;;
+        esac
+        echo -e "${GREEN}✓ MPD removed${NC}"
+    elif [ "$mpd_type" = "existing" ] || [ "$mpd_type" = "skip" ]; then
+        echo -e "${GREEN}✓ Preserving MPD ($mpd_type)${NC}"
     else
-        echo -e "${RED}Cannot detect OS${NC}"
-        exit 1
+        echo -e "${YELLOW}⚠ No install info${NC}"
+        read -p "Remove MPD package? (y/N): "
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            [ -f /etc/os-release ] && . /etc/os-release && OS=$ID
+            case "$OS" in
+                ubuntu|debian) apt remove -y mpd mpc; apt autoremove -y ;;
+                arch|manjaro) pacman -R --noconfirm mpd mpc ;;
+            esac
+            echo -e "${GREEN}✓ MPD removed${NC}"
+        else
+            echo -e "${GREEN}✓ MPD preserved${NC}"
+        fi
     fi
-    
-    case "$OS" in
-        ubuntu|debian)
-            apt remove -y mpd mpc
-            apt autoremove -y
-            ;;
-        arch|manjaro)
-            pacman -R --noconfirm mpd mpc
-            ;;
-        *)
-            echo -e "${YELLOW}⚠ Unknown OS, skipping package removal${NC}"
-            ;;
-    esac
-    
-    echo -e "${GREEN}✓ MPD removed${NC}"
 }
 
 # Remove MPD data and config
 remove_mpd_data() {
-    echo -e "${GREEN}[5/7] Removing MPD data and configuration...${NC}"
+    echo -e "${GREEN}[5/7] Handling MPD data...${NC}"
     
-    # Backup config before removing
+    local install_info="$INSTALL_DIR/.maestro_install_info"
+    local mpd_type=""
+    [ -f "$install_info" ] && mpd_type=$(grep "^MPD_INSTALL_TYPE=" "$install_info" | cut -d= -f2)
+    
     if [ -f /etc/mpd.conf ]; then
         cp /etc/mpd.conf /tmp/mpd.conf.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
-        rm -f /etc/mpd.conf
+        echo -e "  ${GREEN}✓ Config backed up${NC}"
     fi
     
-    rm -rf /var/lib/mpd
-    rm -rf /var/log/mpd
-    rm -rf /run/mpd
-    
-    echo -e "${GREEN}✓ MPD data removed${NC}"
-    echo -e "${YELLOW}  Config backup saved to /tmp/mpd.conf.backup.*${NC}"
+    if [ "$mpd_type" = "package" ]; then
+        echo -e "  ${YELLOW}Removing MPD config/data${NC}"
+        rm -f /etc/mpd.conf
+        rm -rf /var/lib/mpd /var/log/mpd /run/mpd
+        echo -e "${GREEN}✓ MPD data removed${NC}"
+    else
+        echo -e "  ${YELLOW}Preserving MPD config/data${NC}"
+        echo -e "${GREEN}✓ MPD data preserved${NC}"
+    fi
 }
 
 # Remove Python virtual environments
