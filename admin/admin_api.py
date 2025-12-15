@@ -659,6 +659,21 @@ def api_get_audio_config():
                 'dsd_mode': 'auto'  # Native DSD if supported
             }
         
+        # Read current device from MPD config
+        current_device = 'default'
+        try:
+            with open('/etc/mpd.conf', 'r') as f:
+                mpd_config = f.read()
+            import re
+            # Look for device line in ALSA audio_output block
+            match = re.search(r'audio_output\s*\{[^}]*type\s*"alsa"[^}]*device\s*"([^"]+)"', mpd_config, re.DOTALL)
+            if match:
+                current_device = match.group(1)
+        except:
+            pass
+        
+        config['current_device'] = current_device
+        
         return jsonify({'status': 'success', 'config': config})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
@@ -709,14 +724,15 @@ def api_save_audio_config():
             
             new_config = re.sub(pattern, update_alsa_config, mpd_config, flags=re.DOTALL)
             
-            # Write updated config
-            result = run_command(['tee', mpd_config_path], require_sudo=True)
-            if result['success']:
-                # Write the new config via stdin
-                import subprocess
-                subprocess.run(['sudo', 'tee', mpd_config_path], 
-                             input=new_config.encode(), 
-                             capture_output=True)
+            # Write updated config using sudo tee
+            import subprocess
+            proc = subprocess.run(
+                ['/usr/bin/sudo', 'tee', mpd_config_path], 
+                input=new_config.encode(), 
+                capture_output=True,
+                timeout=10
+            )
+            if proc.returncode == 0:
                 mpd_updated = True
         except Exception as e:
             print(f"Error updating MPD config: {e}")

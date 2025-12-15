@@ -125,6 +125,9 @@
         
         <div class="section">
             <h2 class="section-title">MPD Audio Configuration</h2>
+            <div id="current-device-info" style="background: #34495e; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 14px;">
+                <strong>Current Device:</strong> <span id="current-device-display" style="color: #3498db;">Loading...</span>
+            </div>
             <form id="audio-config-form" onsubmit="saveAudioConfig(event)">
                 <div class="form-group">
                     <label>Audio Output Device</label>
@@ -260,6 +263,18 @@
                                 option.textContent = `${dev.name} (${dev.hw_string})`;
                                 deviceSelect.appendChild(option);
                             });
+                            
+                            // Load and display current device
+                            fetch('/api/audio/config')
+                                .then(r => r.json())
+                                .then(configData => {
+                                    if (configData.status === 'success' && configData.config.current_device) {
+                                        const currentDev = configData.config.current_device;
+                                        document.getElementById('current-device-display').textContent = currentDev;
+                                        // Select current device in dropdown
+                                        deviceSelect.value = currentDev;
+                                    }
+                                });
                             
                             showMessage(`✅ Found ${data.device_count} audio device(s)`, 'success');
                         } else {
