@@ -82,31 +82,46 @@ except ImportError:
     print("rudimentary_search not available. Search functionality will be limited.")
     SEARCH_AVAILABLE = False
     def perform_search(client, search_tag, query):
-        """Fallback search function"""
+        """Smart search function - groups by albums for artist searches"""
         try:
             if search_tag == 'any':
                 results = client.search('any', query)
             else:
                 results = client.search(search_tag, query)
             
+            # For artist searches, group by albums
+            if search_tag == 'artist':
+                albums_dict = {}
+                for song in results:
+                    album_name = song.get('album', 'Unknown Album')
+                    artist_name = song.get('artist', 'Unknown Artist')
+                    album_key = f"{artist_name}|||{album_name}"
+                    
+                    if album_key not in albums_dict:
+                        albums_dict[album_key] = {
+                            'item_type': 'album',
+                            'artist': artist_name,
+                            'album': album_name,
+                            'track_count': 0
+                        }
+                    albums_dict[album_key]['track_count'] += 1
+                
+                return list(albums_dict.values())
+            
+            # For other searches, return individual songs
             formatted_results = []
             for song in results:
-                # Debug: Print what MPD returns for the first few results
-                if len(formatted_results) < 3:
-                    print(f"[DEBUG] Song data from MPD: {song}")
-                    print(f"[DEBUG] Time field: '{song.get('time', 'NOT_FOUND')}'")
-                
                 formatted_results.append({
                     'item_type': 'song',
                     'artist': song.get('artist', 'Unknown Artist'),
                     'title': song.get('title', 'Unknown Title'),
                     'album': song.get('album', 'Unknown Album'),
                     'file': song.get('file', ''),
-                    'time': song.get('time', '0'),  # Changed from 'length' to 'time' for template compatibility
+                    'time': song.get('time', '0'),
                 })
             return formatted_results
         except Exception as e:
-            print(f"Error in fallback search: {e}")
+            print(f"Error in search: {e}")
             return []
 
 # Load configuration from environment variables or use defaults
