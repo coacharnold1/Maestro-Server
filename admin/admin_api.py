@@ -561,7 +561,7 @@ def api_get_mpd_info():
                                 ['find', path, '-type', 'f', '-readable'],
                                 capture_output=True,
                                 text=True,
-                                timeout=3  # 3 second limit
+                                timeout=15  # 15 second limit for network shares
                             )
                             if count_result.returncode == 0:
                                 lines = count_result.stdout.strip().split('\n') if count_result.stdout.strip() else []
