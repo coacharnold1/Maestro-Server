@@ -34,8 +34,8 @@ def run_command(command, require_sudo=False):
     """Execute shell command and return output"""
     try:
         if require_sudo:
-            # For production, this should use sudoers file with NOPASSWD for specific commands
-            command = ['sudo'] + command if isinstance(command, list) else f'sudo {command}'
+            # Use full path to sudo for systemd services
+            command = ['/usr/bin/sudo'] + command if isinstance(command, list) else f'/usr/bin/sudo {command}'
         
         # Use longer timeout for system updates and other long operations
         timeout = 300 if 'apt upgrade' in str(command) or 'pacman' in str(command) else 30
@@ -595,20 +595,47 @@ def api_get_mpd_info():
 def api_get_audio_devices():
     """Get available audio devices"""
     try:
-        # Need sudo to access audio device info
-        result = run_command('aplay -l', require_sudo=True)
+        # Use explicit path and sudo
+        result = run_command(['/usr/bin/aplay', '-l'], require_sudo=True)
         devices = []
+        parsed_devices = []
         raw_output = result.get('stdout', result.get('output', ''))
         
         if result['success']:
             # Parse aplay output - look for card lines
+            # Format: card 0: PCH [HDA Intel PCH], device 0: ALC887-VD Analog [ALC887-VD Analog]
             for line in raw_output.split('\n'):
                 if line.startswith('card'):
                     devices.append(line.strip())
+                    # Extract card and device numbers
+                    try:
+                        parts = line.split(':')
+                        card_info = parts[0].strip()
+                        card_num = card_info.split()[1]
+                        
+                        # Look for device number
+                        if 'device' in line:
+                            device_part = line.split('device')[1].split(':')[0].strip()
+                            device_num = device_part.split()[0]
+                            
+                            # Extract device name
+                            name_start = line.find('[', line.find('[') + 1) + 1
+                            name_end = line.rfind(']')
+                            device_name = line[name_start:name_end] if name_start > 0 else f"Card {card_num} Device {device_num}"
+                            
+                            parsed_devices.append({
+                                'card': card_num,
+                                'device': device_num,
+                                'hw_string': f"hw:{card_num},{device_num}",
+                                'name': device_name
+                            })
+                    except:
+                        pass
         
         return jsonify({
             'status': 'success',
             'devices': devices,
+            'parsed_devices': parsed_devices,
             'raw_output': raw_output,
             'device_count': len(devices)
         })
@@ -638,7 +665,7 @@ def api_get_audio_config():
 
 @app.route('/api/audio/config', methods=['POST'])
 def api_save_audio_config():
-    """Save audio configuration"""
+    """Save audio configuration and update MPD config"""
     try:
         config = request.json
         
@@ -648,11 +675,58 @@ def api_save_audio_config():
         with open(AUDIO_CONFIG, 'w') as f:
             json.dump(config, f, indent=2)
         
+        # Update MPD configuration file
+        mpd_updated = False
+        try:
+            audio_device = config.get('audio_device', 'default')
+            mixer_type = config.get('mixer_type', 'none')
+            
+            # Read current MPD config
+            mpd_config_path = '/etc/mpd.conf'
+            with open(mpd_config_path, 'r') as f:
+                mpd_config = f.read()
+            
+            # Find and update the audio_output section
+            import re
+            # Pattern to match the ALSA audio output block
+            pattern = r'(audio_output\s*\{[^}]*type\s*"alsa"[^}]*)\}'
+            
+            def update_alsa_config(match):
+                block = match.group(1)
+                # Remove old device line if exists
+                block = re.sub(r'\s*device\s*"[^"]*"\n', '', block)
+                # Remove old mixer_type line if exists
+                block = re.sub(r'\s*mixer_type\s*"[^"]*"\n', '', block)
+                
+                # Add device line if not default
+                if audio_device != 'default':
+                    block += f'\n    device          "{audio_device}"'
+                
+                # Add mixer_type
+                block += f'\n    mixer_type      "{mixer_type}"'
+                
+                return block + '\n}'
+            
+            new_config = re.sub(pattern, update_alsa_config, mpd_config, flags=re.DOTALL)
+            
+            # Write updated config
+            result = run_command(['tee', mpd_config_path], require_sudo=True)
+            if result['success']:
+                # Write the new config via stdin
+                import subprocess
+                subprocess.run(['sudo', 'tee', mpd_config_path], 
+                             input=new_config.encode(), 
+                             capture_output=True)
+                mpd_updated = True
+        except Exception as e:
+            print(f"Error updating MPD config: {e}")
+        
         return jsonify({
             'status': 'success',
             'message': 'Audio configuration saved. Restart MPD to apply changes.',
             'saved_config': config,
-            'config_file': str(AUDIO_CONFIG)
+            'config_file': str(AUDIO_CONFIG),
+            'mpd_updated': mpd_updated
         })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500

@@ -127,6 +127,14 @@
             <h2 class="section-title">MPD Audio Configuration</h2>
             <form id="audio-config-form" onsubmit="saveAudioConfig(event)">
                 <div class="form-group">
+                    <label>Audio Output Device</label>
+                    <select id="audio-device">
+                        <option value="default">Default ALSA Device</option>
+                    </select>
+                    <small style="color: #7f8c8d; margin-top: 5px; display: block;">Select which audio device MPD should use</small>
+                </div>
+                
+                <div class="form-group">
                     <label>Buffer Size</label>
                     <select id="buffer-size">
                         <option value="2048">2048 (Low Latency)</option>
@@ -236,11 +244,23 @@
                 .then(response => response.json())
                 .then(data => {
                     const deviceList = document.getElementById('device-list');
+                    const deviceSelect = document.getElementById('audio-device');
+                    
                     if (data.status === 'success') {
                         if (data.devices && data.devices.length > 0) {
                             // Format device list nicely
                             const formattedDevices = data.devices.map(dev => `<div style="padding: 10px; background: rgba(39, 174, 96, 0.1); border-left: 3px solid #27ae60; margin: 5px 0; border-radius: 5px;">🎵 ${dev}</div>`).join('');
                             deviceList.innerHTML = `<div style="margin-bottom: 10px;"><strong>${data.device_count} audio device(s) found:</strong></div>${formattedDevices}`;
+                            
+                            // Populate device selector dropdown
+                            deviceSelect.innerHTML = '<option value="default">Default ALSA Device</option>';
+                            data.parsed_devices.forEach(dev => {
+                                const option = document.createElement('option');
+                                option.value = dev.hw_string;
+                                option.textContent = `${dev.name} (${dev.hw_string})`;
+                                deviceSelect.appendChild(option);
+                            });
+                            
                             showMessage(`✅ Found ${data.device_count} audio device(s)`, 'success');
                         } else {
                             deviceList.innerHTML = '<div style="padding: 20px; color: #e74c3c; text-align: center;">⚠️ No audio devices found. Make sure audio hardware is connected.</div>';
@@ -286,6 +306,7 @@
             event.preventDefault();
             
             const config = {
+                audio_device: document.getElementById('audio-device').value,
                 buffer_size: parseInt(document.getElementById('buffer-size').value),
                 output_format: document.getElementById('output-format').value,
                 resample_quality: document.getElementById('resample-quality').value,
@@ -303,7 +324,7 @@
                 if (data.status === 'success') {
                     // Show detailed verification
                     const configStr = JSON.stringify(data.saved_config, null, 2);
-                    showMessage(`✅ Configuration saved to ${data.config_file}\n\nSaved values:\n• Buffer: ${data.saved_config.buffer_size}\n• Format: ${data.saved_config.output_format}\n• Resample: ${data.saved_config.resample_quality}\n• Mixer: ${data.saved_config.mixer_type}\n• DSD: ${data.saved_config.dsd_mode}\n\n⚠️ Restart MPD to apply changes`, 'success');
+                    showMessage(`✅ Configuration saved!\n\nAudio Device: ${data.saved_config.audio_device}\nBuffer: ${data.saved_config.buffer_size}\nFormat: ${data.saved_config.output_format}\nResample: ${data.saved_config.resample_quality}\nMixer: ${data.saved_config.mixer_type}\nDSD: ${data.saved_config.dsd_mode}\n\n${data.mpd_updated ? '✅ MPD config updated' : '⚠️ MPD config update failed'}\n\n⚠️ Restart MPD to apply changes`, 'success');
                 } else {
                     showMessage('Error: ' + data.message, 'error');
                 }

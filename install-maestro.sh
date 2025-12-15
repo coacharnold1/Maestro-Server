@@ -372,6 +372,12 @@ EOF
 configure_sudo() {
     echo -e "${GREEN}[6/8] Configuring sudo permissions...${NC}"
     
+    # Add user to audio group for device access
+    if ! groups $USER | grep -q audio; then
+        sudo usermod -aG audio $USER
+        echo -e "  ${YELLOW}Added $USER to audio group${NC}"
+    fi
+    
     SUDOERS_FILE="/etc/sudoers.d/maestro"
     
     sudo tee "$SUDOERS_FILE" > /dev/null <<EOF
@@ -380,15 +386,21 @@ configure_sudo() {
 
 $USER ALL=(ALL) NOPASSWD: /usr/bin/apt update
 $USER ALL=(ALL) NOPASSWD: /usr/bin/apt upgrade
+$USER ALL=(ALL) NOPASSWD: /usr/bin/apt upgrade -y
 $USER ALL=(ALL) NOPASSWD: /usr/bin/pacman
 $USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart mpd
 $USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop mpd
 $USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl start mpd
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl reboot
 $USER ALL=(ALL) NOPASSWD: /sbin/shutdown
 $USER ALL=(ALL) NOPASSWD: /sbin/reboot
 $USER ALL=(ALL) NOPASSWD: /bin/mount
 $USER ALL=(ALL) NOPASSWD: /bin/umount
-$USER ALL=(ALL) NOPASSWD: /usr/sbin/aplay
+$USER ALL=(ALL) NOPASSWD: /usr/bin/mount
+$USER ALL=(ALL) NOPASSWD: /usr/bin/umount
+$USER ALL=(ALL) NOPASSWD: /usr/bin/aplay
+$USER ALL=(ALL) NOPASSWD: /usr/bin/tee /etc/mpd.conf
+$USER ALL=(ALL) NOPASSWD: /usr/bin/dpkg --configure -a
 EOF
     
     sudo chmod 440 "$SUDOERS_FILE"
