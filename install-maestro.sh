@@ -22,6 +22,7 @@ ADMIN_PORT=5004
 MPD_PORT=6600
 MUSIC_DIR="/media/music"
 RECENT_DIR=""
+DEFAULT_THEME="dark"
 MPD_INSTALL_TYPE=""
 MPD_BINARY_PATH=""
 
@@ -145,9 +146,28 @@ prompt_directories() {
     read -p "Enter full path (or press Enter to skip): " RECENT_DIR
     
     echo ""
+    echo -e "${YELLOW}Default Theme${NC}"
+    echo -e "${CYAN}Choose the default theme for the web interface:${NC}"
+    echo -e "  ${GREEN}1)${NC} Dark (default)"
+    echo -e "  ${GREEN}2)${NC} Light"
+    echo -e "  ${GREEN}3)${NC} High Contrast"
+    echo -e "  ${GREEN}4)${NC} Desert"
+    read -p "Select theme (1-4) [1]: " theme_choice
+    theme_choice=${theme_choice:-1}
+    
+    case "$theme_choice" in
+        1) DEFAULT_THEME="dark" ;;
+        2) DEFAULT_THEME="light" ;;
+        3) DEFAULT_THEME="high-contrast" ;;
+        4) DEFAULT_THEME="desert" ;;
+        *) DEFAULT_THEME="dark" ;;
+    esac
+    
+    echo ""
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "Music: ${YELLOW}$MUSIC_DIR${NC}"
     [ -n "$RECENT_DIR" ] && echo -e "Recent: ${YELLOW}$RECENT_DIR${NC}" || echo -e "Recent: ${YELLOW}Not configured${NC}"
+    echo -e "Theme: ${YELLOW}$DEFAULT_THEME${NC}"
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
 }
@@ -321,6 +341,40 @@ install_web_ui() {
     deactivate
     
     echo -e "${GREEN}✓ Web UI installed${NC}"
+}
+
+# Create initial settings
+create_settings() {
+    echo -e "${GREEN}[4.5/8] Creating initial settings...${NC}"
+    
+    local settings_file="$INSTALL_DIR/settings.json"
+    
+    # Build settings JSON
+    cat > "$settings_file" <<EOF
+{
+    "theme": "$DEFAULT_THEME",
+    "enable_scrobbling": false,
+    "show_scrobble_toasts": true,
+    "lastfm_api_key": "",
+    "lastfm_shared_secret": "",
+    "lastfm_session_key": ""
+EOF
+    
+    # Add recent_albums_dir if configured
+    if [ -n "$RECENT_DIR" ]; then
+        cat >> "$settings_file" <<EOF
+,
+    "recent_albums_dir": "$RECENT_DIR"
+EOF
+    fi
+    
+    # Close JSON
+    cat >> "$settings_file" <<EOF
+
+}
+EOF
+    
+    echo -e "${GREEN}✓ Initial settings created${NC}"
 }
 
 # Install Admin API
@@ -560,6 +614,7 @@ main() {
     configure_mpd
     create_install_dir
     install_web_ui
+    create_settings
     install_admin_api
     configure_sudo
     create_systemd_services
