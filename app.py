@@ -95,14 +95,18 @@ except ImportError:
                 for song in results:
                     album_name = song.get('album', 'Unknown Album')
                     artist_name = song.get('artist', 'Unknown Artist')
-                    album_key = f"{artist_name}|||{album_name}"
+                    song_file = song.get('file', '')
+                    # Group by artist, album, AND directory to show each physical copy separately
+                    album_dir = os.path.dirname(song_file) if song_file else ''
+                    album_key = f"{artist_name}|||{album_name}|||{album_dir}"
                     
                     if album_key not in albums_dict:
                         albums_dict[album_key] = {
                             'item_type': 'album',
                             'artist': artist_name,
                             'album': album_name,
-                            'track_count': 0
+                            'track_count': 0,
+                            'sample_file': song_file  # First song file for album art
                         }
                     albums_dict[album_key]['track_count'] += 1
                 
