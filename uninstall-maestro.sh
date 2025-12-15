@@ -30,22 +30,25 @@ cat << "EOF"
 ║                                                            ║
 ║       MAESTRO SERVER - UNINSTALLATION SCRIPT v2.0          ║
 ║                                                            ║
-║    This will remove MPD, Web UI, Admin API, and all        ║
-║    related files, services, and configurations.            ║
+║    This will remove Maestro Web UI, Admin API, and         ║
+║    related files and services.                             ║
+║    (MPD removal is optional based on installation)         ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
 EOF
 echo -e "${NC}"
 
 # Confirmation prompt
-echo -e "${YELLOW}WARNING: This will completely remove Maestro Server and MPD${NC}"
+echo -e "${YELLOW}WARNING: This will remove Maestro Server${NC}"
 echo -e "${YELLOW}The following will be removed:${NC}"
-echo "  • MPD (Music Player Daemon)"
 echo "  • Maestro Web UI"
 echo "  • Maestro Admin API"
 echo "  • Systemd services"
 echo "  • Configuration files"
 echo "  • Installation directory ($INSTALL_DIR)"
+echo "  • MPD (only if installed by Maestro)"
+echo ""
+echo -e "${GREEN}Note: Existing MPD installations will be preserved${NC}"
 echo ""
 echo -e "${RED}Music files in $MUSIC_DIR will NOT be deleted${NC}"
 echo ""
