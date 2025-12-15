@@ -139,7 +139,10 @@ prompt_directories() {
     
     echo ""
     echo -e "${YELLOW}Recent Albums Directory (Optional)${NC}"
-    read -p "Enter path (or press Enter to skip): " RECENT_DIR
+    echo -e "${CYAN}Enter the FULL PATH to where recent albums are located.${NC}"
+    echo -e "${CYAN}Example: /media/music/down or /media/music/recent${NC}"
+    echo -e "${CYAN}(This should be the complete path, not relative to music directory)${NC}"
+    read -p "Enter full path (or press Enter to skip): " RECENT_DIR
     
     echo ""
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
