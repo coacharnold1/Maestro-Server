@@ -82,15 +82,15 @@ except ImportError:
     print("rudimentary_search not available. Search functionality will be limited.")
     SEARCH_AVAILABLE = False
     def perform_search(client, search_tag, query):
-        """Smart search function - groups by albums for artist searches"""
+        """Smart search function - groups by albums for artist/album searches"""
         try:
             if search_tag == 'any':
                 results = client.search('any', query)
             else:
                 results = client.search(search_tag, query)
             
-            # For artist searches, group by albums
-            if search_tag == 'artist':
+            # For artist or album searches, group by albums
+            if search_tag in ['artist', 'album']:
                 albums_dict = {}
                 for song in results:
                     album_name = song.get('album', 'Unknown Album')
@@ -108,7 +108,7 @@ except ImportError:
                 
                 return list(albums_dict.values())
             
-            # For other searches, return individual songs
+            # For title/any searches, return individual songs
             formatted_results = []
             for song in results:
                 formatted_results.append({
