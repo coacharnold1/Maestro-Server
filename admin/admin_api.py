@@ -555,20 +555,25 @@ def api_get_mpd_info():
                     file_count = '?'
                     try:
                         # Use find command with timeout for large directories
-                        count_result = subprocess.run(
-                            ['find', path, '-type', 'f'],
-                            capture_output=True,
-                            text=True,
-                            timeout=3  # 3 second limit
-                        )
-                        if count_result.returncode == 0:
-                            file_count = len(count_result.stdout.strip().split('\n')) if count_result.stdout.strip() else 0
+                        # Check if directory is readable first
+                        if os.access(path, os.R_OK):
+                            count_result = subprocess.run(
+                                ['find', path, '-type', 'f', '-readable'],
+                                capture_output=True,
+                                text=True,
+                                timeout=3  # 3 second limit
+                            )
+                            if count_result.returncode == 0:
+                                lines = count_result.stdout.strip().split('\n') if count_result.stdout.strip() else []
+                                file_count = len([l for l in lines if l])  # Filter empty lines
+                            else:
+                                file_count = '?'
                         else:
-                            file_count = 'error'
+                            file_count = 'no access'
                     except subprocess.TimeoutExpired:
                         file_count = '10000+'  # Lots of files!
-                    except:
-                        file_count = 'error'
+                    except Exception as e:
+                        file_count = '?'
                     
                     directories.append({
                         'name': item,
