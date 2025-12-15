@@ -991,40 +991,7 @@
 
         </div>
 
-        {# NEW: View Playlist Button - MOVED TO TOP #}
-        <div class="controls playlist-btn">
-            <h2>Playlist</h2>
-            <a href="{{ url_for('playlist_page') }}"><button>View Playlist</button></a>
-        </div>
-
-        {# NEW: Recent Albums Button #}
-        <div class="controls recent-albums-btn">
-            <h2>Recently Added</h2>
-            <a href="{{ url_for('recent_albums_page') }}"><button>Recently Added</button></a>
-        </div>
-
-        {# NEW: Browse Database Button #}
-        <div class="controls browse-btn">
-            <h2>Browse Music</h2>
-            <a href="{{ url_for('browse_genres_page') }}"><button>Browse by Genre</button></a>
-        </div>
-
-        {# LOCAL SEARCH - Moved down in order #}
-        <div class="controls search-actions"
-            style="border-top: 2px solid #34495e; margin-top: 20px; padding-top: 20px;">
-            <h2>Local Music Search</h2>
-            <div class="button-row">
-                <a href="{{ url_for('search') }}"><button class="local-search-btn">Search Music Library</button></a>
-            </div>
-        </div>
-
-        {# NEW: Add Music Button - MOVED TO BOTTOM #}
-        <div class="controls add-music-btn">
-            <h2>Add Random Music</h2>
-            <a href="{{ url_for('add_music_page') }}"><button>Add Random Tracks</button></a>
-        </div>
-
-        {# External Information Section - MOVED HERE #}
+        {# External Information Section #}
         <div class="controls search-actions"
             style="border-top: 2px solid #34495e; margin-top: 20px; padding-top: 20px;">
             <h2>External Information</h2>

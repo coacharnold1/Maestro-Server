@@ -800,6 +800,57 @@ def api_apply_system_tweaks():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # ============================================================================
+# LOGS API
+# ============================================================================
+
+@app.route('/logs')
+def logs_page():
+    """Render the logs viewer page"""
+    return render_template('system_logs.html')
+
+@app.route('/api/logs/<log_type>', methods=['GET'])
+def api_get_logs(log_type):
+    """
+    Get system logs for different services
+    Query params: lines (default 500)
+    """
+    try:
+        lines = int(request.args.get('lines', 500))
+        
+        if log_type == 'mpd':
+            # MPD logs from systemd journal
+            result = run_command(['journalctl', '-u', 'mpd.service', '-n', str(lines), '--no-pager'], require_sudo=True)
+        elif log_type == 'maestro-web':
+            # Maestro Web UI logs
+            result = run_command(['journalctl', '-u', 'maestro-web.service', '-n', str(lines), '--no-pager'], require_sudo=True)
+        elif log_type == 'maestro-admin':
+            # Maestro Admin API logs
+            result = run_command(['journalctl', '-u', 'maestro-admin.service', '-n', str(lines), '--no-pager'], require_sudo=True)
+        elif log_type == 'system':
+            # General system logs (filtered for relevant entries)
+            result = run_command(['journalctl', '-n', str(lines), '--no-pager', '-p', 'warning'], require_sudo=True)
+        else:
+            return jsonify({'success': False, 'error': 'Invalid log type'}), 400
+        
+        if result['success']:
+            # Split into lines and filter out empty lines
+            logs = [line for line in result['stdout'].split('\n') if line.strip()]
+            return jsonify({
+                'success': True,
+                'logs': logs,
+                'log_type': log_type,
+                'line_count': len(logs)
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result.get('stderr', 'Failed to fetch logs')
+            }), 500
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
