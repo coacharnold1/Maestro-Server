@@ -182,24 +182,6 @@ remove_logs() {
     echo -e "${GREEN}✓ Log files removed${NC}"
 }
 
-# Optional: Remove music directory
-prompt_remove_music() {
-    echo ""
-    echo -e "${YELLOW}Music Directory: $MUSIC_DIR${NC}"
-    read -p "Do you want to remove the music directory? (yes/no): " -r
-    if [[ $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
-        if [ -d "$MUSIC_DIR" ]; then
-            echo -e "${YELLOW}⚠ Removing $MUSIC_DIR and all contents...${NC}"
-            rm -rf "$MUSIC_DIR"
-            echo -e "${GREEN}✓ Music directory removed${NC}"
-        else
-            echo -e "${YELLOW}⚠ Music directory not found${NC}"
-        fi
-    else
-        echo -e "${BLUE}Music directory preserved: $MUSIC_DIR${NC}"
-    fi
-}
-
 # Main uninstallation
 main() {
     stop_services
@@ -211,8 +193,8 @@ main() {
     remove_logs
     
     echo ""
-    prompt_remove_music
-    
+    echo -e "${GREEN}✓ Music directory preserved: $MUSIC_DIR${NC}"
+    echo -e "${CYAN}(Music files are never removed by the uninstaller)${NC}"
     echo ""
     echo -e "${BLUE}"
     cat << "EOF"
