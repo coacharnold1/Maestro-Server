@@ -171,6 +171,8 @@ if not LASTFM_SHARED_SECRET:
 scrobbling_enabled = bool(_settings.get('enable_scrobbling', False))
 lastfm_session_key = _settings.get('lastfm_session_key', '')
 show_scrobble_toasts = bool(_settings.get('show_scrobble_toasts', True))
+# Recent albums directory from settings
+RECENT_ALBUMS_DIR = _settings.get('recent_albums_dir', '')
 
 """
 Settings utilities moved near imports for early availability.
@@ -3005,10 +3007,17 @@ def get_recent_albums_from_mpd(limit=25, force_refresh=False):
     import time
     global recent_albums_cache, recent_albums_cache_mod_times
     
+    # Determine which directories to check
+    if RECENT_ALBUMS_DIR:
+        recent_dir = RECENT_ALBUMS_DIR
+        if recent_dir.startswith(MUSIC_DIRECTORY):
+            recent_dir = recent_dir[len(MUSIC_DIRECTORY):].lstrip('/')
+        directories_to_check = [recent_dir]
+    else:
+        directories_to_check = ['gidney', 'down']
+    
     # Simple change detection cache - safe fallback to normal scan
     try:
-        directories_to_check = ['gidney', 'down']
-        
         # Skip cache check if force refresh is requested
         if force_refresh:
             print("Force refresh requested, bypassing cache")
@@ -3064,10 +3073,19 @@ def get_recent_albums_from_mpd(limit=25, force_refresh=False):
     start_time = time.time()
     
     try:
-        print(f"Getting recent albums from 'down' and 'cloyd' directories...")
+        # Determine which directories to check
+        if RECENT_ALBUMS_DIR:
+            # Use configured directory - strip music directory prefix if present
+            recent_dir = RECENT_ALBUMS_DIR
+            if recent_dir.startswith(MUSIC_DIRECTORY):
+                recent_dir = recent_dir[len(MUSIC_DIRECTORY):].lstrip('/')
+            directories_to_check = [recent_dir]
+            print(f"Getting recent albums from configured directory: '{recent_dir}'")
+        else:
+            # Fallback to default directories
+            directories_to_check = ['gidney', 'down']
+            print(f"Getting recent albums from default directories: 'gidney' and 'down'")
         
-        # Check both directories for recent albums
-        directories_to_check = ['gidney', 'down']
         all_albums_dict = {}
         
         for directory in directories_to_check:
