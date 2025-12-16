@@ -198,6 +198,13 @@ install_dependencies() {
                 nfs-utils cifs-utils \
                 curl wget git \
                 base-devel
+            
+            # On Arch, add user to audio group for device detection
+            if ! groups $USER | grep -q audio; then
+                echo -e "${YELLOW}⚠️  Adding $USER to audio group for device detection...${NC}"
+                sudo usermod -a -G audio $USER
+                echo -e "${GREEN}✓ Added to audio group (logout/login required for full effect)${NC}"
+            fi
             ;;
         *)
             echo -e "${RED}Unsupported OS: $OS${NC}"
@@ -217,16 +224,48 @@ install_dependencies() {
 configure_mpd() {
     echo -e "${GREEN}[2/8] Configuring MPD...${NC}"
     
-    # Create music directory
+    # Create music directory (but don't change ownership - may be network mount)
     sudo mkdir -p "$MUSIC_DIR"
-    sudo chown $USER:$USER "$MUSIC_DIR"
     
-    # Backup existing MPD config
-    if [ -f /etc/mpd.conf ]; then
-        sudo cp /etc/mpd.conf /etc/mpd.conf.backup.$(date +%Y%m%d_%H%M%S)
+    # CRITICAL: Backup MPD database BEFORE any changes
+    if [ -f /var/lib/mpd/database ]; then
+        echo -e "${YELLOW}⚠️  Backing up MPD database...${NC}"
+        sudo cp /var/lib/mpd/database /var/lib/mpd/database.backup.$(date +%Y%m%d_%H%M%S)
+        echo -e "${GREEN}✓ MPD database backed up${NC}"
     fi
     
-    # Create MPD config
+    # Check if MPD config exists and is configured
+    if [ -f /etc/mpd.conf ] && grep -q "music_directory" /etc/mpd.conf 2>/dev/null; then
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${YELLOW}⚠️  EXISTING MPD CONFIGURATION DETECTED${NC}"
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo ""
+        echo "Found existing MPD configuration at: /etc/mpd.conf"
+        echo ""
+        echo -e "${RED}WARNING: Overwriting this will:"
+        echo "  - Reset your audio device configuration"
+        echo "  - Reset custom buffer settings"
+        echo "  - Potentially rebuild your MPD database${NC}"
+        echo ""
+        echo "Recommendation: Keep existing config and use Admin Panel"
+        echo "                (Audio Tweaks page) to adjust settings."
+        echo ""
+        read -p "Overwrite existing MPD config? (y/N): " OVERWRITE_MPD
+        
+        if [[ ! $OVERWRITE_MPD =~ ^[Yy]$ ]]; then
+            echo -e "${GREEN}✓ Preserving existing MPD configuration${NC}"
+            echo -e "${BLUE}  Use the Admin Panel (port $ADMIN_PORT) to adjust MPD settings${NC}"
+            MPD_INSTALL_TYPE="preserve_existing"
+            return
+        else
+            echo -e "${YELLOW}⚠️  Backing up existing config...${NC}"
+            sudo cp /etc/mpd.conf /etc/mpd.conf.backup.$(date +%Y%m%d_%H%M%S)
+            echo -e "${GREEN}✓ Backup created: /etc/mpd.conf.backup.*${NC}"
+        fi
+    fi
+    
+    # Only create new config if we're allowed to
+    echo -e "${BLUE}Creating new MPD configuration...${NC}"
     sudo tee /etc/mpd.conf > /dev/null <<EOF
 # Maestro MPD Configuration
 # Music directory
@@ -456,6 +495,7 @@ $USER ALL=(ALL) NOPASSWD: /bin/umount
 $USER ALL=(ALL) NOPASSWD: /usr/bin/mount
 $USER ALL=(ALL) NOPASSWD: /usr/bin/umount
 $USER ALL=(ALL) NOPASSWD: /usr/bin/aplay
+$USER ALL=(ALL) NOPASSWD: /usr/bin/journalctl
 $USER ALL=(ALL) NOPASSWD: /usr/bin/tee /etc/mpd.conf
 $USER ALL=(ALL) NOPASSWD: /usr/bin/dpkg --configure -a
 EOF
