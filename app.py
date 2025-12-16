@@ -738,7 +738,13 @@ def lastfm_api_post(method: str, extra_params: dict) -> dict:
     params['format'] = 'json'
     r = requests.post(LASTFM_API_URL, data=params, timeout=8, headers=DEFAULT_HTTP_HEADERS)
     r.raise_for_status()
-    return r.json()
+    data = r.json()
+    # Check for Last.fm API errors in response
+    if 'error' in data:
+        error_code = data.get('error', 0)
+        error_msg = data.get('message', 'Unknown error')
+        raise RuntimeError(f'Last.fm API error {error_code}: {error_msg}')
+    return data
 
 def lastfm_request_token() -> str:
     data = lastfm_api_post('auth.getToken', {})
@@ -982,6 +988,7 @@ def lastfm_finalize_route():
         lastfm_session_key = sk
         return jsonify({'status': 'success', 'message': 'Last.fm connected successfully.'})
     except Exception as e:
+        print(f"[Last.fm] Finalize error: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # --- Last.fm Charts API Endpoints ---

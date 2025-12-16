@@ -446,9 +446,62 @@ print(f"Getting recent albums from 'down' and 'gidney' directories...")
 
 ---
 
+## � SOURCE CODE BUGS (POST-INSTALLATION)
+
+### 11. **Last.fm API Error Handling Missing**
+**Severity:** HIGH - Feature Broken
+
+**Problem:**
+- `lastfm_api_post()` doesn't check for Last.fm API error responses
+- Last.fm returns HTTP 200 with error details in JSON body
+- Code only checks HTTP status, ignores API errors in response
+- Authentication always fails silently
+
+**Impact:**
+- Last.fm connection **always fails**
+- No scrobbling possible
+- Charts feature broken
+- Users see generic 500 errors with no explanation
+- Logs show nothing useful
+
+**Example Error Response:**
+```json
+{"error": 4, "message": "Unauthorized Token - This token has not been issued"}
+```
+
+**Required Fix in app.py:**
+```python
+def lastfm_api_post(method: str, extra_params: dict) -> dict:
+    # ... existing code ...
+    data = r.json()
+    # Check for Last.fm API errors in response
+    if 'error' in data:
+        error_code = data.get('error', 0)
+        error_msg = data.get('message', 'Unknown error')
+        raise RuntimeError(f'Last.fm API error {error_code}: {error_msg}')
+    return data
+```
+
+**Also add logging:**
+```python
+except Exception as e:
+    print(f"[Last.fm] Finalize error: {e}")
+    return jsonify({'status': 'error', 'message': str(e)}), 500
+```
+
+**Common Last.fm Error Codes:**
+- Error 4: "Unauthorized Token" - Token expired or not authorized
+- Error 10: "Invalid API key"
+- Error 13: "Invalid method signature"
+- Error 14: "Unauthorized Token" - Token not authorized by user
+
+**Status:** ✅ Fixed in v2.0 (Dec 16, 2025)
+
+---
+
 ## 📞 CONTACT
 
-These issues discovered during production installation on December 15, 2025.
+These issues discovered during production installation on December 15-16, 2025.
 
 System: Arch Linux, MPD 0.24.6, 128k song library, USB DAC (Topping E30 II Lite)
 
