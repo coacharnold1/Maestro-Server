@@ -1,25 +1,37 @@
-MPD Web Control - Combined Edition (MULTI-DISC ALBUMS v1.7)
-Export Date: Fri Dec 13 00:00:00 UTC 2025
-Export Version: 20251213_000000_MULTI_DISC_V17
-Features: 
-- MPD Control
-- Last.fm Integration  
-- Search Functionality (FIXED - POST forms, proper redirects)
-- Auto-fill Playlists with Radio Station Mode v3 (ENHANCED - large genre list support)
-- Multi-Disc Album Support (NEW - nested disc display with individual add buttons)
-- Album Art Display
-- Real-time Updates
-- Systemd Service Integration (FIXED - proper venv activation)
-- Shuffle Mode (NEW - with cross-page sync)
-- Standardized UI Controls (NEW - icons, color coding)
-- Enhanced Toast Notifications (NEW - gradient styling with animations)
-- Replace Playlist with Auto-play (NEW - browse albums)
-- Genre-Based Random Music (NEW - integrated with Auto-Fill settings)
-- Radio Station System (ENHANCED - auto-fill integration)
-- Last.fm Charts (NEW - top artists/albums/tracks by time period)
-- Theme System (NEW - dark/light/high-contrast across all pages)
+Maestro MPD Server v2.0
+Release Date: Mon Dec 16 00:00:00 UTC 2025
+Version: 2.0.0
 
-Latest Major Features (Dec 13, 2025 - v1.7):
+🎉 MAJOR RELEASE - Production Ready 🎉
+
+Core Features:
+- Web UI (port 5003) - Music playback control with modern interface
+- Admin Panel (port 5004) - System administration and configuration
+- MPD Integration - Music Player Daemon control and management
+- Last.fm Integration - Scrobbling and charts
+- Search Functionality - Artist, album, title search with album grouping
+- Auto-fill Playlists - Radio station mode with genre-based selection
+- Multi-Disc Album Support - Nested disc display with individual controls
+- Album Art Display - Local files and Last.fm fallback
+- Real-time Updates - WebSocket-based status updates
+- Theme System - Dark, light, high-contrast, desert themes
+- Network Mount Support - NFS and SMB share management
+- System Logs Viewer - Real-time monitoring of all services
+
+Latest Major Features (Dec 16, 2025 - v2.0):
+✅ CRITICAL: Safe Installer - Preserves existing MPD config and database
+✅ CRITICAL: Data Loss Prevention - Auto-backup MPD database before changes
+✅ NEW: Arch Linux Support - Full compatibility with Arch/Manjaro
+✅ NEW: System Logs Viewer - Real-time monitoring with filtering/search
+✅ NEW: Admin Panel - Audio tweaks, library management, system control
+✅ FIXED: Album Art in Search - Groups by directory for multiple copies
+✅ FIXED: Recent Albums Directory - Now uses configured path from settings
+✅ ENHANCED: Network Mount Support - NFS/SMB with automatic detection
+✅ ENHANCED: Audio Device Management - Detection and configuration via Admin Panel
+✅ SECURITY: Removed dangerous chown on network mounts
+✅ UI: Clean navigation - Removed redundant buttons from main page
+
+Previous Features (Dec 13, 2025 - v1.7):
 ✅ NEW: Multi-Disc Album Support - Single album entry with nested disc sections
 ✅ SMART: Individual "Add Disc X" buttons for each disc in multi-disc albums
 ✅ UI: Nested disc display in Recent Albums, Browse Albums, and Search Results
