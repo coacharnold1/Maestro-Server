@@ -680,6 +680,28 @@
                 .then(data => {
                     if (data.status === 'success') {
                         showMessage(data.message, 'success');
+                        // Check if MPD is playing, if not, start playback
+                        fetch('/get_mpd_status')
+                            .then(response => response.json())
+                            .then(statusData => {
+                                console.log('[Auto-play] Current MPD state:', statusData.state);
+                                if (statusData.state !== 'play') {
+                                    // Not currently playing, start playback
+                                    console.log('[Auto-play] Starting playback...');
+                                    fetch('/play?ajax=1', { method: 'POST' })
+                                        .then(response => response.json())
+                                        .then(playData => {
+                                            console.log('[Auto-play] Play response:', playData);
+                                            if (playData.status === 'success') {
+                                                console.log('[Auto-play] Successfully started playback');
+                                            }
+                                        })
+                                        .catch(err => console.error('[Auto-play] Error starting playback:', err));
+                                } else {
+                                    console.log('[Auto-play] Already playing, not starting playback');
+                                }
+                            })
+                            .catch(err => console.error('[Auto-play] Error checking status:', err));
                     } else {
                         showMessage(data.message || 'Failed to add album', 'error');
                     }
