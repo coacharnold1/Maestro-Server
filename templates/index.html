@@ -1062,8 +1062,6 @@
                 });
         })();
 
-        console.log('DEBUG: index.html script loaded');
-
         // Global variables and functions for playback control
         let messageArea = null;
         let messageTimeout = null;
@@ -1168,12 +1166,6 @@
             const wikipediaAlbumSearchBtn = document.getElementById('allmusic-album-search-btn');
             const allmusicAlbumSearchBtn = document.getElementById('musicbrainz-album-search-btn');
 
-            // Debug: Log if buttons are found
-            console.log('wikipediaArtistSearchBtn:', wikipediaArtistSearchBtn);
-            console.log('allmusicArtistSearchBtn:', allmusicArtistSearchBtn);
-            console.log('wikipediaAlbumSearchBtn:', wikipediaAlbumSearchBtn);
-            console.log('allmusicAlbumSearchBtn:', allmusicAlbumSearchBtn);
-
             // NEW: Consume Mode Checkbox
             const consumeModeCheckbox = document.getElementById('consume-mode-checkbox');
 
@@ -1259,12 +1251,6 @@
 
             // Clear Album Art Cache button
             const clearArtCacheBtn = document.getElementById('clear-art-cache-btn');
-
-            // Debug: Log if event listeners are being attached
-            if (wikipediaArtistSearchBtn) console.log('Attaching event listener to wikipediaArtistSearchBtn');
-            if (allmusicArtistSearchBtn) console.log('Attaching event listener to allmusicArtistSearchBtn');
-            if (wikipediaAlbumSearchBtn) console.log('Attaching event listener to wikipediaAlbumSearchBtn');
-            if (allmusicAlbumSearchBtn) console.log('Attaching event listener to allmusicAlbumSearchBtn');
 
             // Function to update the UI with new MPD status data
             function updateUI(data) {
@@ -1391,13 +1377,11 @@
 
             // Listen for 'mpd_status' events from the server
             socket.on('mpd_status', function (data) {
-                console.log('Received MPD status:', data);
                 updateUI(data);
             });
 
             // Listen for 'server_message' events for system actions
             socket.on('server_message', function (data) {
-                console.log('Server Message:', data);
                 displayMessage(data.type, data.text); // Display message on UI
             });
 
@@ -1653,7 +1637,6 @@
 
         // AJAX Playback Control Functions - moved outside DOMContentLoaded for global access
         function playMusic() {
-            console.log('playMusic called'); // Debug log
             fetch('/play?ajax=1', { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
@@ -1666,7 +1649,6 @@
         }
 
         function pauseMusic() {
-            console.log('pauseMusic called'); // Debug log
             fetch('/pause?ajax=1', { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
@@ -1678,7 +1660,6 @@
         }
 
         function stopMusic() {
-            console.log('stopMusic called'); // Debug log
             fetch('/stop?ajax=1', { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
@@ -1690,7 +1671,6 @@
         }
 
         function nextTrack() {
-            console.log('nextTrack called'); // Debug log
             fetch('/next?ajax=1', { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
@@ -1702,7 +1682,6 @@
         }
 
         function previousTrack() {
-            console.log('previousTrack called'); // Debug log
             fetch('/previous?ajax=1', { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {

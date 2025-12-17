@@ -1060,21 +1060,15 @@
                     button.onclick = function (event) {
                         event.stopPropagation(); // Prevent the parent .playlist-item-info click from firing
                         const pos = this.getAttribute('data-pos');
-                        console.log('[DEBUG] Remove button clicked. pos:', pos);
                         const songTitle = this.parentNode.querySelector('.title') ? this.parentNode.querySelector('.title').textContent : '';
                         if (confirm(`Are you sure you want to remove "${songTitle}"?`)) {
-                            console.log('[DEBUG] Sending POST to /remove_from_playlist with pos:', pos);
                             fetch('/remove_from_playlist', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                                 body: `pos=${pos}`
                             })
-                                .then(response => {
-                                    console.log('[DEBUG] Response received from /remove_from_playlist:', response);
-                                    return response.json();
-                                })
+                                .then(response => response.json())
                                 .then(data => {
-                                    console.log('[DEBUG] Data from /remove_from_playlist:', data);
                                     if (data.status === 'error') {
                                         displayMessage('error', data.message);
                                     }
@@ -1127,19 +1121,16 @@
 
             // Socket.IO listener for playlist updates
             socket.on('playlist_updated', function (playlist) {
-                console.log('Received updated playlist:', playlist);
                 updatePlaylistDisplay(playlist);
             });
 
             // Socket.IO listener for server messages
             socket.on('server_message', function (data) {
-                console.log('Server Message (Playlist Page):', data);
                 displayMessage(data.type, data.text);
             });
 
             // NEW: Socket.IO listener for MPD status (to update consume mode checkbox)
             socket.on('mpd_status', function (data) {
-                console.log('Received MPD status on playlist page:', data);
                 // Update consume mode checkbox based on received status
                 if (data && typeof data.consume_mode !== 'undefined' && consumeModeCheckbox) {
                     consumeModeCheckbox.checked = data.consume_mode;

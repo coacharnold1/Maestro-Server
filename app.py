@@ -2652,8 +2652,6 @@ def get_album_art():
     artist = request.args.get('artist', '')
     album = request.args.get('album', '')
     size = request.args.get('size', 'full')  # 'full' or 'thumb'
-    
-    print(f"[DEBUG] Album art request: song_file='{song_file}', artist='{artist}', album='{album}', size='{size}'", flush=True)
 
     # 1. Try local album art first
     if song_file:
@@ -2682,7 +2680,6 @@ def get_album_art():
                         
                         # Create cache key for thumbnail
                         thumb_cache_key = f"thumb-{artist}-{album}-{filename}"
-                        print(f"[DEBUG] Local art cache key: '{thumb_cache_key}'", flush=True)
                         cached_thumb = album_art_cache.get(thumb_cache_key)
                         
                         if cached_thumb:
@@ -2712,7 +2709,6 @@ def get_album_art():
         else:
             cache_key = f"{artist}-{album}" if size == 'full' else f"thumb-{artist}-{album}"
         
-        print(f"[DEBUG] Last.fm cache key: '{cache_key}'", flush=True)
         cached_image_data = album_art_cache.get(cache_key)
 
         if cached_image_data:
