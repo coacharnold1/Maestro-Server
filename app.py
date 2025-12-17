@@ -1496,6 +1496,55 @@ def previous_song():
             return jsonify({'status': 'error', 'message': f'Error previousing: {e}'})
     return redirect(url_for('index'))
 
+@app.route('/seek', methods=['POST'])
+def seek_position():
+    """Seek to a specific position in the current song"""
+    try:
+        data = request.get_json()
+        if not data or 'position' not in data:
+            return jsonify({'status': 'error', 'message': 'Position required'}), 400
+        
+        position = float(data['position'])
+        
+        if position < 0:
+            return jsonify({'status': 'error', 'message': 'Position must be >= 0'}), 400
+        
+        client = connect_mpd_client()
+        if not client:
+            return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
+        
+        try:
+            # seekcur seeks relative to current position
+            # To seek to absolute position, use status to get current song ID
+            status = client.status()
+            if status.get('state') not in ['play', 'pause']:
+                client.disconnect()
+                return jsonify({'status': 'error', 'message': 'No song playing'}), 400
+            
+            # Get current song position in playlist
+            current_song = int(status.get('song', 0))
+            
+            # Seek to absolute position in current song
+            client.seek(current_song, position)
+            client.disconnect()
+            
+            return jsonify({
+                'status': 'success',
+                'message': f'Seeked to {position:.1f}s',
+                'position': position
+            })
+        
+        except CommandError as e:
+            print(f"MPD CommandError seeking: {e}")
+            return jsonify({'status': 'error', 'message': f'MPD error: {e}'}), 500
+        except Exception as e:
+            print(f"Error seeking: {e}")
+            return jsonify({'status': 'error', 'message': f'Error: {e}'}), 500
+    
+    except Exception as e:
+        print(f"Error processing seek request: {e}")
+        return jsonify({'status': 'error', 'message': f'Error: {e}'}), 500
+
 @app.route('/set_volume', methods=['POST'])
 def set_volume():
     volume = request.form.get('volume', type=int, default=0) 

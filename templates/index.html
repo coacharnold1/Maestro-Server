@@ -374,6 +374,16 @@
             height: 10px;
             /* Slightly thicker progress bar */
             overflow: hidden;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .progress-container:hover {
+            background-color: #666;
+        }
+
+        .progress-container:active {
+            background-color: #777;
         }
 
         .progress-bar {
@@ -382,6 +392,11 @@
             background-color: #2ecc71;
             border-radius: 5px;
             transition: width 0.5s ease-out;
+            pointer-events: none;
+        }
+
+        .progress-container:hover .progress-bar {
+            background-color: #27ae60;
         }
 
         /* Styles for search buttons */
@@ -1108,6 +1123,45 @@
                 }
             }
 
+            // Add click handler for seeking in progress bar
+            const progressContainer = document.querySelector('.progress-container');
+            if (progressContainer && songProgressBar) {
+                progressContainer.addEventListener('click', function(e) {
+                    // Get click position relative to container
+                    const rect = this.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const containerWidth = rect.width;
+                    const clickPercent = (clickX / containerWidth) * 100;
+                    
+                    // Get total song duration from data attribute
+                    const totalTime = parseFloat(songProgressBar.dataset.initialTotal || '0');
+                    
+                    if (totalTime > 0) {
+                        // Calculate seek position in seconds
+                        const seekPosition = (clickPercent / 100) * totalTime;
+                        
+                        // Send seek request
+                        fetch('/seek', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ position: seekPosition })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'error') {
+                                console.error('Seek error:', data.message);
+                            } else {
+                                // Update progress bar immediately for visual feedback
+                                songProgressBar.style.width = clickPercent + '%';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error seeking:', error);
+                        });
+                    }
+                });
+            }
+
             // Search buttons
             const wikipediaArtistSearchBtn = document.getElementById('wikipedia-artist-search-btn');
             const allmusicArtistSearchBtn = document.getElementById('allmusic-artist-search-btn');
@@ -1238,8 +1292,13 @@
                     if (data.raw_total_time > 0) {
                         const progress = (data.raw_elapsed_time / data.raw_total_time) * 100;
                         songProgressBar.style.width = `${progress}%`;
+                        // Update data attributes for seek functionality
+                        songProgressBar.dataset.initialElapsed = data.raw_elapsed_time;
+                        songProgressBar.dataset.initialTotal = data.raw_total_time;
                     } else {
                         songProgressBar.style.width = '0%';
+                        songProgressBar.dataset.initialElapsed = '0';
+                        songProgressBar.dataset.initialTotal = '0';
                     }
 
                     // Update album art
