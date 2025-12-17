@@ -1,7 +1,7 @@
 print("[DEBUG] app.py loaded and running", flush=True)
 
 # Application version information
-APP_VERSION = "1.7.0"
+APP_VERSION = "2.0"
 APP_BUILD_DATE = "2025-12-13" 
 APP_NAME = "Maestro MPD Server"
 
@@ -164,6 +164,10 @@ else:
 _settings = load_settings()
 # Theme: environment variable overrides settings.json, which overrides default
 app.config['THEME'] = os.getenv('DEFAULT_THEME', _settings.get('theme', 'dark'))
+
+# Ensure proper UTF-8 handling for JSON and templates
+app.config['JSON_AS_ASCII'] = False
+app.config['JSONIFY_MIMETYPE'] = 'application/json; charset=utf-8'
 if not LASTFM_API_KEY:
     LASTFM_API_KEY = _settings.get('lastfm_api_key', '')
 if not LASTFM_SHARED_SECRET:
@@ -171,8 +175,6 @@ if not LASTFM_SHARED_SECRET:
 scrobbling_enabled = bool(_settings.get('enable_scrobbling', False))
 lastfm_session_key = _settings.get('lastfm_session_key', '')
 show_scrobble_toasts = bool(_settings.get('show_scrobble_toasts', True))
-# Recent albums directory from settings
-RECENT_ALBUMS_DIR = _settings.get('recent_albums_dir', '')
 
 """
 Settings utilities moved near imports for early availability.
@@ -219,6 +221,14 @@ def strip_location_tag(artist_name):
     import re
     # Remove anything in square brackets at the end
     return re.sub(r'\s*\[.*?\]\s*$', '', str(artist_name)).strip()
+
+@app.template_filter('urlencode_str')
+def urlencode_str(s):
+    """URL encode a single string value for use in query parameters."""
+    from urllib.parse import quote
+    if s is None:
+        return ''
+    return quote(str(s), safe='')
 
 # --- Auto-Fill Configuration ---
 auto_fill_active = False
@@ -1355,10 +1365,12 @@ def index():
 @app.route('/search', methods=['GET', 'POST'])
 def search():
     """Search page with improved functionality from beta version."""
+    print(f"Request method: {request.method}, Request form: {dict(request.form)}, Request args: {dict(request.args)}", flush=True)
     if request.method == 'POST':
         try:
             query = request.form.get('query', '').strip()
             search_tag = request.form.get('search_tag', 'any')
+            
 
             if not query:
                 return render_template('search.html', error="Please enter a search query")
@@ -1373,13 +1385,14 @@ def search():
                 search_results = perform_search(client, search_tag, query)
                 client.disconnect()
                 
-                return render_template('search_results.html', 
+                result = render_template('search_results.html', 
                                      results=search_results, 
                                      query=query, 
                                      search_tag=search_tag)
+                return result
             except Exception as e:
                 client.disconnect()
-                print(f"Search error: {e}")
+                import traceback
                 return render_template('search.html', error=f"Search failed: {e}")
 
         except Exception as e:
@@ -3014,17 +3027,10 @@ def get_recent_albums_from_mpd(limit=25, force_refresh=False):
     import time
     global recent_albums_cache, recent_albums_cache_mod_times
     
-    # Determine which directories to check
-    if RECENT_ALBUMS_DIR:
-        recent_dir = RECENT_ALBUMS_DIR
-        if recent_dir.startswith(MUSIC_DIRECTORY):
-            recent_dir = recent_dir[len(MUSIC_DIRECTORY):].lstrip('/')
-        directories_to_check = [recent_dir]
-    else:
-        directories_to_check = ['gidney', 'down']
-    
     # Simple change detection cache - safe fallback to normal scan
     try:
+        directories_to_check = ['gidney', 'down']
+        
         # Skip cache check if force refresh is requested
         if force_refresh:
             print("Force refresh requested, bypassing cache")
@@ -3080,19 +3086,10 @@ def get_recent_albums_from_mpd(limit=25, force_refresh=False):
     start_time = time.time()
     
     try:
-        # Determine which directories to check
-        if RECENT_ALBUMS_DIR:
-            # Use configured directory - strip music directory prefix if present
-            recent_dir = RECENT_ALBUMS_DIR
-            if recent_dir.startswith(MUSIC_DIRECTORY):
-                recent_dir = recent_dir[len(MUSIC_DIRECTORY):].lstrip('/')
-            directories_to_check = [recent_dir]
-            print(f"Getting recent albums from configured directory: '{recent_dir}'")
-        else:
-            # Fallback to default directories
-            directories_to_check = ['gidney', 'down']
-            print(f"Getting recent albums from default directories: 'gidney' and 'down'")
+        print(f"Getting recent albums from 'down' and 'gidney' directories...")
         
+        # Check both directories for recent albums
+        directories_to_check = ['gidney', 'down']
         all_albums_dict = {}
         
         for directory in directories_to_check:

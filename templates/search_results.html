@@ -2,6 +2,7 @@
 <html>
 
 <head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search Results</title>
     <style>
@@ -425,11 +426,11 @@
             <li>
                 <div class="album-content">
                     {% if item.get('sample_file') %}
-                    <img src="/album_art?file={{ item.get('sample_file') }}&artist={{ item.get('artist', '') }}&album={{ item.get('album', '') }}&size=thumb"
+                    <img src="/album_art?song_file={{ item.get('sample_file')|urlencode_str }}&artist={{ item.get('artist', '')|urlencode_str }}&album={{ item.get('album', '')|urlencode_str }}&size=thumb"
                         alt="{{ item.get('album', 'Unknown Album') }} cover" class="album-thumbnail" loading="lazy"
                         onerror="this.style.display='none';">
                     {% else %}
-                    <img src="/album_art?artist={{ item.get('artist', '') }}&album={{ item.get('album', '') }}&size=thumb"
+                    <img src="/album_art?artist={{ item.get('artist', '')|urlencode_str }}&album={{ item.get('album', '')|urlencode_str }}&size=thumb"
                         alt="{{ item.get('album', 'Unknown Album') }} cover" class="album-thumbnail" loading="lazy"
                         onerror="this.style.display='none';">
                     {% endif %}
@@ -558,7 +559,7 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.status === 'success') {
-                            return addAlbumToPlaylist(artist, album, false);
+                            return addAlbumToPlaylist(album, artist, false);
                         } else {
                             throw new Error('Failed to clear playlist');
                         }
@@ -848,7 +849,7 @@
                 btn.addEventListener('click', function(){
                     const artist = this.dataset.artist || '';
                     const album = this.dataset.album || '';
-                    addAlbumToPlaylist(artist, album);
+                    addAlbumToPlaylist(album, artist);
                 });
             });
             document.querySelectorAll('.btn-replace-song').forEach(btn => {
