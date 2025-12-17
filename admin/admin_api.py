@@ -322,6 +322,21 @@ def api_add_mount():
         if not all([mount_type, name, server, share_path, mount_point]):
             return jsonify({'status': 'error', 'message': 'Missing required fields'}), 400
         
+        # Enforce standard music directory structure
+        # All mounts should be inside /media/music/
+        if not mount_point.startswith('/media/music/'):
+            # Extract the subdirectory name from the mount point
+            subdirectory = os.path.basename(mount_point.rstrip('/'))
+            mount_point = f'/media/music/{subdirectory}'
+            print(f"[INFO] Standardized mount point to: {mount_point}")
+        
+        # Create the mount point directory
+        try:
+            os.makedirs(mount_point, exist_ok=True)
+            print(f"[INFO] Created mount point directory: {mount_point}")
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': f'Failed to create mount point: {str(e)}'}), 500
+        
         # Load existing mounts
         if MOUNTS_CONFIG.exists():
             with open(MOUNTS_CONFIG, 'r') as f:

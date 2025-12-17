@@ -138,6 +138,9 @@ prompt_directories() {
         MUSIC_DIR=${MUSIC_DIR:-/media/music}
     fi
     
+    # Store user's actual music location
+    USER_MUSIC_DIR="$MUSIC_DIR"
+    
     echo ""
     echo -e "${YELLOW}Recent Albums Directory (Optional)${NC}"
     echo -e "${CYAN}Enter the FULL PATH to where recent albums are located.${NC}"
@@ -224,8 +227,40 @@ install_dependencies() {
 configure_mpd() {
     echo -e "${GREEN}[2/8] Configuring MPD...${NC}"
     
-    # Create music directory (but don't change ownership - may be network mount)
-    sudo mkdir -p "$MUSIC_DIR"
+    # Standardize music location to /media/music
+    if [ "$USER_MUSIC_DIR" != "/media/music" ]; then
+        echo -e "${YELLOW}Setting up standard music location...${NC}"
+        
+        # Create the user's actual music directory
+        sudo mkdir -p "$USER_MUSIC_DIR"
+        
+        # Create symlink: /media/music -> user's location
+        if [ -e "/media/music" ] && [ ! -L "/media/music" ]; then
+            echo -e "${YELLOW}⚠️  /media/music exists and is not a symlink${NC}"
+            read -p "Remove/backup existing /media/music? (y/N): "
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                sudo mv /media/music "/media/music.backup.$(date +%Y%m%d_%H%M%S)"
+                echo -e "${GREEN}✓ Backed up to /media/music.backup.*${NC}"
+            else
+                echo -e "${RED}✗ Cannot proceed without modifying /media/music${NC}"
+                exit 1
+            fi
+        fi
+        
+        # Remove existing symlink if present
+        [ -L "/media/music" ] && sudo rm /media/music
+        
+        # Create the symlink
+        sudo mkdir -p /media
+        sudo ln -s "$USER_MUSIC_DIR" /media/music
+        echo -e "${GREEN}✓ Created symlink: /media/music -> $USER_MUSIC_DIR${NC}"
+        
+        # Set MUSIC_DIR to standard location for MPD config
+        MUSIC_DIR="/media/music"
+    else
+        # Create music directory (but don't change ownership - may be network mount)
+        sudo mkdir -p "$MUSIC_DIR"
+    fi
     
     # CRITICAL: Backup MPD database BEFORE any changes
     if [ -f /var/lib/mpd/database ]; then
@@ -605,6 +640,9 @@ print_success() {
     echo ""
     echo -e "${BLUE}📍 Installation Directory:${NC} $INSTALL_DIR"
     echo -e "${BLUE}🎵 Music Directory:${NC} $MUSIC_DIR"
+    if [ "$USER_MUSIC_DIR" != "/media/music" ] && [ -L "/media/music" ]; then
+        echo -e "${BLUE}   (Symlink to: ${YELLOW}$USER_MUSIC_DIR${BLUE})${NC}"
+    fi
     echo ""
     echo -e "${BLUE}🌐 Access URLs:${NC}"
     echo -e "   Web UI:    ${GREEN}http://$IP:$WEB_PORT${NC}"
@@ -617,8 +655,9 @@ print_success() {
     echo -e "   MPD:       ${YELLOW}sudo systemctl {start|stop|restart|status} mpd${NC}"
     echo ""
     echo -e "${BLUE}📁 Add Music:${NC}"
-    echo -e "   1. Copy music to: ${GREEN}$MUSIC_DIR${NC}"
-    echo -e "   2. Or mount network shares via Admin API"
+    echo -e "   1. Copy music to: ${GREEN}/media/music${NC}"
+    echo -e "      (Subdirectories inside /media/music will appear in Recent Albums)"
+    echo -e "   2. Or mount network shares inside ${GREEN}/media/music/${NC}"
     echo -e "   3. Update MPD library: ${YELLOW}mpc update${NC}"
     echo ""
     echo -e "${BLUE}🔧 Logs:${NC}"
