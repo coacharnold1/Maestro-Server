@@ -94,12 +94,15 @@
             text-align: center;
             margin: 15px 0;
             padding: 10px 0;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
         }
 
-        .playlist-actions .clear-btn {
-            background-color: #e74c3c;
+        .playlist-actions button {
             color: white;
-            border: 1px solid #e74c3c;
+            border: none;
             padding: 8px 16px;
             border-radius: 5px;
             cursor: pointer;
@@ -107,9 +110,209 @@
             transition: all 0.3s;
         }
 
+        .playlist-actions .clear-btn {
+            background-color: #e74c3c;
+        }
+
         .playlist-actions .clear-btn:hover {
             background-color: #c0392b;
-            border-color: #c0392b;
+        }
+
+        .playlist-actions .save-btn {
+            background-color: #27ae60;
+        }
+
+        .playlist-actions .save-btn:hover {
+            background-color: #229954;
+        }
+
+        .playlist-actions .load-btn {
+            background-color: #3498db;
+        }
+
+        .playlist-actions .load-btn:hover {
+            background-color: #2980b9;
+        }
+
+        /* Modal styling */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            overflow: auto;
+        }
+
+        .modal-content {
+            background-color: #2c3e50;
+            margin: 5% auto;
+            padding: 25px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #ecf0f1;
+        }
+
+        .close-btn {
+            color: #bdc3c7;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            color: #ecf0f1;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .modal-body input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #34495e;
+            border-radius: 5px;
+            background-color: #34495e;
+            color: #ecf0f1;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .modal-body input[type="text"]:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .playlist-list {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .playlist-list-item {
+            background-color: #34495e;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
+
+        .playlist-list-item:hover {
+            background-color: #415a77;
+        }
+
+        .playlist-info {
+            flex: 1;
+        }
+
+        .playlist-name {
+            color: #ecf0f1;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .playlist-details {
+            color: #bdc3c7;
+            font-size: 0.85em;
+        }
+
+        .playlist-actions-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .playlist-actions-btns button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            color: white;
+        }
+
+        .btn-load {
+            background-color: #3498db;
+        }
+
+        .btn-load:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-delete {
+            background-color: #e74c3c;
+        }
+
+        .btn-delete:hover {
+            background-color: #c0392b;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .modal-footer button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            color: white;
+        }
+
+        .btn-primary {
+            background-color: #27ae60;
+        }
+
+        .btn-primary:hover {
+            background-color: #229954;
+        }
+
+        .btn-secondary {
+            background-color: #95a5a6;
+        }
+
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #bdc3c7;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
         }
 
         .playback-controls {
@@ -463,9 +666,50 @@
 
         <div class="playlist-actions">
             <button onclick="clearPlaylist()" class="clear-btn">🗑️ Clear Playlist</button>
+            <button onclick="openSaveModal()" class="save-btn">💾 Save Playlist</button>
+            <button onclick="openLoadModal()" class="load-btn">📂 Load Playlist</button>
         </div>
 
         <div id="message-area"></div>
+
+        <!-- Save Playlist Modal -->
+        <div id="saveModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>💾 Save Playlist</h2>
+                    <button class="close-btn" onclick="closeSaveModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <label for="playlist-name" style="display: block; margin-bottom: 8px; color: #ecf0f1;">Playlist Name:</label>
+                    <input type="text" id="playlist-name" placeholder="Enter playlist name..." />
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeSaveModal()">Cancel</button>
+                    <button class="btn-primary" onclick="savePlaylist()">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Load Playlist Modal -->
+        <div id="loadModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>📂 Load Playlist</h2>
+                    <button class="close-btn" onclick="closeLoadModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="playlists-list" class="playlist-list">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">⏳</div>
+                            <div>Loading playlists...</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeLoadModal()">Close</button>
+                </div>
+            </div>
+        </div>
 
         <div class="playback-controls">
             <h2>Playback Controls</h2>
@@ -651,6 +895,9 @@
                     }, 500);
                 }, 5000);
             }
+
+            // Make displayMessage globally available for playlist management functions
+            window.displayMessage = displayMessage;
 
             // Playback control function
             function playbackAction(action) {
@@ -891,6 +1138,202 @@
                     console.error('Error fetching initial MPD status for consume and shuffle mode:', error);
                     displayMessage('error', 'Could not load initial MPD status.');
                 });
+        });
+
+        // Playlist Management Functions
+        function openSaveModal() {
+            document.getElementById('saveModal').style.display = 'block';
+            document.getElementById('playlist-name').focus();
+        }
+
+        function closeSaveModal() {
+            document.getElementById('saveModal').style.display = 'none';
+            document.getElementById('playlist-name').value = '';
+        }
+
+        function openLoadModal() {
+            document.getElementById('loadModal').style.display = 'block';
+            loadPlaylistsList();
+        }
+
+        function closeLoadModal() {
+            document.getElementById('loadModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const saveModal = document.getElementById('saveModal');
+            const loadModal = document.getElementById('loadModal');
+            if (event.target === saveModal) {
+                closeSaveModal();
+            }
+            if (event.target === loadModal) {
+                closeLoadModal();
+            }
+        }
+
+        // Save playlist
+        function savePlaylist() {
+            const playlistName = document.getElementById('playlist-name').value.trim();
+            if (!playlistName) {
+                alert('Please enter a playlist name');
+                return;
+            }
+
+            fetch('/save_playlist', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: playlistName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    displayMessage('info', data.message);
+                    closeSaveModal();
+                } else {
+                    alert(data.message || 'Failed to save playlist');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving playlist:', error);
+                alert('Error saving playlist: ' + error.message);
+            });
+        }
+
+        // Load playlists list
+        function loadPlaylistsList() {
+            const listContainer = document.getElementById('playlists-list');
+            listContainer.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">⏳</div>
+                    <div>Loading playlists...</div>
+                </div>
+            `;
+
+            fetch('/list_playlists')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (data.playlists && data.playlists.length > 0) {
+                        listContainer.innerHTML = '';
+                        data.playlists.forEach(playlist => {
+                            const item = document.createElement('div');
+                            item.className = 'playlist-list-item';
+                            item.innerHTML = `
+                                <div class="playlist-info">
+                                    <span class="playlist-name">${escapeHtml(playlist.name)}</span>
+                                    <span class="playlist-details">${playlist.song_count} songs • ${playlist.modified}</span>
+                                </div>
+                                <div class="playlist-actions-btns">
+                                    <button class="btn-load" onclick="loadPlaylistFile('${escapeHtml(playlist.name)}')">Load</button>
+                                    <button class="btn-delete" onclick="deletePlaylist('${escapeHtml(playlist.name)}')">Delete</button>
+                                </div>
+                            `;
+                            listContainer.appendChild(item);
+                        });
+                    } else {
+                        listContainer.innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📂</div>
+                                <div>No saved playlists found</div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    listContainer.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">⚠️</div>
+                            <div>Error loading playlists</div>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading playlists:', error);
+                listContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <div>Error: ${error.message}</div>
+                    </div>
+                `;
+            });
+        }
+
+        // Load specific playlist
+        function loadPlaylistFile(playlistName) {
+            if (!confirm(`Load playlist "${playlistName}"? This will clear your current playlist.`)) {
+                return;
+            }
+
+            fetch('/load_playlist', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: playlistName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    displayMessage('info', data.message);
+                    closeLoadModal();
+                    // Playlist will be updated via Socket.IO
+                } else {
+                    alert(data.message || 'Failed to load playlist');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading playlist:', error);
+                alert('Error loading playlist: ' + error.message);
+            });
+        }
+
+        // Delete playlist
+        function deletePlaylist(playlistName) {
+            if (!confirm(`Delete playlist "${playlistName}"? This cannot be undone.`)) {
+                return;
+            }
+
+            fetch('/delete_playlist', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: playlistName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    displayMessage('info', data.message);
+                    loadPlaylistsList(); // Refresh the list
+                } else {
+                    alert(data.message || 'Failed to delete playlist');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting playlist:', error);
+                alert('Error deleting playlist: ' + error.message);
+            });
+        }
+
+        // Helper function to escape HTML
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Allow Enter key to save playlist
+        document.addEventListener('DOMContentLoaded', function() {
+            const playlistNameInput = document.getElementById('playlist-name');
+            if (playlistNameInput) {
+                playlistNameInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        savePlaylist();
+                    }
+                });
+            }
         });
     </script>
 </body>

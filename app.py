@@ -185,6 +185,10 @@ RADIO_STATIONS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '
 recent_albums_cache = None
 recent_albums_cache_mod_times = None
 
+# Playlists directory for saving/loading playlists
+PLAYLISTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'playlists')
+os.makedirs(PLAYLISTS_DIR, exist_ok=True)
+
 # Configure SocketIO to use threading for async support (no eventlet issues)
 socketio = SocketIO(app, async_mode='threading', cors_allowed_origins="*")
 
@@ -2867,6 +2871,180 @@ def clear_playlist():
     except Exception as e:
         print(f"Error clearing playlist: {e}")
         return jsonify({'status': 'error', 'message': f'Error clearing playlist: {e}'}), 500
+
+@app.route('/save_playlist', methods=['POST'])
+def save_playlist():
+    """Save the current MPD playlist to an M3U file."""
+    data = request.get_json()
+    if not data or 'name' not in data:
+        return jsonify({'status': 'error', 'message': 'Playlist name is required'}), 400
+    
+    playlist_name = data['name'].strip()
+    if not playlist_name:
+        return jsonify({'status': 'error', 'message': 'Playlist name cannot be empty'}), 400
+    
+    # Sanitize filename to prevent directory traversal
+    playlist_name = playlist_name.replace('/', '_').replace('\\', '_')
+    
+    # Ensure .m3u extension
+    if not playlist_name.lower().endswith('.m3u'):
+        playlist_name += '.m3u'
+    
+    playlist_path = os.path.join(PLAYLISTS_DIR, playlist_name)
+    
+    client = connect_mpd_client()
+    if not client:
+        return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
+    
+    try:
+        playlist_songs = client.playlistinfo()
+        client.disconnect()
+        
+        if not playlist_songs:
+            return jsonify({'status': 'error', 'message': 'Current playlist is empty'}), 400
+        
+        # Write M3U playlist file
+        with open(playlist_path, 'w', encoding='utf-8') as f:
+            f.write('#EXTM3U\n')
+            for song in playlist_songs:
+                # Write extended info line
+                artist = song.get('artist', 'Unknown Artist')
+                title = song.get('title', 'Unknown Title')
+                duration = int(song.get('time', '0'))
+                f.write(f'#EXTINF:{duration},{artist} - {title}\n')
+                # Write file path
+                f.write(f"{song.get('file', '')}\n")
+        
+        print(f"Saved playlist: {playlist_name} ({len(playlist_songs)} songs)")
+        return jsonify({
+            'status': 'success',
+            'message': f'Playlist "{playlist_name}" saved',
+            'song_count': len(playlist_songs)
+        })
+    
+    except Exception as e:
+        print(f"Error saving playlist: {e}")
+        return jsonify({'status': 'error', 'message': f'Error saving playlist: {e}'}), 500
+
+@app.route('/list_playlists', methods=['GET'])
+def list_playlists():
+    """List all saved M3U playlists."""
+    try:
+        playlists = []
+        if os.path.exists(PLAYLISTS_DIR):
+            for filename in sorted(os.listdir(PLAYLISTS_DIR)):
+                if filename.lower().endswith('.m3u'):
+                    filepath = os.path.join(PLAYLISTS_DIR, filename)
+                    # Get file stats
+                    stat_info = os.stat(filepath)
+                    modified_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(stat_info.st_mtime))
+                    
+                    # Count songs in playlist
+                    song_count = 0
+                    try:
+                        with open(filepath, 'r', encoding='utf-8') as f:
+                            for line in f:
+                                if line.strip() and not line.startswith('#'):
+                                    song_count += 1
+                    except Exception as e:
+                        print(f"Error reading playlist {filename}: {e}")
+                    
+                    playlists.append({
+                        'name': filename,
+                        'modified': modified_time,
+                        'song_count': song_count
+                    })
+        
+        return jsonify({'status': 'success', 'playlists': playlists})
+    
+    except Exception as e:
+        print(f"Error listing playlists: {e}")
+        return jsonify({'status': 'error', 'message': f'Error listing playlists: {e}'}), 500
+
+@app.route('/load_playlist', methods=['POST'])
+def load_playlist():
+    """Load a saved M3U playlist into MPD, clearing the current playlist."""
+    data = request.get_json()
+    if not data or 'name' not in data:
+        return jsonify({'status': 'error', 'message': 'Playlist name is required'}), 400
+    
+    playlist_name = data['name']
+    playlist_path = os.path.join(PLAYLISTS_DIR, playlist_name)
+    
+    if not os.path.exists(playlist_path):
+        return jsonify({'status': 'error', 'message': 'Playlist not found'}), 404
+    
+    client = connect_mpd_client()
+    if not client:
+        return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
+    
+    try:
+        # Clear current playlist
+        client.clear()
+        
+        # Read M3U file and add songs
+        songs_added = 0
+        songs_failed = 0
+        with open(playlist_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                # Skip comments and empty lines
+                if not line or line.startswith('#'):
+                    continue
+                
+                # Add song to MPD playlist
+                try:
+                    client.add(line)
+                    songs_added += 1
+                except CommandError as e:
+                    print(f"Failed to add song '{line}': {e}")
+                    songs_failed += 1
+        
+        client.disconnect()
+        
+        # Emit updates
+        socketio.emit('server_message', {
+            'type': 'info',
+            'text': f'Loaded playlist "{playlist_name}" ({songs_added} songs)'
+        })
+        socketio.emit('playlist_updated', get_mpd_playlist())
+        
+        message = f'Loaded {songs_added} songs'
+        if songs_failed > 0:
+            message += f' ({songs_failed} songs not found)'
+        
+        return jsonify({
+            'status': 'success',
+            'message': message,
+            'songs_added': songs_added,
+            'songs_failed': songs_failed
+        })
+    
+    except Exception as e:
+        print(f"Error loading playlist: {e}")
+        return jsonify({'status': 'error', 'message': f'Error loading playlist: {e}'}), 500
+
+@app.route('/delete_playlist', methods=['POST'])
+def delete_playlist():
+    """Delete a saved M3U playlist."""
+    data = request.get_json()
+    if not data or 'name' not in data:
+        return jsonify({'status': 'error', 'message': 'Playlist name is required'}), 400
+    
+    playlist_name = data['name']
+    playlist_path = os.path.join(PLAYLISTS_DIR, playlist_name)
+    
+    if not os.path.exists(playlist_path):
+        return jsonify({'status': 'error', 'message': 'Playlist not found'}), 404
+    
+    try:
+        os.remove(playlist_path)
+        print(f"Deleted playlist: {playlist_name}")
+        return jsonify({'status': 'success', 'message': f'Playlist "{playlist_name}" deleted'})
+    
+    except Exception as e:
+        print(f"Error deleting playlist: {e}")
+        return jsonify({'status': 'error', 'message': f'Error deleting playlist: {e}'}), 500
 
 @app.route('/play_song_at_pos', methods=['POST'])
 def play_song_at_pos():
