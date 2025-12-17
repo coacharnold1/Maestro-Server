@@ -425,11 +425,11 @@
             <li>
                 <div class="album-content">
                     {% if item.get('sample_file') %}
-                    <img src="/album_art?file={{ item.get('sample_file')|urlencode }}&artist={{ item.get('artist', '')|urlencode }}&album={{ item.get('album', '')|urlencode }}&size=thumb"
+                    <img src="/album_art?file={{ item.get('sample_file') }}&artist={{ item.get('artist', '') }}&album={{ item.get('album', '') }}&size=thumb"
                         alt="{{ item.get('album', 'Unknown Album') }} cover" class="album-thumbnail" loading="lazy"
                         onerror="this.style.display='none';">
                     {% else %}
-                    <img src="/album_art?artist={{ item.get('artist', '')|urlencode }}&album={{ item.get('album', '')|urlencode }}&size=thumb"
+                    <img src="/album_art?artist={{ item.get('artist', '') }}&album={{ item.get('album', '') }}&size=thumb"
                         alt="{{ item.get('album', 'Unknown Album') }} cover" class="album-thumbnail" loading="lazy"
                         onerror="this.style.display='none';">
                     {% endif %}
