@@ -2843,6 +2843,60 @@ def remove_from_playlist():
         print(f"Error removing song from playlist at {pos}: {e}")
         return jsonify({'status': 'error', 'message': f'Error removing song: {e}'}), 500
 
+@app.route('/move_track', methods=['POST'])
+def move_track():
+    """Moves a track up or down in the playlist."""
+    data = request.get_json()
+    if not data or 'pos' not in data or 'direction' not in data:
+        return jsonify({'status': 'error', 'message': 'Position and direction required'}), 400
+    
+    pos = data['pos']
+    direction = data['direction']
+    
+    if direction not in ['up', 'down']:
+        return jsonify({'status': 'error', 'message': 'Direction must be "up" or "down"'}), 400
+    
+    client = connect_mpd_client()
+    if not client:
+        return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
+    
+    try:
+        # Get playlist length to validate boundaries
+        playlist = client.playlistinfo()
+        playlist_length = len(playlist)
+        
+        # Calculate new position
+        if direction == 'up':
+            if pos == 0:
+                client.disconnect()
+                return jsonify({'status': 'error', 'message': 'Already at top of playlist'}), 400
+            new_pos = pos - 1
+        else:  # down
+            if pos >= playlist_length - 1:
+                client.disconnect()
+                return jsonify({'status': 'error', 'message': 'Already at bottom of playlist'}), 400
+            new_pos = pos + 1
+        
+        # Move the track
+        client.move(pos, new_pos)
+        client.disconnect()
+        
+        # Emit updates to all clients
+        socketio.emit('playlist_updated', get_mpd_playlist())
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'Moved track {"up" if direction == "up" else "down"}',
+            'new_pos': new_pos
+        })
+    
+    except CommandError as e:
+        print(f"MPD CommandError moving track: {e}")
+        return jsonify({'status': 'error', 'message': f'MPD error: {e}'}), 500
+    except Exception as e:
+        print(f"Error moving track: {e}")
+        return jsonify({'status': 'error', 'message': f'Error: {e}'}), 500
+
 @app.route('/clear_playlist', methods=['POST'])
 def clear_playlist():
     """Clears the entire MPD playlist."""

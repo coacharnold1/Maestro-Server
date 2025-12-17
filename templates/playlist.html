@@ -420,8 +420,13 @@
             border-color: #3498db;
         }
 
+        .playlist-item-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
         .playlist-item button {
-            background-color: #e74c3c;
             color: white;
             border: none;
             padding: 8px 16px;
@@ -432,8 +437,32 @@
             font-weight: bold;
         }
 
-        .playlist-item button:hover {
+        .playlist-item .remove-btn {
+            background-color: #e74c3c;
+        }
+
+        .playlist-item .remove-btn:hover {
             background-color: #c0392b;
+        }
+
+        .playlist-item .move-btn {
+            background-color: #34495e;
+            padding: 6px 10px;
+            font-size: 1.3em;
+            min-width: 36px;
+            border: 2px solid #3498db;
+        }
+
+        .playlist-item .move-btn:hover {
+            background-color: #3498db;
+            border-color: #2980b9;
+        }
+
+        .playlist-item .move-btn:disabled {
+            background-color: #2c3e50;
+            border-color: #7f8c8d;
+            cursor: not-allowed;
+            opacity: 0.4;
         }
 
         /* MPD Options styling */
@@ -623,11 +652,21 @@
                 order: 2;
             }
 
-            .playlist-item button {
+            .playlist-item-actions {
                 width: 100%;
-                padding: 10px;
                 order: 3;
                 margin-top: 8px;
+                justify-content: center;
+            }
+
+            .playlist-item .move-btn {
+                padding: 8px 12px;
+                flex: 0 0 auto;
+            }
+
+            .playlist-item .remove-btn {
+                flex: 1;
+                max-width: 150px;
             }
 
             .playback-controls button {
@@ -745,7 +784,11 @@
                     <span class="artist-album">{{ artist_name | default('Unknown Artist') }} - {{ song.album |
                         default('Unknown Album') }}</span>
                 </div>
-                <button class="remove-btn" data-pos="{{ song.pos }}">Remove</button>
+                <div class="playlist-item-actions">
+                    <button class="move-btn move-up" data-pos="{{ song.pos }}" {% if loop.first %}disabled{% endif %}>⬆️</button>
+                    <button class="move-btn move-down" data-pos="{{ song.pos }}" {% if loop.last %}disabled{% endif %}>⬇️</button>
+                    <button class="remove-btn" data-pos="{{ song.pos }}">Remove</button>
+                </div>
             </div>
             {% endfor %}
             {% else %}
@@ -958,6 +1001,9 @@
                         const album = encodeURIComponent(song.album || '');
                         const file = encodeURIComponent(song.file || '');
 
+                        const isFirst = song.pos === 0;
+                        const isLast = song.pos === playlist.length - 1;
+
                         div.innerHTML = `
                             <img class="playlist-album-art" 
                                  src="/album_art?artist=${artist}&album=${album}&size=thumb&file=${file}" 
@@ -968,7 +1014,11 @@
                                 <span class="title">${song.title || 'Unknown Title'}</span>
                                 <span class="artist-album">${song.artist || 'Unknown Artist'} - ${song.album || 'Unknown Album'}</span>
                             </div>
-                            <button class="remove-btn" data-pos="${song.pos}">Remove</button>
+                            <div class="playlist-item-actions">
+                                <button class="move-btn move-up" data-pos="${song.pos}" ${isFirst ? 'disabled' : ''}>⬆️</button>
+                                <button class="move-btn move-down" data-pos="${song.pos}" ${isLast ? 'disabled' : ''}>⬇️</button>
+                                <button class="remove-btn" data-pos="${song.pos}">Remove</button>
+                            </div>
                         `;
                         playlistContainer.appendChild(div);
                     });
@@ -978,7 +1028,7 @@
                 attachEventListeners(); // Re-attach all listeners after updating
             }
 
-            // Attach event listeners to both play and remove buttons
+            // Attach event listeners to play, move, and remove buttons
             function attachEventListeners() {
                 // Attach click listener to the song info for playing
                 document.querySelectorAll('.playlist-item-info').forEach(infoDiv => {
@@ -1037,8 +1087,43 @@
                         }
                     };
                 });
+
+                // Attach move up listeners
+                document.querySelectorAll('.move-up').forEach(button => {
+                    button.onclick = function () {
+                        const pos = parseInt(this.getAttribute('data-pos'));
+                        moveTrack(pos, 'up');
+                    };
+                });
+
+                // Attach move down listeners
+                document.querySelectorAll('.move-down').forEach(button => {
+                    button.onclick = function () {
+                        const pos = parseInt(this.getAttribute('data-pos'));
+                        moveTrack(pos, 'down');
+                    };
+                });
             }
 
+            // Move track function
+            function moveTrack(pos, direction) {
+                fetch('/move_track', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pos: pos, direction: direction })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'error') {
+                            displayMessage('error', data.message);
+                        }
+                        // Playlist update will be handled via Socket.IO
+                    })
+                    .catch(error => {
+                        console.error('Error moving track:', error);
+                        displayMessage('error', `Error moving track: ${error.message}`);
+                    });
+            }
 
             // Socket.IO listener for playlist updates
             socket.on('playlist_updated', function (playlist) {
