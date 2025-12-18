@@ -93,6 +93,28 @@
             box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
         }
         
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+        }
+        
+        .btn-primary:hover {
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+        }
+        
+        .btn-warning:hover {
+            box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4);
+        }
+        
+        .action-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
         .btn-warning {
             background: linear-gradient(135deg, #f39c12, #f1c40f);
         }
@@ -297,6 +319,15 @@
         <div class="section">
             <h2 class="section-title">Library Actions</h2>
             <button class="btn" onclick="updateLibrary()">🔄 Update MPD Library</button>
+        </div>
+        
+        <div class="section">
+            <h2 class="section-title">MPD Database Backup & Restore</h2>
+            <p style="color: #95a5a6; margin-bottom: 20px;">Create timestamped backups or restore from previous backups. Backups are stored in /var/lib/mpd/</p>
+            <div class="action-group">
+                <button class="btn btn-primary" onclick="backupDatabase()">💾 Backup Database</button>
+                <button class="btn btn-warning" onclick="restoreDatabase()">♻️ Restore Database</button>
+            </div>
         </div>
     </div>
     
@@ -622,6 +653,79 @@
                             }
                         });
                     }
+                });
+        }
+        
+        function backupDatabase() {
+            if (!confirm('Create a backup of the MPD database?')) return;
+            
+            showMessage('Creating database backup...', 'info');
+            
+            fetch('/api/mpd/backup', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showMessage('✓ ' + data.message, 'success');
+                    } else {
+                        showMessage('Backup failed: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    showMessage('Backup request failed: ' + error, 'error');
+                });
+        }
+        
+        function restoreDatabase() {
+            showMessage('Fetching available backups...', 'info');
+            
+            fetch('/api/mpd/backups')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success || data.backups.length === 0) {
+                        showMessage('No backups found', 'error');
+                        return;
+                    }
+                    
+                    // Create selection dialog
+                    let message = 'Select a backup to restore:\n\n';
+                    data.backups.forEach((backup, index) => {
+                        message += `${index + 1}. ${backup.name} (${backup.size}, ${backup.date})\n`;
+                    });
+                    message += '\nEnter backup number (or cancel):';
+                    
+                    const selection = prompt(message);
+                    if (!selection) return;
+                    
+                    const index = parseInt(selection) - 1;
+                    if (index < 0 || index >= data.backups.length) {
+                        showMessage('Invalid selection', 'error');
+                        return;
+                    }
+                    
+                    const backup = data.backups[index];
+                    if (!confirm(`Restore from ${backup.name}? This will replace the current database and restart MPD.`)) return;
+                    
+                    showMessage('Restoring database...', 'info');
+                    
+                    fetch('/api/mpd/restore', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ backup_file: backup.name })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                showMessage('✓ ' + data.message, 'success');
+                            } else {
+                                showMessage('Restore failed: ' + data.error, 'error');
+                            }
+                        })
+                        .catch(error => {
+                            showMessage('Restore request failed: ' + error, 'error');
+                        });
+                })
+                .catch(error => {
+                    showMessage('Failed to fetch backups: ' + error, 'error');
                 });
         }
         
