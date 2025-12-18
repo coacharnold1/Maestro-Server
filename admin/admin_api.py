@@ -865,6 +865,74 @@ def api_get_logs(log_type):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/mpd/backup', methods=['POST'])
+def backup_mpd_database():
+    """Create a timestamped backup of the MPD database"""
+    try:
+        from datetime import datetime
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_path = f'/var/lib/mpd/database.backup.{timestamp}'
+        
+        # Copy database file
+        result = run_command(
+            ['cp', '/var/lib/mpd/database', backup_path],
+            require_sudo=True
+        )
+        
+        if result['success']:
+            # Get backup file size
+            size_result = run_command(['du', '-h', backup_path], require_sudo=True)
+            size = size_result['stdout'].split()[0] if size_result['success'] else 'unknown'
+            
+            return jsonify({
+                'success': True,
+                'message': f'Database backed up to {backup_path} ({size})',
+                'backup_path': backup_path,
+                'timestamp': timestamp
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result.get('stderr', 'Failed to create backup')
+            }), 500
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/mpd/backup', methods=['POST'])
+def backup_mpd_database():
+    """Create a timestamped backup of the MPD database"""
+    try:
+        from datetime import datetime
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_path = f'/var/lib/mpd/database.backup.{timestamp}'
+        
+        # Copy database file
+        result = run_command(
+            ['cp', '/var/lib/mpd/database', backup_path],
+            require_sudo=True
+        )
+        
+        if result['success']:
+            # Get backup file size
+            size_result = run_command(['du', '-h', backup_path], require_sudo=True)
+            size = size_result['stdout'].split()[0] if size_result['success'] else 'unknown'
+            
+            return jsonify({
+                'success': True,
+                'message': f'Database backed up to {backup_path} ({size})',
+                'backup_path': backup_path,
+                'timestamp': timestamp
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result.get('stderr', 'Failed to create backup')
+            }), 500
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # ============================================================================
 # MAIN
 # ============================================================================

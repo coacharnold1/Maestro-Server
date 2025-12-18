@@ -210,6 +210,12 @@
         </div>
         
         <div class="section">
+            <h2 class="section-title">MPD Database Backup</h2>
+            <p style="color: #95a5a6; margin-bottom: 20px;">Create a timestamped backup of the MPD database. Backups are stored in /var/lib/mpd/</p>
+            <button class="btn btn-primary" onclick="backupDatabase()">💾 Backup MPD Database</button>
+        </div>
+        
+        <div class="section">
             <h2 class="section-title">System Control</h2>
             <p style="color: #95a5a6; margin-bottom: 20px;">Restart or shutdown the system. Use with caution!</p>
             <div class="action-group">
@@ -277,6 +283,25 @@
             } else if (percent > 60) {
                 element.classList.add('warning');
             }
+        }
+        
+        function backupDatabase() {
+            if (!confirm('Create a backup of the MPD database?')) return;
+            
+            showMessage('Creating database backup...', 'info');
+            
+            fetch('/api/mpd/backup', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showMessage('✓ ' + data.message, 'success');
+                    } else {
+                        showMessage('Backup failed: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    showMessage('Backup request failed: ' + error, 'error');
+                });
         }
         
         function updateSystem() {
