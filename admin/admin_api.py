@@ -933,6 +933,106 @@ def backup_mpd_database():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/mpd/backups', methods=['GET'])
+def list_mpd_backups():
+    """List available MPD database backups"""
+    try:
+        from datetime import datetime
+        
+        # Find all backup files
+        result = run_command(
+            ['find', '/var/lib/mpd/', '-name', 'database.backup.*', '-type', 'f'],
+            require_sudo=True
+        )
+        
+        if not result['success']:
+            return jsonify({'success': False, 'error': 'Failed to list backups'}), 500
+        
+        backups = []
+        for line in result['stdout'].strip().split('\n'):
+            if not line:
+                continue
+                
+            # Get file info
+            basename = os.path.basename(line)
+            size_result = run_command(['du', '-h', line], require_sudo=True)
+            size = size_result['stdout'].split()[0] if size_result['success'] else 'unknown'
+            
+            # Get modification time
+            stat_result = run_command(['stat', '-c', '%y', line], require_sudo=True)
+            date_str = stat_result['stdout'].strip().split('.')[0] if stat_result['success'] else 'unknown'
+            
+            backups.append({
+                'name': basename,
+                'path': line,
+                'size': size,
+                'date': date_str
+            })
+        
+        # Sort by name (timestamp) descending
+        backups.sort(key=lambda x: x['name'], reverse=True)
+        
+        return jsonify({
+            'success': True,
+            'backups': backups,
+            'count': len(backups)
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/mpd/restore', methods=['POST'])
+def restore_mpd_database():
+    """Restore MPD database from a backup"""
+    try:
+        data = request.get_json()
+        backup_file = data.get('backup_file')
+        
+        if not backup_file:
+            return jsonify({'success': False, 'error': 'No backup file specified'}), 400
+        
+        # Validate backup file exists
+        backup_path = f'/var/lib/mpd/{backup_file}'
+        check_result = run_command(['test', '-f', backup_path], require_sudo=True)
+        
+        if not check_result['success']:
+            return jsonify({'success': False, 'error': 'Backup file not found'}), 404
+        
+        # Stop MPD
+        stop_result = run_command(['systemctl', 'stop', 'mpd'], require_sudo=True)
+        if not stop_result['success']:
+            return jsonify({'success': False, 'error': 'Failed to stop MPD'}), 500
+        
+        # Copy backup to database
+        restore_result = run_command(
+            ['cp', backup_path, '/var/lib/mpd/database'],
+            require_sudo=True
+        )
+        
+        if not restore_result['success']:
+            # Try to restart MPD even if restore failed
+            run_command(['systemctl', 'start', 'mpd'], require_sudo=True)
+            return jsonify({'success': False, 'error': 'Failed to restore database'}), 500
+        
+        # Start MPD
+        start_result = run_command(['systemctl', 'start', 'mpd'], require_sudo=True)
+        
+        if start_result['success']:
+            return jsonify({
+                'success': True,
+                'message': f'Database restored from {backup_file} and MPD restarted'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Database restored but MPD failed to start'
+            }), 500
+            
+    except Exception as e:
+        # Try to restart MPD on error
+        run_command(['systemctl', 'start', 'mpd'], require_sudo=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # ============================================================================
 # MAIN
 # ============================================================================
