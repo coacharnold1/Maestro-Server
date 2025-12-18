@@ -924,9 +924,22 @@ def list_mpd_backups():
             size_result = run_command(['du', '-h', line], require_sudo=True)
             size = size_result['stdout'].split()[0] if size_result['success'] else 'unknown'
             
-            # Get modification time
+            # Get modification time in local timezone
             stat_result = run_command(['stat', '-c', '%y', line], require_sudo=True)
-            date_str = stat_result['stdout'].strip().split('.')[0] if stat_result['success'] else 'unknown'
+            if stat_result['success']:
+                from datetime import datetime
+                # Parse the timestamp - stat already returns local time
+                timestamp_str = stat_result['stdout'].strip()
+                # Format: 2025-12-18 19:22:17.123456789 -0500
+                try:
+                    # Extract just the date and time part
+                    dt_str = timestamp_str.split('.')[0]
+                    dt = datetime.strptime(dt_str, '%Y-%m-%d %H:%M:%S')
+                    date_str = dt.strftime('%b %d, %I:%M:%S %p')
+                except:
+                    date_str = timestamp_str.split('.')[0]
+            else:
+                date_str = 'unknown'
             
             backups.append({
                 'name': basename,
@@ -935,8 +948,9 @@ def list_mpd_backups():
                 'date': date_str
             })
         
-        # Sort by name (timestamp) descending
+        # Sort by name (timestamp) descending and limit to 3 most recent
         backups.sort(key=lambda x: x['name'], reverse=True)
+        backups = backups[:3]
         
         return jsonify({
             'success': True,

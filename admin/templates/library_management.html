@@ -326,6 +326,7 @@
             <p style="color: #95a5a6; margin-bottom: 20px;">Create timestamped backups or restore from previous backups. Backups are stored in /var/lib/mpd/</p>
             <div class="action-group">
                 <button class="btn btn-primary" onclick="backupDatabase()">💾 Backup Database</button>
+                <span id="last-backup-time" style="color: #7f8c8d; font-size: 0.9em; margin-left: 10px;">Loading...</span>
                 <button class="btn btn-warning" onclick="restoreDatabase()">♻️ Restore Database</button>
             </div>
         </div>
@@ -656,6 +657,22 @@
                 });
         }
         
+        function loadLastBackupTime() {
+            fetch('/api/mpd/backups')
+                .then(response => response.json())
+                .then(data => {
+                    const timeSpan = document.getElementById('last-backup-time');
+                    if (data.success && data.backups && data.backups.length > 0) {
+                        timeSpan.textContent = `Last backup: ${data.backups[0].date}`;
+                    } else {
+                        timeSpan.textContent = 'No backups found';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('last-backup-time').textContent = '';
+                });
+        }
+        
         function backupDatabase() {
             if (!confirm('Create a backup of the MPD database?')) return;
             
@@ -666,6 +683,7 @@
                 .then(data => {
                     if (data.success) {
                         showMessage('✓ ' + data.message, 'success');
+                        loadLastBackupTime(); // Update the timestamp display
                     } else {
                         showMessage('Backup failed: ' + data.error, 'error');
                     }
@@ -732,6 +750,7 @@
         // Load both MPD info and mounts on page load
         loadMPDInfo();
         loadMounts();
+        loadLastBackupTime();
         
         // Refresh mounts every 10 seconds
         setInterval(loadMounts, 10000);
