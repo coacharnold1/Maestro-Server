@@ -46,3 +46,7 @@ htmlcov/
 # Update staging folder
 Maestro_Update/
 Maestro-Update/
+
+# Planning documents
+*_INTEGRATION.md
+*_SYNC.md
