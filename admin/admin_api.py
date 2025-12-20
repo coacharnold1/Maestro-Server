@@ -1296,6 +1296,38 @@ def get_cd_info():
                     except:
                         pass  # Album art is optional
                 
+                # If no MusicBrainz album art, try Last.fm as fallback
+                if not album_art_url:
+                    try:
+                        from pathlib import Path
+                        settings_file = Path.home() / 'maestro' / 'settings.json'
+                        if settings_file.exists():
+                            with open(settings_file) as f:
+                                settings = json.load(f)
+                                lastfm_api_key = settings.get('lastfm_api_key', '')
+                                
+                                if lastfm_api_key:
+                                    lastfm_url = 'http://ws.audioscrobbler.com/2.0/'
+                                    lastfm_params = {
+                                        'method': 'album.getinfo',
+                                        'api_key': lastfm_api_key,
+                                        'artist': artist,
+                                        'album': album,
+                                        'format': 'json'
+                                    }
+                                    lfm_response = requests.get(lastfm_url, params=lastfm_params, timeout=5)
+                                    if lfm_response.status_code == 200:
+                                        lfm_data = lfm_response.json()
+                                        if 'album' in lfm_data and 'image' in lfm_data['album']:
+                                            # Get largest image
+                                            for img in reversed(lfm_data['album']['image']):
+                                                if img.get('#text'):
+                                                    album_art_url = img['#text']
+                                                    break
+                    except Exception as e:
+                        print(f"Last.fm fallback failed: {e}", flush=True)
+                        pass
+                
                 # Get track list
                 tracks = []
                 if 'media' in release and len(release['media']) > 0:
