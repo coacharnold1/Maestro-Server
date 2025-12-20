@@ -4,5 +4,21 @@
   "lastfm_shared_secret": "",
   "lastfm_session_key": "",
   "scrobbling_enabled": false,
-  "show_scrobble_toasts": true
+  "show_scrobble_toasts": true,
+  "cd_ripper": {
+    "enabled": true,
+    "output_dir": "/media/music/ripped",
+    "format": "flac",
+    "quality": "high",
+    "metadata_provider": "musicbrainz",
+    "auto_eject": true,
+    "parallel_encode": true,
+    "max_processes": 4,
+    "album_art": {
+      "enabled": true,
+      "embed": true,
+      "save_file": true,
+      "filename": "cover.jpg"
+    }
+  }
 }

@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CD Settings - Maestro Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #ecf0f1;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px 30px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .nav-links a {
+            color: #ecf0f1;
+            text-decoration: none;
+            padding: 8px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        .nav-links a:hover {
+            background: rgba(52, 152, 219, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        h2 {
+            color: #3498db;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ecf0f1;
+            font-weight: 500;
+        }
+        
+        .help-text {
+            font-size: 0.85em;
+            color: #95a5a6;
+            margin-top: 5px;
+        }
+        
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ecf0f1;
+            font-size: 1em;
+            font-family: inherit;
+        }
+        
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+            color: white;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+        
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .tab-btn {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px 8px 0 0;
+            color: #ecf0f1;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .tab-btn.active {
+            background: rgba(52, 152, 219, 0.3);
+            border-color: #3498db;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        textarea {
+            font-family: 'Courier New', monospace;
+            min-height: 400px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>⚙️ CD Ripper Settings</h1>
+        <div class="nav-links">
+            <a href="/">🏠 Home</a>
+            <a href="/system">⚙️ System</a>
+            <a href="/library">📚 Library</a>
+            <a href="/audio">🎚️ Audio</a>
+            <a href="/cd-ripper">💿 CD Ripper</a>
+            <a href="/cd-settings">⚙️ CD Settings</a>
+            <a href="/files">📁 Files</a>
+        </div>
+    </header>
+    
+    <div class="section">
+        <div class="tab-buttons">
+            <button class="tab-btn active" onclick="switchTab('basic')">Basic Settings</button>
+            <button class="tab-btn" onclick="switchTab('advanced')">Advanced (abcde.conf)</button>
+        </div>
+        
+        <!-- Basic Settings Tab -->
+        <div id="basic-tab" class="tab-content active">
+            <h2>Basic CD Ripper Settings</h2>
+            
+            <div class="form-group">
+                <label for="output-dir">Output Directory</label>
+                <input type="text" id="output-dir" value="/var/lib/mpd/music" />
+                <div class="help-text">Where ripped music files will be saved</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="output-format">Default Output Format</label>
+                <select id="output-format">
+                    <option value="flac">FLAC (Lossless)</option>
+                    <option value="mp3">MP3 (Lossy)</option>
+                    <option value="ogg">Ogg Vorbis</option>
+                    <option value="opus">Opus</option>
+                </select>
+                <div class="help-text">Audio codec to use for ripped tracks</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="quality">Quality/Bitrate</label>
+                <select id="quality">
+                    <option value="high">High (320kbps MP3 / V0 VBR)</option>
+                    <option value="medium">Medium (192kbps)</option>
+                    <option value="low">Low (128kbps)</option>
+                </select>
+                <div class="help-text">Applies to lossy formats like MP3</div>
+            </div>
+            
+            <div class="form-group">
+                <label>Album Art Options</label>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="embed-art" checked />
+                    <label for="embed-art" style="margin: 0;">Embed album art in audio files</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="save-art" checked />
+                    <label for="save-art" style="margin: 0;">Save album art as cover.jpg</label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Post-Rip Actions</label>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="auto-eject" checked />
+                    <label for="auto-eject" style="margin: 0;">Auto-eject disc after ripping</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="auto-update-mpd" checked />
+                    <label for="auto-update-mpd" style="margin: 0;">Update MPD library after ripping</label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="filename-format">Filename Format</label>
+                <select id="filename-format">
+                    <option value="artist-album">${ARTIST}/${ALBUM}/${TRACKNUM} - ${TRACKNAME}</option>
+                    <option value="album-only">${ALBUM}/${TRACKNUM} - ${TRACKNAME}</option>
+                    <option value="flat">${ARTIST} - ${ALBUM} - ${TRACKNUM} - ${TRACKNAME}</option>
+                </select>
+                <div class="help-text">How ripped files will be organized and named</div>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn btn-success" onclick="saveBasicSettings()">💾 Save Settings</button>
+                <button class="btn" onclick="loadBasicSettings()">🔄 Reload</button>
+            </div>
+        </div>
+        
+        <!-- Advanced Settings Tab -->
+        <div id="advanced-tab" class="tab-content">
+            <h2>Advanced abcde Configuration</h2>
+            <p style="color: #f39c12; margin-bottom: 15px;">⚠️ Warning: Direct editing of abcde.conf. Make sure you know what you're doing!</p>
+            
+            <!-- Help Section -->
+            <details style="margin-bottom: 20px; background: rgba(52, 152, 219, 0.1); padding: 15px; border-radius: 8px; border: 1px solid rgba(52, 152, 219, 0.3);">
+                <summary style="cursor: pointer; font-weight: bold; color: #3498db; margin-bottom: 10px;">📚 Common abcde.conf Settings</summary>
+                <div style="margin-top: 15px; line-height: 1.6;">
+                    <p><strong>CDDBMETHOD</strong> - Metadata lookup method</p>
+                    <p style="color: #95a5a6; margin-bottom: 10px; margin-left: 20px;">
+                        cddb: Use CDDB/freedb<br>
+                        musicbrainz: Use MusicBrainz (recommended)
+                    </p>
+                    
+                    <p><strong>OUTPUTTYPE</strong> - Output format</p>
+                    <p style="color: #95a5a6; margin-bottom: 10px; margin-left: 20px;">
+                        flac: FLAC lossless<br>
+                        mp3: MP3 lossy<br>
+                        ogg: Ogg Vorbis<br>
+                        opus: Opus codec
+                    </p>
+                    
+                    <p><strong>OUTPUTDIR</strong> - Where files are saved</p>
+                    <p style="color: #95a5a6; margin-bottom: 10px; margin-left: 20px;">
+                        Default: "$HOME/Music"<br>
+                        For MPD: "/var/lib/mpd/music"
+                    </p>
+                    
+                    <p><strong>OUTPUTFORMAT</strong> - File naming pattern</p>
+                    <p style="color: #95a5a6; margin-bottom: 10px; margin-left: 20px;">
+                        Variables: ${ARTISTFILE}, ${ALBUMFILE}, ${TRACKNUM}, ${TRACKFILE}<br>
+                        Example: '${ARTISTFILE}/${ALBUMFILE}/${TRACKNUM} - ${TRACKFILE}'
+                    </p>
+                    
+                    <p><strong>ACTIONS</strong> - What abcde should do</p>
+                    <p style="color: #95a5a6; margin-bottom: 10px; margin-left: 20px;">
+                        cddb: Lookup metadata<br>
+                        read: Rip tracks<br>
+                        encode: Encode to format<br>
+                        tag: Write metadata tags<br>
+                        move: Move to output directory<br>
+                        clean: Remove temp files
+                    </p>
+                    
+                    <p><strong>MAXPROCS</strong> - Parallel encoding jobs</p>
+                    <p style="color: #95a5a6; margin-bottom: 10px; margin-left: 20px;">
+                        Number of CPU cores to use (e.g., 4)
+                    </p>
+                    
+                    <p><strong>FLACOPTS</strong> - FLAC encoding options</p>
+                    <p style="color: #95a5a6; margin-bottom: 10px; margin-left: 20px;">
+                        -8: Maximum compression (slower)<br>
+                        -5: Balanced (default)<br>
+                        -0: Fastest compression
+                    </p>
+                    
+                    <p><strong>LAMEOPTS</strong> - MP3 encoding options</p>
+                    <p style="color: #95a5a6; margin-bottom: 10px; margin-left: 20px;">
+                        -b 320: 320kbps constant bitrate<br>
+                        -V 0: Variable bitrate, highest quality<br>
+                        -V 2: Variable bitrate, high quality
+                    </p>
+                    
+                    <p><strong>EJECTCD</strong> - Auto-eject after rip</p>
+                    <p style="color: #95a5a6; margin-bottom: 10px; margin-left: 20px;">
+                        y: Yes, eject disc when done<br>
+                        n: No, keep disc in drive
+                    </p>
+                </div>
+            </details>
+            
+            <div class="form-group">
+                <label for="abcde-config">abcde.conf</label>
+                <textarea id="abcde-config" placeholder="Loading configuration..."></textarea>
+                <div class="help-text">Direct editing of abcde configuration file</div>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn btn-success" onclick="saveAdvancedSettings()">💾 Save Config</button>
+                <button class="btn" onclick="loadAdvancedSettings()">🔄 Reload</button>
+                <button class="btn btn-danger" onclick="restoreDefaultConfig()">🔙 Restore Defaults</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function switchTab(tab) {
+    // Update tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Update tab content
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    document.getElementById(`${tab}-tab`).classList.add('active');
+    
+    // Load data for the tab
+    if (tab === 'basic') {
+        loadBasicSettings();
+    } else {
+        loadAdvancedSettings();
+    }
+}
+
+function loadBasicSettings() {
+    fetch('/api/cd/settings')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const settings = data.settings;
+                document.getElementById('output-dir').value = settings.output_dir || '/var/lib/mpd/music';
+                document.getElementById('output-format').value = settings.format || 'flac';
+                document.getElementById('quality').value = settings.quality || 'high';
+                document.getElementById('embed-art').checked = settings.embed_art !== false;
+                document.getElementById('save-art').checked = settings.save_art !== false;
+                document.getElementById('auto-eject').checked = settings.auto_eject !== false;
+                document.getElementById('auto-update-mpd').checked = settings.auto_update_mpd !== false;
+                document.getElementById('filename-format').value = settings.filename_format || 'artist-album';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading settings:', error);
+            showMessage('Error loading settings', 'error');
+        });
+}
+
+function saveBasicSettings() {
+    const settings = {
+        output_dir: document.getElementById('output-dir').value,
+        format: document.getElementById('output-format').value,
+        quality: document.getElementById('quality').value,
+        embed_art: document.getElementById('embed-art').checked,
+        save_art: document.getElementById('save-art').checked,
+        auto_eject: document.getElementById('auto-eject').checked,
+        auto_update_mpd: document.getElementById('auto-update-mpd').checked,
+        filename_format: document.getElementById('filename-format').value
+    };
+    
+    fetch('/api/cd/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('Settings saved successfully!', 'success');
+            } else {
+                showMessage('Error: ' + data.error, 'error');
+            }
+        })
+        .catch(error => {
+            showMessage('Error saving settings: ' + error, 'error');
+        });
+}
+
+function loadAdvancedSettings() {
+    fetch('/api/cd/config')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('abcde-config').value = data.config;
+            } else {
+                showMessage('Error loading config: ' + data.error, 'error');
+            }
+        })
+        .catch(error => {
+            showMessage('Error loading config: ' + error, 'error');
+        });
+}
+
+function saveAdvancedSettings() {
+    const config = document.getElementById('abcde-config').value;
+    
+    fetch('/api/cd/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config: config })
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('Configuration saved successfully!', 'success');
+            } else {
+                showMessage('Error: ' + data.error, 'error');
+            }
+        })
+        .catch(error => {
+            showMessage('Error saving config: ' + error, 'error');
+        });
+}
+
+function restoreDefaultConfig() {
+    if (!confirm('Are you sure you want to restore default abcde configuration? This will overwrite your current settings.')) {
+        return;
+    }
+    
+    fetch('/api/cd/config/reset', {
+        method: 'POST'
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('Configuration reset to defaults', 'success');
+                loadAdvancedSettings();
+            } else {
+                showMessage('Error: ' + data.error, 'error');
+            }
+        })
+        .catch(error => {
+            showMessage('Error resetting config: ' + error, 'error');
+        });
+}
+
+function showMessage(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.textContent = message;
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 25px;
+        background: ${type === 'success' ? '#2ecc71' : type === 'error' ? '#e74c3c' : '#3498db'};
+        color: white;
+        border-radius: 8px;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+// Load basic settings on page load
+loadBasicSettings();
+</script>
+</body>
+</html>

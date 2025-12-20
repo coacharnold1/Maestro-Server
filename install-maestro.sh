@@ -146,7 +146,15 @@ prompt_directories() {
     echo -e "${CYAN}Enter the FULL PATH to where recent albums are located.${NC}"
     echo -e "${CYAN}Example: /media/music/down or /media/music/recent${NC}"
     echo -e "${CYAN}(This should be the complete path, not relative to music directory)${NC}"
-    read -p "Enter full path (or press Enter to skip): " RECENT_DIR
+    echo -e "${CYAN}Note: /media/music/ripped will always be included for CD rips${NC}"
+    read -p "Enter full path (or press Enter to skip): " USER_RECENT_DIR
+    
+    # Always include ripped directory, plus user's directory if specified
+    if [ -n "$USER_RECENT_DIR" ]; then
+        RECENT_DIR="$USER_RECENT_DIR,/media/music/ripped"
+    else
+        RECENT_DIR="/media/music/ripped"
+    fi
     
     echo ""
     echo -e "${YELLOW}Default Theme${NC}"
@@ -184,6 +192,8 @@ install_dependencies() {
     
     case "$OS" in
         ubuntu|debian)
+            # Set noninteractive to avoid prompts
+            export DEBIAN_FRONTEND=noninteractive
             sudo apt update
             sudo apt install -y \
                 $mpd_packages \
@@ -191,7 +201,8 @@ install_dependencies() {
                 alsa-utils \
                 nfs-common cifs-utils \
                 curl wget git \
-                build-essential
+                build-essential \
+                cdparanoia cd-discid abcde flac lame vorbis-tools eject imagemagick
             ;;
         arch|manjaro)
             sudo pacman -Syu --noconfirm \
@@ -260,6 +271,16 @@ configure_mpd() {
     else
         # Create music directory (but don't change ownership - may be network mount)
         sudo mkdir -p "$MUSIC_DIR"
+    fi
+    
+    # Create CD ripping output directory
+    if [ "$MUSIC_DIR" == "/media/music" ]; then
+        sudo mkdir -p "$USER_MUSIC_DIR/ripped"
+        sudo chown -R mpd:audio "$USER_MUSIC_DIR/ripped"
+        echo -e "${GREEN}✓ Created CD ripping directory: $USER_MUSIC_DIR/ripped${NC}"
+    else
+        sudo mkdir -p "$MUSIC_DIR/ripped"
+        echo -e "${GREEN}✓ Created CD ripping directory: $MUSIC_DIR/ripped${NC}"
     fi
     
     # CRITICAL: Backup MPD database BEFORE any changes
@@ -533,6 +554,21 @@ $USER ALL=(ALL) NOPASSWD: /usr/bin/aplay
 $USER ALL=(ALL) NOPASSWD: /usr/bin/journalctl
 $USER ALL=(ALL) NOPASSWD: /usr/bin/tee /etc/mpd.conf
 $USER ALL=(ALL) NOPASSWD: /usr/bin/dpkg --configure -a
+# MPD Database Backup/Restore commands
+$USER ALL=(ALL) NOPASSWD: /usr/bin/cp /var/lib/mpd/database *
+$USER ALL=(ALL) NOPASSWD: /usr/bin/find /var/lib/mpd/ -name database.backup.* -type f
+$USER ALL=(ALL) NOPASSWD: /usr/bin/du -h /var/lib/mpd/database*
+$USER ALL=(ALL) NOPASSWD: /usr/bin/stat -c %y /var/lib/mpd/database*
+$USER ALL=(ALL) NOPASSWD: /usr/bin/test -f /var/lib/mpd/database*
+# CD Ripping commands
+$USER ALL=(ALL) NOPASSWD: /usr/bin/cdparanoia
+$USER ALL=(ALL) NOPASSWD: /usr/bin/cd-discid
+$USER ALL=(ALL) NOPASSWD: /usr/bin/abcde
+$USER ALL=(ALL) NOPASSWD: /usr/bin/eject
+# File management commands for imported music
+$USER ALL=(ALL) NOPASSWD: /usr/bin/mv /media/music/*
+$USER ALL=(ALL) NOPASSWD: /usr/bin/rm /media/music/*
+$USER ALL=(ALL) NOPASSWD: /usr/bin/rm -rf /media/music/*
 EOF
     
     sudo chmod 440 "$SUDOERS_FILE"

@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CD Ripper - Maestro Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #ecf0f1;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px 30px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .nav-links a {
+            color: #ecf0f1;
+            text-decoration: none;
+            padding: 8px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+        
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        
+        .status-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        
+        .form-group {
+            margin: 15px 0;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #95a5a6;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #ecf0f1;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        }
+        
+        .action-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>💿 CD Ripper</h1>
+        <div class="nav-links">
+            <a href="/">🏠 Home</a>
+            <a href="/system">⚙️ System</a>
+            <a href="/library">📚 Library</a>
+            <a href="/audio">🎚️ Audio</a>
+            <a href="/cd-ripper">💿 CD Ripper</a>
+            <a href="/cd-settings">⚙️ CD Settings</a>
+            <a href="/files">📁 Files</a>
+        </div>
+    </header>
+    
+<div class="admin-container">
+    <h1>💿 CD Ripper</h1>
+    
+    <div class="section">
+        <h2>CD Drive Status</h2>
+        <div id="cd-status" class="status-box">
+            <p id="drive-status">Checking for CD drive...</p>
+            <p id="disc-status">No disc detected</p>
+        </div>
+    </div>
+    
+    <div class="section" id="cd-info" style="display: none;">
+        <h2>CD Information</h2>
+        <div style="display: flex; gap: 20px; align-items: flex-start;">
+            <div id="album-art-container" style="display: none; flex-shrink: 0;">
+                <img id="album-art" src="" alt="Album Art" style="width: 200px; height: 200px; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);" />
+            </div>
+            <div style="flex: 1;">
+                <table class="info-table">
+                    <tr>
+                        <td><strong>Artist:</strong></td>
+                        <td>
+                            <span id="cd-artist-display">-</span>
+                            <input type="text" id="cd-artist-edit" style="display: none; width: 100%;" />
+                        </td>
+                        <td><button class="btn-small" onclick="toggleEdit('artist')">✏️ Edit</button></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Album:</strong></td>
+                        <td>
+                            <span id="cd-album-display">-</span>
+                            <input type="text" id="cd-album-edit" style="display: none; width: 100%;" />
+                        </td>
+                        <td><button class="btn-small" onclick="toggleEdit('album')">✏️ Edit</button></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Year:</strong></td>
+                        <td>
+                            <span id="cd-year-display">-</span>
+                            <input type="text" id="cd-year-edit" style="display: none; width: 100px;" />
+                        </td>
+                        <td><button class="btn-small" onclick="toggleEdit('year')">✏️ Edit</button></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Genre:</strong></td>
+                        <td>
+                            <span id="cd-genre-display">-</span>
+                            <input type="text" id="cd-genre-edit" style="display: none; width: 100%;" />
+                        </td>
+                        <td><button class="btn-small" onclick="toggleEdit('genre')">✏️ Edit</button></td>
+                    </tr>
+                    <tr><td><strong>Tracks:</strong></td><td id="cd-tracks" colspan="2">-</td></tr>
+                </table>
+                <div style="margin-top: 10px;">
+                    <button class="btn" onclick="saveMetadata()" style="display: none;" id="save-metadata-btn">💾 Save All Changes</button>
+                    <p style="color: #95a5a6; font-size: 0.9em; margin-top: 5px; display: none;" id="edit-hint">
+                        💡 Tip: Edit multiple fields, then click "Save All Changes" once
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="track-list" style="margin-top: 20px;">
+            <!-- Track listing will be populated here -->
+        </div>
+    </div>
+    
+    <div class="section" id="rip-options" style="display: none;">
+        <h2>Ripping Options</h2>
+        
+        <div class="form-group">
+            <label>Output Format:</label>
+            <select id="output-format">
+                <option value="flac" selected>FLAC (Lossless)</option>
+                <option value="mp3">MP3 320kbps</option>
+                <option value="ogg">Ogg Vorbis</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>Output Directory:</label>
+            <input type="text" id="output-dir" value="/media/music/ripped" />
+        </div>
+        
+        <div class="form-group">
+            <label>Album Art:</label>
+            <div style="display: flex; gap: 15px;">
+                <label style="display: flex; align-items: center; gap: 5px;">
+                    <input type="checkbox" id="album-art-embed" checked />
+                    <span>Embed in files</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 5px;">
+                    <input type="checkbox" id="album-art-save" checked />
+                    <span>Save as cover.jpg</span>
+                </label>
+            </div>
+        </div>
+        
+        <div class="action-group">
+            <button class="btn btn-primary" onclick="startRip()">▶️ Start Ripping</button>
+            <button class="btn" onclick="ejectDisc()">⏏️ Eject</button>
+        </div>
+    </div>
+    
+    <div class="section" id="rip-progress" style="display: none;">
+        <h2>Ripping in Progress</h2>
+        <div class="progress-bar">
+            <div id="progress-fill" style="width: 0%;"></div>
+        </div>
+        <p id="rip-status-text">Initializing...</p>
+        <p id="current-track">Track 0 of 0</p>
+    </div>
+</div>
+
+<style>
+.info-table {
+    width: 100%;
+    margin: 20px 0;
+}
+
+.info-table td {
+    padding: 8px;
+    border-bottom: 1px solid #34495e;
+}
+
+.info-table td:first-child {
+    width: 120px;
+}
+
+.btn-small {
+    padding: 4px 8px;
+    font-size: 12px;
+    background: rgba(52, 152, 219, 0.8);
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.btn-small:hover {
+    background: rgba(52, 152, 219, 1);
+}
+
+.track-edit {
+    font-family: inherit;
+    font-size: inherit;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid #3498db;
+    border-radius: 4px;
+    color: white;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 30px;
+    background: #34495e;
+    border-radius: 15px;
+    overflow: hidden;
+    margin: 20px 0;
+}
+
+#progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3498db, #2ecc71);
+    transition: width 0.3s;
+}
+</style>
+
+<script>
+let checkInterval;
+let ripCheckInterval;
+
+function checkCDStatus() {
+    fetch('/api/cd/status')
+        .then(response => response.json())
+        .then(data => {
+            console.log('CD Status:', data);
+            if (data.disc_present) {
+                document.getElementById('disc-status').textContent = 
+                    `CD detected (${data.track_count || 0} tracks)`;
+                document.getElementById('cd-info').style.display = 'block';
+                document.getElementById('rip-options').style.display = 'block';
+                fetchCDInfo();
+            } else {
+                document.getElementById('disc-status').textContent = 
+                    data.message || 'No disc detected';
+                document.getElementById('cd-info').style.display = 'none';
+                document.getElementById('rip-options').style.display = 'none';
+            }
+        })
+        .catch(error => {
+            console.error('Error checking CD status:', error);
+            document.getElementById('disc-status').textContent = 'Error checking disc status';
+        });
+    
+    // Check for drives
+    fetch('/api/cd/drives')
+        .then(response => response.json())
+        .then(data => {
+            if (data.count > 0) {
+                const drive = data.drives[0];
+                document.getElementById('drive-status').textContent = 
+                    `Drive found: ${drive.model} (${drive.type})`;
+            } else {
+                document.getElementById('drive-status').textContent = 
+                    'No CD drive detected';
+            }
+        });
+}
+
+function fetchCDInfo() {
+    fetch('/api/cd/info')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Store metadata globally for editing
+                window.cdMetadata = data;
+                
+                // Update display fields
+                document.getElementById('cd-artist-display').textContent = data.artist;
+                document.getElementById('cd-album-display').textContent = data.album;
+                document.getElementById('cd-year-display').textContent = data.year;
+                document.getElementById('cd-genre-display').textContent = data.genre;
+                document.getElementById('cd-tracks').textContent = data.tracks.length;
+                
+                // Update edit fields ONLY if not currently in edit mode
+                ['artist', 'album', 'year', 'genre'].forEach(field => {
+                    const editField = document.getElementById(`cd-${field}-edit`);
+                    if (editField.style.display !== 'inline-block') {
+                        editField.value = data[field];
+                    }
+                });
+                
+                // Display album art if available
+                if (data.album_art_url) {
+                    document.getElementById('album-art').src = data.album_art_url;
+                    document.getElementById('album-art-container').style.display = 'block';
+                } else {
+                    document.getElementById('album-art-container').style.display = 'none';
+                }
+                
+                // Build track list with editable fields (only if not already built or disc changed)
+                const trackListDiv = document.getElementById('track-list');
+                const currentDiscId = trackListDiv.getAttribute('data-disc-id');
+                
+                if (data.tracks.length > 0 && currentDiscId !== data.disc_id) {
+                    let trackHTML = '<h3>Track List <button class="btn-small" id="track-edit-btn" onclick="toggleTrackEdit()">✏️ Edit Tracks</button></h3><ol id="track-ol">';
+                    data.tracks.forEach((track, index) => {
+                        trackHTML += `<li>
+                            <span class="track-display">${track.title}</span>
+                            <input type="text" class="track-edit" data-index="${index}" value="${track.title}" style="display: none; width: 90%;" />
+                        </li>`;
+                    });
+                    trackHTML += '</ol>';
+                    trackListDiv.innerHTML = trackHTML;
+                    trackListDiv.setAttribute('data-disc-id', data.disc_id);
+                } else if (data.tracks.length === 0) {
+                    trackListDiv.innerHTML = '<p style="color: #95a5a6;">Track information not available yet</p>';
+                    trackListDiv.removeAttribute('data-disc-id');
+                }
+            }
+        });
+}
+
+function startRip() {
+    const format = document.getElementById('output-format').value;
+    const outputDir = document.getElementById('output-dir').value;
+    const embedArt = document.getElementById('album-art-embed').checked;
+    const saveArt = document.getElementById('album-art-save').checked;
+    
+    if (!confirm(`Rip CD to ${format.toUpperCase()}?`)) return;
+    
+    showMessage('Starting rip process...', 'info');
+    
+    fetch('/api/cd/rip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            format, 
+            output_dir: outputDir,
+            album_art: {
+                embed: embedArt,
+                save_file: saveArt
+            }
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('Rip started successfully!', 'success');
+                document.getElementById('rip-options').style.display = 'none';
+                document.getElementById('rip-progress').style.display = 'block';
+                
+                // Start polling for progress
+                ripCheckInterval = setInterval(checkRipProgress, 1000);
+            } else {
+                showMessage(data.error || data.message || 'Failed to start rip', 'error');
+            }
+        })
+        .catch(error => {
+            showMessage('Rip request failed: ' + error, 'error');
+        });
+}
+
+function checkRipProgress() {
+    fetch('/api/cd/rip-status')
+        .then(response => response.json())
+        .then(data => {
+            if (!data.active) {
+                clearInterval(ripCheckInterval);
+                
+                if (data.status === 'complete') {
+                    showMessage('✓ CD ripped successfully!', 'success');
+                    document.getElementById('rip-progress').style.display = 'none';
+                    ejectDisc();
+                } else if (data.status === 'error') {
+                    showMessage('Ripping failed: ' + data.error, 'error');
+                    document.getElementById('rip-progress').style.display = 'none';
+                }
+                
+                checkCDStatus();
+            } else {
+                // Update progress UI
+                const progress = (data.current_track / data.total_tracks) * 100;
+                document.getElementById('progress-fill').style.width = progress + '%';
+                document.getElementById('rip-status-text').textContent = 
+                    `Status: ${data.status}`;
+                document.getElementById('current-track').textContent = 
+                    `Track ${data.current_track} of ${data.total_tracks}`;
+            }
+        });
+}
+
+function ejectDisc() {
+    fetch('/api/cd/eject', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('CD ejected', 'success');
+                setTimeout(checkCDStatus, 2000);
+            } else {
+                showMessage('Eject failed: ' + data.error, 'error');
+            }
+        });
+}
+
+function showMessage(message, type) {
+    // Simple toast notification (you can enhance this)
+    const toast = document.createElement('div');
+    toast.textContent = message;
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        background: ${type === 'success' ? '#2ecc71' : type === 'error' ? '#e74c3c' : type === 'warning' ? '#f39c12' : '#3498db'};
+        color: white;
+        border-radius: 8px;
+        z-index: 10000;
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+// Edit mode tracking
+function toggleEdit(field) {
+    const display = document.getElementById(`cd-${field}-display`);
+    const edit = document.getElementById(`cd-${field}-edit`);
+    const saveBtn = document.getElementById('save-metadata-btn');
+    const hint = document.getElementById('edit-hint');
+    
+    if (edit.style.display === 'none' || edit.style.display === '') {
+        // Enter edit mode
+        display.style.display = 'none';
+        edit.style.display = 'inline-block';
+        edit.focus();
+        saveBtn.style.display = 'inline-block';
+        hint.style.display = 'block';
+    } else {
+        // Exit edit mode
+        display.textContent = edit.value;
+        display.style.display = 'inline';
+        edit.style.display = 'none';
+        
+        // Hide save button if no fields are being edited
+        if (!isAnyFieldInEditMode()) {
+            saveBtn.style.display = 'none';
+            hint.style.display = 'none';
+        }
+    }
+}
+
+function isAnyFieldInEditMode() {
+    const fields = ['artist', 'album', 'year', 'genre'];
+    const anyMetadataEditing = fields.some(field => {
+        const edit = document.getElementById(`cd-${field}-edit`);
+        return edit && edit.style.display === 'inline-block';
+    });
+    
+    const trackEdits = document.querySelectorAll('.track-edit');
+    const anyTracksEditing = Array.from(trackEdits).some(e => e.style.display === 'inline-block');
+    
+    return anyMetadataEditing || anyTracksEditing;
+}
+
+function toggleTrackEdit() {
+    const displays = document.querySelectorAll('.track-display');
+    const edits = document.querySelectorAll('.track-edit');
+    const saveBtn = document.getElementById('save-metadata-btn');
+    const hint = document.getElementById('edit-hint');
+    
+    // Always just enter edit mode (like other fields)
+    displays.forEach(d => d.style.display = 'none');
+    edits.forEach(e => e.style.display = 'inline-block');
+    saveBtn.style.display = 'inline-block';
+    hint.style.display = 'block';
+}
+
+function saveMetadata() {
+    if (!window.cdMetadata) {
+        showMessage('No CD metadata loaded', 'error');
+        return;
+    }
+    
+    // Collect edited values
+    const metadata = {
+        disc_id: window.cdMetadata.mb_disc_id || window.cdMetadata.disc_id,
+        artist: document.getElementById('cd-artist-edit').value,
+        album: document.getElementById('cd-album-edit').value,
+        year: document.getElementById('cd-year-edit').value,
+        genre: document.getElementById('cd-genre-edit').value,
+        tracks: []
+    };
+    
+    // Collect track titles
+    document.querySelectorAll('.track-edit').forEach((input, index) => {
+        metadata.tracks.push({
+            number: index + 1,
+            title: input.value
+        });
+    });
+    
+    // Save to backend
+    fetch('/api/cd/metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(metadata)
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('Metadata saved successfully!', 'success');
+                
+                // Update displayed values
+                document.getElementById('cd-artist-display').textContent = metadata.artist;
+                document.getElementById('cd-album-display').textContent = metadata.album;
+                document.getElementById('cd-year-display').textContent = metadata.year;
+                document.getElementById('cd-genre-display').textContent = metadata.genre;
+                
+                // Update track display values
+                document.querySelectorAll('.track-display').forEach((display, index) => {
+                    if (metadata.tracks[index]) {
+                        display.textContent = metadata.tracks[index].title;
+                    }
+                });
+                
+                // Exit all edit modes
+                ['artist', 'album', 'year', 'genre'].forEach(field => {
+                    const display = document.getElementById(`cd-${field}-display`);
+                    const edit = document.getElementById(`cd-${field}-edit`);
+                    display.style.display = 'inline';
+                    edit.style.display = 'none';
+                });
+                document.querySelectorAll('.track-display').forEach(d => d.style.display = 'inline');
+                document.querySelectorAll('.track-edit').forEach(e => e.style.display = 'none');
+                const trackEditBtn = document.getElementById('track-edit-btn');
+                if (trackEditBtn) trackEditBtn.innerHTML = '✏️ Edit Tracks';
+                document.getElementById('save-metadata-btn').style.display = 'none';
+                document.getElementById('edit-hint').style.display = 'none';
+                
+                // Update stored metadata
+                window.cdMetadata.artist = metadata.artist;
+                window.cdMetadata.album = metadata.album;
+                window.cdMetadata.year = metadata.year;
+                window.cdMetadata.genre = metadata.genre;
+                window.cdMetadata.tracks = metadata.tracks;
+            } else {
+                showMessage('Failed to save metadata: ' + data.error, 'error');
+            }
+        })
+        .catch(error => {
+            showMessage('Error saving metadata: ' + error, 'error');
+        });
+}
+
+// Initialize page - check if rip is already in progress
+function initializePage() {
+    // First check if a rip is already active
+    fetch('/api/cd/rip-status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.active) {
+                // Rip is in progress, show progress section
+                document.getElementById('cd-info').style.display = 'none';
+                document.getElementById('rip-options').style.display = 'none';
+                document.getElementById('rip-progress').style.display = 'block';
+                document.getElementById('rip-status-text').textContent = data.status || 'Ripping...';
+                
+                // Start polling for progress
+                if (progressInterval) clearInterval(progressInterval);
+                progressInterval = setInterval(checkRipProgress, 1000);
+            } else {
+                // No active rip, check CD status normally
+                checkCDStatus();
+            }
+        })
+        .catch(() => {
+            // If error checking status, just proceed with normal CD check
+            checkCDStatus();
+        });
+}
+
+// Check CD status every 5 seconds
+initializePage();
+checkInterval = setInterval(checkCDStatus, 5000);
+</script>
+</div>
+</body>
+</html>

@@ -123,6 +123,21 @@ def system_page():
     """System administration page"""
     return render_template('system_admin.html')
 
+@app.route('/cd-ripper')
+def cd_ripper_page():
+    """CD ripper page"""
+    return render_template('cd_ripper.html')
+
+@app.route('/cd-settings')
+def cd_settings_page():
+    """CD settings page"""
+    return render_template('cd_settings.html')
+
+@app.route('/files')
+def file_browser_page():
+    """File browser page"""
+    return render_template('file_browser.html')
+
 # ============================================================================
 # API ENDPOINTS - SYSTEM INFO
 # ============================================================================
@@ -1011,6 +1026,857 @@ def restore_mpd_database():
     except Exception as e:
         # Try to restart MPD on error
         run_command(['systemctl', 'start', 'mpd'], require_sudo=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ============================================================================
+# CD RIPPER API
+# ============================================================================
+
+# Cache for CD metadata to avoid repeatedly querying the disc
+cd_metadata_cache = {
+    'disc_id': None,
+    'mb_disc_id': None,
+    'metadata': None,
+    'timestamp': 0
+}
+
+# Storage for edited metadata
+cd_edited_metadata = {}
+
+# Global rip status
+rip_status = {
+    'active': False,
+    'progress': 0,
+    'current_track': 0,
+    'total_tracks': 0,
+    'status': 'idle',
+    'error': None
+}
+
+def load_cd_settings():
+    """Helper function to load CD settings"""
+    settings_file = Path.home() / 'maestro' / 'settings.json'
+    try:
+        with open(settings_file, 'r') as f:
+            settings = json.load(f)
+    except:
+        settings = {}
+    
+    cd_settings = settings.get('cd_ripper', {})
+    
+    # Provide defaults
+    return {
+        'enabled': cd_settings.get('enabled', True),
+        'output_dir': cd_settings.get('output_dir', '/media/music/ripped'),
+        'format': cd_settings.get('format', 'flac'),
+        'quality': cd_settings.get('quality', 'high'),
+        'metadata_provider': cd_settings.get('metadata_provider', 'musicbrainz'),
+        'auto_eject': cd_settings.get('auto_eject', True),
+        'parallel_encode': cd_settings.get('parallel_encode', True),
+        'max_processes': cd_settings.get('max_processes', 4)
+    }
+
+@app.route('/api/cd/settings')
+def get_cd_settings():
+    """Get CD ripper configuration"""
+    try:
+        cd_settings = load_cd_settings()
+        return jsonify({'success': True, 'settings': cd_settings})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/cd/settings', methods=['POST'])
+def update_cd_settings():
+    """Update CD ripper configuration"""
+    try:
+        data = request.json
+        settings = load_settings()
+        
+        # Validate output directory
+        output_dir = data.get('output_dir')
+        if output_dir and not os.path.isdir(output_dir):
+            return jsonify({'success': False, 'error': 'Invalid output directory'}), 400
+        
+        settings['cd_ripper'] = {
+            'enabled': data.get('enabled', True),
+            'output_dir': output_dir or '/media/music/ripped',
+            'format': data.get('format', 'flac'),
+            'quality': data.get('quality', 'high'),
+            'metadata_provider': data.get('metadata_provider', 'musicbrainz'),
+            'auto_eject': data.get('auto_eject', True),
+            'parallel_encode': data.get('parallel_encode', True),
+            'max_processes': data.get('max_processes', 4)
+        }
+        
+        save_settings(settings)
+        return jsonify({'success': True, 'message': 'Settings updated'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/cd/drives')
+def get_cd_drives():
+    """List available CD drives (local and USB)"""
+    try:
+        drives = []
+        
+        # Check common device paths
+        for device in ['/dev/cdrom', '/dev/sr0', '/dev/sr1', '/dev/sr2']:
+            if os.path.exists(device):
+                real_device = os.path.realpath(device)
+                
+                # Try to get model info
+                try:
+                    model_path = f'/sys/block/{os.path.basename(real_device)}/device/model'
+                    with open(model_path, 'r') as f:
+                        model = f.read().strip()
+                except:
+                    model = 'Unknown'
+                
+                drives.append({
+                    'device': device,
+                    'real_device': real_device,
+                    'name': os.path.basename(real_device),
+                    'model': model,
+                    'type': 'USB' if 'usb' in real_device.lower() else 'Internal'
+                })
+        
+        return jsonify({'success': True, 'drives': drives, 'count': len(drives)})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/cd/status')
+def get_cd_status():
+    """Check if CD is inserted and get basic info"""
+    try:
+        # Use cdparanoia to detect if disc is present
+        result = run_command(['/usr/bin/cdparanoia', '-Q'])
+        
+        # Check if command executed (may have error key if failed)
+        if 'error' in result:
+            return jsonify({
+                'success': True,
+                'disc_present': False,
+                'track_count': 0,
+                'message': f"No disc in drive: {result.get('error', 'unknown')}"
+            })
+        
+        # cdparanoia exits with 0 if disc found, non-zero if no disc
+        disc_present = result.get('returncode') == 0
+        
+        # Get track count if disc is present
+        track_count = 0
+        if disc_present and result.get('stderr'):
+            # Parse cdparanoia output for track count
+            for line in result['stderr'].split('\n'):
+                if 'tracks:' in line.lower():
+                    try:
+                        track_count = int(line.split(':')[1].strip().split()[0])
+                    except:
+                        pass
+        
+        return jsonify({
+            'success': True,
+            'disc_present': disc_present,
+            'track_count': track_count,
+            'message': 'Disc detected' if disc_present else 'No disc in drive'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/cd/metadata', methods=['POST'])
+def save_cd_metadata():
+    """Save edited CD metadata"""
+    global cd_edited_metadata
+    try:
+        data = request.get_json()
+        disc_id = data.get('disc_id')
+        
+        if not disc_id:
+            return jsonify({'success': False, 'error': 'disc_id required'}), 400
+        
+        # Store edited metadata
+        cd_edited_metadata[disc_id] = {
+            'artist': data.get('artist', ''),
+            'album': data.get('album', ''),
+            'year': data.get('year', ''),
+            'genre': data.get('genre', ''),
+            'tracks': data.get('tracks', [])
+        }
+        
+        print(f"DEBUG: Saved edited metadata for disc {disc_id}: {cd_edited_metadata[disc_id]}", flush=True)
+        
+        return jsonify({'success': True, 'message': 'Metadata saved'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/cd/info')
+def get_cd_info():
+    """Get CD metadata from configured provider"""
+    global cd_metadata_cache
+    import time
+    
+    print(f"DEBUG: get_cd_info() called", flush=True)
+    try:
+        # Get disc ID using cd-discid
+        result = run_command(['/usr/bin/cd-discid', '/dev/cdrom'])
+        if result['returncode'] != 0:
+            # Clear cache if no disc
+            cd_metadata_cache = {'disc_id': None, 'mb_disc_id': None, 'metadata': None, 'timestamp': 0}
+            return jsonify({
+                'success': False,
+                'error': 'Could not read disc ID. Is a CD in the drive?'
+            }), 400
+        
+        # Parse cd-discid output: discid nframes track1 track2 ... trackN
+        disc_info = result['stdout'].strip().split()
+        if len(disc_info) < 3:
+            return jsonify({'success': False, 'error': 'Invalid disc ID'}), 400
+        
+        disc_id = disc_info[0]
+        track_count = len(disc_info) - 2
+        
+        # Check cache - if same disc and cached within last 60 seconds, return cached data
+        current_time = time.time()
+        if (cd_metadata_cache['disc_id'] == disc_id and 
+            cd_metadata_cache['metadata'] is not None and 
+            (current_time - cd_metadata_cache['timestamp']) < 60):
+            print(f"DEBUG: Returning cached metadata for disc {disc_id}", flush=True)
+            cached_data = cd_metadata_cache['metadata'].copy()
+            
+            # Override with edited metadata if it exists (check both disc IDs)
+            mb_disc_id = cd_metadata_cache.get('mb_disc_id', disc_id)
+            if mb_disc_id in cd_edited_metadata or disc_id in cd_edited_metadata:
+                edited = cd_edited_metadata.get(mb_disc_id) or cd_edited_metadata.get(disc_id)
+                print(f"DEBUG: Applying edited metadata: {edited}", flush=True)
+                cached_data['artist'] = edited.get('artist', cached_data['artist'])
+                cached_data['album'] = edited.get('album', cached_data['album'])
+                cached_data['year'] = edited.get('year', cached_data['year'])
+                cached_data['genre'] = edited.get('genre', cached_data['genre'])
+                if edited.get('tracks'):
+                    cached_data['tracks'] = edited['tracks']
+                print(f"DEBUG: Returning cached data with edits: genre={cached_data['genre']}", flush=True)
+            
+            return jsonify(cached_data)
+        
+        # Query MusicBrainz API
+        import requests
+        mb_url = f'https://musicbrainz.org/ws/2/discid/{disc_id}?inc=artist-credits+recordings'
+        headers = {
+            'User-Agent': 'Maestro-MPD/1.0 (https://github.com/yourusername/maestro)',
+            'Accept': 'application/json'
+        }
+        
+        response = requests.get(mb_url, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if 'releases' in data and len(data['releases']) > 0:
+                release = data['releases'][0]
+                release_id = release.get('id', '')
+                artist = release.get('artist-credit', [{}])[0].get('name', 'Unknown Artist')
+                album = release.get('title', 'Unknown Album')
+                year = release.get('date', '')[:4] if release.get('date') else ''
+                
+                # Fetch album art from Cover Art Archive
+                album_art_url = None
+                if release_id:
+                    try:
+                        art_url = f'https://coverartarchive.org/release/{release_id}'
+                        art_response = requests.get(art_url, headers=headers, timeout=5)
+                        if art_response.status_code == 200:
+                            art_data = art_response.json()
+                            if 'images' in art_data and len(art_data['images']) > 0:
+                                # Get the front cover or first image
+                                for image in art_data['images']:
+                                    if image.get('front', False):
+                                        album_art_url = image.get('thumbnails', {}).get('large', image.get('image'))
+                                        break
+                                if not album_art_url and art_data['images']:
+                                    album_art_url = art_data['images'][0].get('thumbnails', {}).get('large', art_data['images'][0].get('image'))
+                    except:
+                        pass  # Album art is optional
+                
+                # Get track list
+                tracks = []
+                if 'media' in release and len(release['media']) > 0:
+                    for track in release['media'][0].get('tracks', []):
+                        tracks.append({
+                            'number': track.get('position', 0),
+                            'title': track.get('title', f"Track {track.get('position', 0)}")
+                        })
+                
+                return jsonify({
+                    'success': True,
+                    'artist': artist,
+                    'album': album,
+                    'year': year,
+                    'genre': '',  # MusicBrainz doesn't reliably provide genre in discid lookup
+                    'tracks': tracks,
+                    'disc_id': disc_id,
+                    'album_art_url': album_art_url
+                })
+        
+        print(f"DEBUG: First MusicBrainz query failed, trying fallback. Status: {response.status_code if 'response' in locals() else 'no response'}", flush=True)
+        
+        # Fallback: Use abcde-musicbrainz-tool to get proper MusicBrainz disc ID format
+        try:
+            # Get the full MusicBrainz disc ID
+            print(f"DEBUG: Trying abcde-musicbrainz-tool fallback", flush=True)
+            mb_result = run_command(['/usr/bin/abcde-musicbrainz-tool', '--command', 'id', '--device', '/dev/cdrom'])
+            print(f"DEBUG: Tool result: {mb_result}", flush=True)
+            if mb_result.get('returncode') == 0 and mb_result.get('stdout'):
+                mb_disc_id = mb_result['stdout'].strip().split()[0]  # First field is the disc ID
+                print(f"DEBUG: Got MB disc ID: {mb_disc_id}", flush=True)
+                if mb_disc_id and mb_disc_id != disc_id:
+                    # Try MusicBrainz with the proper disc ID format
+                    mb_url2 = f'https://musicbrainz.org/ws/2/discid/{mb_disc_id}?inc=artist-credits+recordings'
+                    print(f"DEBUG: Querying {mb_url2}", flush=True)
+                    response2 = requests.get(mb_url2, headers=headers, timeout=10)
+                    print(f"DEBUG: Response status: {response2.status_code}", flush=True)
+                    if response2.status_code == 200:
+                        data2 = response2.json()
+                        print(f"DEBUG: Got releases: {len(data2.get('releases', []))}", flush=True)
+                        if 'releases' in data2 and len(data2['releases']) > 0:
+                            release = data2['releases'][0]
+                            release_id = release.get('id', '')
+                            artist = release.get('artist-credit', [{}])[0].get('name', 'Unknown Artist')
+                            album = release.get('title', 'Unknown Album')
+                            year = release.get('date', '')[:4] if release.get('date') else ''
+                            
+                            # Try to get album art
+                            album_art_url = None
+                            if release_id:
+                                try:
+                                    art_url = f'https://coverartarchive.org/release/{release_id}'
+                                    art_response = requests.get(art_url, headers=headers, timeout=5)
+                                    if art_response.status_code == 200:
+                                        art_data = art_response.json()
+                                        if 'images' in art_data and len(art_data['images']) > 0:
+                                            for image in art_data['images']:
+                                                if image.get('front', False):
+                                                    album_art_url = image.get('thumbnails', {}).get('large', image.get('image'))
+                                                    break
+                                            if not album_art_url and art_data['images']:
+                                                album_art_url = art_data['images'][0].get('thumbnails', {}).get('large', art_data['images'][0].get('image'))
+                                except:
+                                    pass
+                            
+                            # If no MusicBrainz album art, try Last.fm
+                            if not album_art_url:
+                                try:
+                                    # Load Last.fm API key from settings
+                                    settings_file = Path.home() / 'maestro' / 'web' / 'settings.json'
+                                    if settings_file.exists():
+                                        with open(settings_file) as f:
+                                            settings = json.load(f)
+                                            lastfm_api_key = settings.get('lastfm_api_key', '')
+                                            
+                                            if lastfm_api_key:
+                                                print(f"DEBUG: Trying Last.fm for album art", flush=True)
+                                                lastfm_params = {
+                                                    'method': 'album.getinfo',
+                                                    'api_key': lastfm_api_key,
+                                                    'artist': artist,
+                                                    'album': album,
+                                                    'format': 'json'
+                                                }
+                                                lastfm_response = requests.get('https://ws.audioscrobbler.com/2.0/', 
+                                                                              params=lastfm_params, timeout=5)
+                                                if lastfm_response.status_code == 200:
+                                                    lastfm_data = lastfm_response.json()
+                                                    if 'album' in lastfm_data and 'image' in lastfm_data['album']:
+                                                        # Get the largest image available
+                                                        for size_pref in ['extralarge', 'large', 'medium']:
+                                                            for img in lastfm_data['album']['image']:
+                                                                if img.get('size') == size_pref and img.get('#text'):
+                                                                    album_art_url = img['#text']
+                                                                    print(f"DEBUG: Found Last.fm {size_pref} image", flush=True)
+                                                                    break
+                                                            if album_art_url:
+                                                                break
+                                except Exception as e:
+                                    print(f"DEBUG: Last.fm lookup failed: {e}", flush=True)
+                            
+                            tracks = []
+                            if 'media' in release and len(release['media']) > 0:
+                                for track in release['media'][0].get('tracks', []):
+                                    tracks.append({
+                                        'number': track.get('position', 0),
+                                        'title': track.get('title', f"Track {track.get('position', 0)}")
+                                    })
+                            
+                            metadata = {
+                                'success': True,
+                                'artist': artist,
+                                'album': album,
+                                'year': year,
+                                'genre': '',
+                                'tracks': tracks,
+                                'disc_id': mb_disc_id,
+                                'album_art_url': album_art_url
+                            }
+                            
+                            # Cache the result
+                            cd_metadata_cache['disc_id'] = disc_id
+                            cd_metadata_cache['mb_disc_id'] = mb_disc_id
+                            cd_metadata_cache['metadata'] = metadata
+                            cd_metadata_cache['timestamp'] = time.time()
+                            
+                            # Override with edited metadata if it exists (check both disc IDs)
+                            if mb_disc_id in cd_edited_metadata or disc_id in cd_edited_metadata:
+                                edited = cd_edited_metadata.get(mb_disc_id) or cd_edited_metadata.get(disc_id)
+                                metadata['artist'] = edited.get('artist', metadata['artist'])
+                                metadata['album'] = edited.get('album', metadata['album'])
+                                metadata['year'] = edited.get('year', metadata['year'])
+                                metadata['genre'] = edited.get('genre', metadata['genre'])
+                                if edited.get('tracks'):
+                                    metadata['tracks'] = edited['tracks']
+                            
+                            return jsonify(metadata)
+        except Exception as ex:
+            print(f"DEBUG: Fallback failed with error: {ex}", flush=True)
+            import traceback
+            traceback.print_exc()
+        
+        # Final fallback: no metadata found
+        print(f"DEBUG: Using final fallback - no metadata found", flush=True)
+        return jsonify({
+            'success': True,
+            'artist': 'Unknown Artist',
+            'album': 'Unknown Album',
+            'year': '',
+            'genre': '',
+            'tracks': [{'number': i+1, 'title': f'Track {i+1}'} for i in range(track_count)],
+            'disc_id': disc_id,
+            'message': 'No metadata found'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/cd/rip', methods=['POST'])
+def rip_cd():
+    """Start CD ripping process"""
+    global rip_status
+    
+    if rip_status['active']:
+        return jsonify({'success': False, 'error': 'Ripping already in progress'}), 400
+    
+    try:
+        data = request.get_json() or {}
+        output_format = data.get('format', 'flac')
+        output_dir = data.get('output_dir', '/media/music/ripped')
+        album_art_opts = data.get('album_art', {})
+        
+        # Validate output directory
+        if not output_dir.startswith('/media/music/'):
+            return jsonify({'success': False, 'error': 'Output directory must be under /media/music/'}), 400
+        
+        # Create output directory if it doesn't exist
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Load settings for quality and options
+        cd_settings = load_cd_settings()
+        
+        # Get disc ID to check for edited metadata
+        disc_id = None
+        try:
+            result = run_command(['/usr/bin/cd-discid', '/dev/cdrom'])
+            if result['returncode'] == 0:
+                disc_info = result['stdout'].strip().split()
+                if len(disc_info) >= 1:
+                    disc_id = disc_info[0]
+        except:
+            pass
+        
+        # Start ripping in background thread
+        def rip_thread():
+            global rip_status, cd_edited_metadata
+            rip_status['active'] = True
+            rip_status['status'] = 'Starting rip...'
+            rip_status['progress'] = 0
+            rip_status['error'] = None
+            
+            try:
+                # Create temporary abcde config
+                import tempfile
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.conf', delete=False) as f:
+                    f.write(f'''# ABCDE configuration for Maestro\n''')
+                    f.write(f'''CDROMREADERSYNTAX=cdparanoia\n''')
+                    f.write(f'''CDPARANOIA=cdparanoia\n''')
+                    f.write(f'''OUTPUTDIR="{output_dir}"\n''')
+                    f.write(f'''OUTPUTTYPE="{output_format}"\n''')
+                    f.write(f'''OUTPUTFORMAT='${{ARTISTFILE}} - ${{ALBUMFILE}} (${{CDYEAR}})/${{TRACKNUM}} - ${{TRACKFILE}}'\n''')
+                    f.write(f'''VAOUTPUTFORMAT='Various Artists - ${{ALBUMFILE}} (${{CDYEAR}})/${{TRACKNUM}} - ${{ARTISTFILE}} - ${{TRACKFILE}}'\n''')
+                    f.write(f'''CDDBMETHOD=musicbrainz\n''')
+                    f.write(f'''MAXPROCS={cd_settings.get('max_processes', 4)}\n''')
+                    
+                    # Build ACTIONS based on album art preferences
+                    embed_art = album_art_opts.get('embed', True)
+                    save_art = album_art_opts.get('save_file', True)
+                    
+                    actions = 'cddb,read,encode,tag,move'
+                    if embed_art:
+                        actions += ',embedalbumart'
+                    actions += ',clean'
+                    f.write(f'''ACTIONS={actions}\n''')
+                    
+                    # Album art settings
+                    if embed_art or save_art:
+                        f.write(f'''# Album art settings\n''')
+                        f.write(f'''ALBUMARTFILE="cover.jpg"\n''')
+                        f.write(f'''ALBUMARTTYPE="JPEG"\n''')
+                        if save_art:
+                            f.write(f'''COVERART=y\n''')
+                        f.write(f'''COVERARTWGET=y\n''')
+                    
+                    # Format-specific settings
+                    if output_format == 'flac':
+                        quality = cd_settings.get('quality', 'high')
+                        compression = '8' if quality == 'high' else '5' if quality == 'medium' else '3'
+                        f.write(f'''FLACOPTS='-{compression}'\n''')
+                    elif output_format == 'mp3':
+                        quality = cd_settings.get('quality', 'high')
+                        bitrate = '320' if quality == 'high' else '192' if quality == 'medium' else '128'
+                        f.write(f'''LAMEOPTS='-b {bitrate}'\n''')
+                    
+                    config_file = f.name
+                
+                # If metadata was edited, create a custom CDDB file
+                cddb_file = None
+                if disc_id and disc_id in cd_edited_metadata:
+                    edited = cd_edited_metadata[disc_id]
+                    with tempfile.NamedTemporaryFile(mode='w', suffix='.cddb', delete=False) as cddb:
+                        # Write CDDB format file
+                        cddb.write(f"# xmcd\n")
+                        cddb.write(f"#\n")
+                        cddb.write(f"# Track frame offsets:\n")
+                        cddb.write(f"#\n")
+                        cddb.write(f"# Disc length: 0 seconds\n")
+                        cddb.write(f"#\n")
+                        cddb.write(f"DISCID={disc_id}\n")
+                        cddb.write(f"DTITLE={edited.get('artist', 'Unknown')} / {edited.get('album', 'Unknown')}\n")
+                        cddb.write(f"DYEAR={edited.get('year', '')}\n")
+                        cddb.write(f"DGENRE={edited.get('genre', '')}\n")
+                        
+                        # Write track titles
+                        for i, track in enumerate(edited.get('tracks', [])):
+                            cddb.write(f"TTITLE{i}={track.get('title', f'Track {i+1}')}\n")
+                        
+                        cddb.write(f"EXTD=\n")
+                        cddb.write(f"PLAYORDER=\n")
+                        cddb_file = cddb.name
+                    
+                    # Copy CDDB file to abcde working directory for it to use
+                    import shutil
+                    cddb_dest = os.path.join(output_dir, f'{disc_id}.cddb')
+                    shutil.copy(cddb_file, cddb_dest)
+                    print(f"DEBUG: Created custom CDDB file at {cddb_dest}", flush=True)
+                
+                # Execute abcde
+                rip_status['status'] = 'Ripping tracks...'
+                
+                # Log the config file contents for debugging
+                with open(config_file, 'r') as f:
+                    print(f"DEBUG: abcde config:\n{f.read()}", flush=True)
+                
+                # Set up environment with proper PATH
+                env = os.environ.copy()
+                env['PATH'] = '/usr/local/bin:/usr/bin:/bin'
+                env['HOME'] = str(Path.home())
+                
+                process = subprocess.Popen(
+                    ['/usr/bin/abcde', '-c', config_file, '-N'],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    universal_newlines=True,
+                    cwd=output_dir,
+                    env=env
+                )
+                
+                # Capture all output for debugging
+                all_output = []
+                
+                # Monitor output for progress
+                for line in iter(process.stdout.readline, ''):
+                    all_output.append(line)
+                    print(f"ABCDE: {line.rstrip()}", flush=True)
+                    
+                    if 'track' in line.lower():
+                        # Try to extract track number
+                        import re
+                        match = re.search(r'track[\s:]*?(\d+)', line, re.IGNORECASE)
+                        if match:
+                            track_num = int(match.group(1))
+                            rip_status['current_track'] = track_num
+                            rip_status['status'] = f'Ripping track {track_num}...'
+                            # Estimate progress (rough)
+                            if rip_status['total_tracks'] > 0:
+                                rip_status['progress'] = int((track_num / rip_status['total_tracks']) * 100)
+                
+                process.wait()
+                
+                # Clean up config file
+                os.unlink(config_file)
+                
+                if process.returncode == 0:
+                    rip_status['status'] = 'Rip completed successfully'
+                    rip_status['progress'] = 100
+                    
+                    # Update MPD database
+                    run_command(['mpc', 'update'])
+                    
+                    # Auto-eject if enabled
+                    if cd_settings.get('auto_eject', True):
+                        run_command(['/usr/bin/eject', '/dev/cdrom'])
+                else:
+                    rip_status['status'] = 'Rip failed'
+                    error_msg = '\n'.join(all_output[-10:]) if all_output else f'exit code {process.returncode}'
+                    rip_status['error'] = f'abcde failed: {error_msg}'
+                    print(f"DEBUG: abcde failed with code {process.returncode}", flush=True)
+                    print(f"DEBUG: Last output lines:\n{error_msg}", flush=True)
+                    
+            except Exception as e:
+                rip_status['status'] = 'Error'
+                rip_status['error'] = str(e)
+            finally:
+                rip_status['active'] = False
+        
+        # Get track count for progress tracking
+        try:
+            result = run_command(['/usr/bin/cd-discid', '/dev/cdrom'])
+            if result['returncode'] == 0:
+                disc_info = result['stdout'].strip().split()
+                rip_status['total_tracks'] = len(disc_info) - 2
+        except:
+            rip_status['total_tracks'] = 0
+        
+        # Start thread
+        import threading
+        thread = threading.Thread(target=rip_thread, daemon=True)
+        thread.start()
+        
+        return jsonify({'success': True, 'message': 'Rip started'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/cd/rip-status')
+def get_rip_status():
+    """Get current ripping progress"""
+    return jsonify({
+        'success': True,
+        'active': rip_status['active'],
+        'progress': rip_status['progress'],
+        'current_track': rip_status['current_track'],
+        'total_tracks': rip_status['total_tracks'],
+        'status': rip_status['status'],
+        'error': rip_status['error']
+    })
+
+@app.route('/api/cd/eject', methods=['POST'])
+def eject_cd():
+    """Eject the CD"""
+    try:
+        result = run_command(['eject', '/dev/cdrom'], require_sudo=True)
+        if result['success']:
+            return jsonify({'success': True, 'message': 'CD ejected'})
+        else:
+            return jsonify({'success': False, 'error': result.get('error', 'Eject failed')}), 500
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/cd/config', methods=['GET'])
+def get_abcde_config():
+    """Get abcde.conf contents"""
+    try:
+        # Try user config first, then system config
+        config_paths = [
+            Path.home() / '.abcde.conf',
+            Path('/etc/abcde.conf')
+        ]
+        
+        for config_path in config_paths:
+            if config_path.exists():
+                with open(config_path, 'r') as f:
+                    config = f.read()
+                return jsonify({'success': True, 'config': config, 'path': str(config_path)})
+        
+        # No config found, return empty/default
+        return jsonify({'success': True, 'config': '# No abcde.conf found\n# Settings will use defaults\n', 'path': None})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/cd/config', methods=['POST'])
+def save_abcde_config():
+    """Save abcde.conf"""
+    try:
+        config = request.json.get('config', '')
+        
+        # Save to user's home directory
+        config_path = Path.home() / '.abcde.conf'
+        with open(config_path, 'w') as f:
+            f.write(config)
+        
+        return jsonify({'success': True, 'message': 'Configuration saved', 'path': str(config_path)})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/cd/config/reset', methods=['POST'])
+def reset_abcde_config():
+    """Reset abcde.conf to defaults"""
+    try:
+        config_path = Path.home() / '.abcde.conf'
+        
+        # Remove user config if it exists
+        if config_path.exists():
+            config_path.unlink()
+        
+        return jsonify({'success': True, 'message': 'Configuration reset to defaults'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ============================================================================
+# FILE BROWSER API
+# ============================================================================
+
+@app.route('/api/files/browse')
+def browse_files():
+    """Browse music directory"""
+    try:
+        path = request.args.get('path', '/media/music/ripped')
+        
+        # Security: Only allow browsing within music directories
+        allowed_paths = ['/var/lib/mpd/music', '/mnt/music', '/media/music']
+        if not any(path.startswith(allowed) for allowed in allowed_paths):
+            return jsonify({'success': False, 'error': 'Access denied'}), 403
+        
+        items = []
+        for entry in os.scandir(path):
+            item = {
+                'name': entry.name,
+                'path': entry.path,
+                'is_dir': entry.is_dir(),
+                'size': entry.stat().st_size if entry.is_file() else 0,
+                'modified': entry.stat().st_mtime
+            }
+            items.append(item)
+        
+        # Sort: directories first, then files alphabetically
+        items.sort(key=lambda x: (not x['is_dir'], x['name'].lower()))
+        
+        return jsonify({
+            'success': True,
+            'path': path,
+            'parent': os.path.dirname(path) if path not in ['/mnt/music', '/var/lib/mpd/music', '/media/music/ripped'] else None,
+            'items': items
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/files/play', methods=['POST'])
+def play_file():
+    """Add file to MPD playlist and play"""
+    try:
+        data = request.json
+        path = data.get('path')
+        
+        # Add to MPD and play
+        result = run_command(['mpc', 'clear'])
+        if not result['success']:
+            return jsonify({'success': False, 'error': 'Failed to clear playlist'}), 500
+        
+        result = run_command(['mpc', 'add', path])
+        if not result['success']:
+            return jsonify({'success': False, 'error': 'Failed to add file'}), 500
+        
+        result = run_command(['mpc', 'play'])
+        if result['success']:
+            return jsonify({'success': True, 'message': 'Playing'})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to play'}), 500
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/files/delete', methods=['POST'])
+def delete_file():
+    """Delete file or directory"""
+    try:
+        data = request.json
+        path = data.get('path')
+        
+        # Security: Only allow deleting within music directories
+        allowed_paths = ['/var/lib/mpd/music', '/mnt/music', '/media/music']
+        if not any(path.startswith(allowed) for allowed in allowed_paths):
+            return jsonify({'success': False, 'error': 'Access denied'}), 403
+        
+        if os.path.isdir(path):
+            result = run_command(['rm', '-rf', path], require_sudo=True)
+        else:
+            result = run_command(['rm', '-f', path], require_sudo=True)
+        
+        if result['success']:
+            return jsonify({'success': True, 'message': 'Deleted successfully'})
+        else:
+            return jsonify({'success': False, 'error': result.get('error', 'Delete failed')}), 500
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/files/update-mpd', methods=['POST'])
+def update_mpd_library():
+    """Update MPD library database"""
+    try:
+        result = run_command(['mpc', 'update'])
+        if result['success']:
+            return jsonify({'success': True, 'message': 'MPD library update started'})
+        else:
+            return jsonify({'success': False, 'error': 'Update failed'}), 500
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/files/move', methods=['POST'])
+def move_file():
+    """Move or rename file/directory"""
+    try:
+        data = request.json
+        source = data.get('source')
+        destination = data.get('destination')
+        
+        # Security checks
+        allowed_paths = ['/var/lib/mpd/music', '/mnt/music']
+        if not any(source.startswith(allowed) for allowed in allowed_paths) or \
+           not any(destination.startswith(allowed) for allowed in allowed_paths):
+            return jsonify({'success': False, 'error': 'Access denied'}), 403
+        
+        result = run_command(['mv', source, destination], require_sudo=True)
+        
+        if result['success']:
+            # Update MPD database
+            run_command(['mpc', 'update'])
+            return jsonify({'success': True, 'message': 'File moved successfully'})
+        else:
+            return jsonify({'success': False, 'error': result.get('error', 'Move failed')}), 500
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/files/mkdir', methods=['POST'])
+def make_directory():
+    """Create new directory"""
+    try:
+        data = request.json
+        path = data.get('path')
+        name = data.get('name')
+        
+        new_dir = os.path.join(path, name)
+        
+        # Security check
+        allowed_paths = ['/var/lib/mpd/music', '/mnt/music']
+        if not any(new_dir.startswith(allowed) for allowed in allowed_paths):
+            return jsonify({'success': False, 'error': 'Access denied'}), 403
+        
+        os.makedirs(new_dir, exist_ok=True)
+        return jsonify({'success': True, 'message': 'Directory created'})
+    except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ============================================================================
