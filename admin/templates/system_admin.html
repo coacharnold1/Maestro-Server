@@ -258,8 +258,15 @@
 
         <div class="section">
             <h2 class="section-title">System Updates</h2>
-            <p style="color: #95a5a6; margin-bottom: 20px;">Update the operating system packages. This may take several
+            <p style="color: #95a5a6; margin-bottom: 15px;">Update the operating system packages. This may take several
                 minutes.</p>
+            <div style="background: #c0392b; border-left: 4px solid #e74c3c; padding: 12px; margin-bottom: 20px; border-radius: 4px;">
+                <strong style="color: #fff;">⚠️ Warning:</strong>
+                <span style="color: #ecf0f1; font-size: 0.95em;">
+                    If the update affects network components, you may lose connection to this interface.
+                    For critical updates, consider using SSH directly. The update will continue even if connection is lost.
+                </span>
+            </div>
             <button class="btn btn-warning" onclick="updateSystem()">📦 Update OS Packages</button>
         </div>
 
@@ -334,7 +341,7 @@
         }
 
         function updateSystem() {
-            if (!confirm('Update the operating system? This may take several minutes and will update all packages.')) {
+            if (!confirm('Update the operating system?\n\n⚠️ WARNING: Network connectivity may be interrupted if networking components are updated. The update will continue running even if you lose connection.\n\nThis may take several minutes. Continue?')) {
                 return;
             }
 
