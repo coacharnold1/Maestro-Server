@@ -646,6 +646,33 @@ EOF
     fi
 }
 
+# Configure CD auto-rip
+configure_cd_autorip() {
+    echo -e "${GREEN}Configuring CD auto-rip...${NC}"
+    
+    # Create scripts directory
+    mkdir -p "$INSTALL_DIR/scripts"
+    mkdir -p "$INSTALL_DIR/logs"
+    
+    # Copy CD insert handler script
+    if [ -f "$REPO_DIR/scripts/cd-inserted.sh" ]; then
+        cp "$REPO_DIR/scripts/cd-inserted.sh" "$INSTALL_DIR/scripts/"
+        chmod +x "$INSTALL_DIR/scripts/cd-inserted.sh"
+        echo -e "  ${GREEN}✓ Installed CD insert handler${NC}"
+    fi
+    
+    # Install udev rule
+    if [ -f "$REPO_DIR/udev/99-maestro-cd.rules" ]; then
+        # Replace %u with actual username in udev rule
+        sed "s/%u/$USER/g" "$REPO_DIR/udev/99-maestro-cd.rules" | sudo tee /etc/udev/rules.d/99-maestro-cd.rules > /dev/null
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger
+        echo -e "  ${GREEN}✓ Installed udev rule for CD detection${NC}"
+    fi
+    
+    echo -e "${GREEN}✓ CD auto-rip configured (disabled by default, enable in CD Settings)${NC}"
+}
+
 # Create systemd services
 create_systemd_services() {
     echo -e "${GREEN}[8/9] Creating systemd services...${NC}"
@@ -806,6 +833,7 @@ main() {
     install_admin_api
     configure_sudo
     configure_ftp
+    configure_cd_autorip
     create_systemd_services
     start_services
     

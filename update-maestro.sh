@@ -118,6 +118,23 @@ if [ ! -d "/media/music/ripped" ]; then
     echo -e "${GREEN}✓ Created /media/music/ripped${NC}"
 fi
 
+# Update CD auto-rip scripts and udev rule
+echo -e "${YELLOW}Updating CD auto-rip configuration...${NC}"
+mkdir -p "$INSTALL_DIR/scripts"
+mkdir -p "$INSTALL_DIR/logs"
+
+if [ -f "$REPO_DIR/scripts/cd-inserted.sh" ]; then
+    cp "$REPO_DIR/scripts/cd-inserted.sh" "$INSTALL_DIR/scripts/"
+    chmod +x "$INSTALL_DIR/scripts/cd-inserted.sh"
+    echo -e "${GREEN}✓ Updated CD insert handler${NC}"
+fi
+
+if [ -f "$REPO_DIR/udev/99-maestro-cd.rules" ]; then
+    sed "s/%u/$USER/g" "$REPO_DIR/udev/99-maestro-cd.rules" | sudo tee /etc/udev/rules.d/99-maestro-cd.rules > /dev/null
+    sudo udevadm control --reload-rules
+    echo -e "${GREEN}✓ Updated udev rule for CD detection${NC}"
+fi
+
 echo ""
 echo -e "${GREEN}[3/6] Updating main application...${NC}"
 # Copy main app files

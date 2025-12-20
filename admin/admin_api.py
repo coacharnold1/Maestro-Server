@@ -1915,6 +1915,78 @@ def make_directory():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ============================================================================
+# CD RIPPER SETTINGS
+# ============================================================================
+
+@app.route('/api/cd/settings', methods=['GET'])
+def get_cd_settings():
+    """Get CD ripper settings including auto-rip configuration"""
+    try:
+        settings = load_settings()
+        cd_settings = settings.get('cd_ripper', {})
+        
+        return jsonify({
+            'status': 'success',
+            'settings': {
+                'auto_rip_enabled': cd_settings.get('auto_rip', {}).get('enabled', False),
+                'skip_confirmation': cd_settings.get('auto_rip', {}).get('skip_confirmation', True),
+                'auto_eject_when_done': cd_settings.get('auto_rip', {}).get('auto_eject_when_done', True),
+                'output_dir': cd_settings.get('output_dir', '/media/music/ripped'),
+                'format': cd_settings.get('format', 'flac'),
+                'album_art_embed': cd_settings.get('album_art', {}).get('embed', True),
+                'album_art_file': cd_settings.get('album_art', {}).get('save_file', True)
+            }
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/cd/settings', methods=['POST'])
+def update_cd_settings():
+    """Update CD ripper settings including auto-rip configuration"""
+    try:
+        data = request.get_json()
+        settings = load_settings()
+        
+        # Ensure cd_ripper section exists
+        if 'cd_ripper' not in settings:
+            settings['cd_ripper'] = {}
+        
+        # Update auto_rip settings
+        if 'auto_rip' not in settings['cd_ripper']:
+            settings['cd_ripper']['auto_rip'] = {}
+        
+        if 'auto_rip_enabled' in data:
+            settings['cd_ripper']['auto_rip']['enabled'] = data['auto_rip_enabled']
+        if 'skip_confirmation' in data:
+            settings['cd_ripper']['auto_rip']['skip_confirmation'] = data['skip_confirmation']
+        if 'auto_eject_when_done' in data:
+            settings['cd_ripper']['auto_rip']['auto_eject_when_done'] = data['auto_eject_when_done']
+        
+        # Update other settings
+        if 'output_dir' in data:
+            settings['cd_ripper']['output_dir'] = data['output_dir']
+        if 'format' in data:
+            settings['cd_ripper']['format'] = data['format']
+        
+        # Update album art settings
+        if 'album_art' not in settings['cd_ripper']:
+            settings['cd_ripper']['album_art'] = {}
+        if 'album_art_embed' in data:
+            settings['cd_ripper']['album_art']['embed'] = data['album_art_embed']
+        if 'album_art_file' in data:
+            settings['cd_ripper']['album_art']['save_file'] = data['album_art_file']
+        
+        # Save settings
+        save_settings(settings)
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'CD ripper settings updated'
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# ============================================================================
 # HTTP STREAMING CONFIGURATION
 # ============================================================================
 

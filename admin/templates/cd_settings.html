@@ -265,6 +265,33 @@
                 </div>
             </div>
             
+            <div class="section" style="background: rgba(46, 204, 113, 0.1); border-color: #27ae60; padding: 20px; margin: 25px 0;">
+                <h3 style="color: #27ae60; margin-bottom: 15px;">🚀 Auto-Rip Mode</h3>
+                <div class="form-group">
+                    <div class="checkbox-group" style="margin-bottom: 15px;">
+                        <input type="checkbox" id="auto-rip-enabled" onchange="toggleAutoRipOptions()" />
+                        <label for="auto-rip-enabled" style="margin: 0; font-weight: bold;">Enable Auto-Rip (automatically start ripping when CD is inserted)</label>
+                    </div>
+                    <div class="help-text" style="margin-bottom: 15px;">
+                        ⚠️ When enabled, inserting a CD will automatically start ripping using MusicBrainz metadata. Perfect for batch ripping large collections.
+                    </div>
+                    
+                    <div id="auto-rip-options" style="display: none; padding-left: 25px; border-left: 3px solid #27ae60;">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="auto-rip-skip-confirmation" checked />
+                            <label for="auto-rip-skip-confirmation" style="margin: 0;">Skip metadata confirmation (use MusicBrainz data as-is)</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="auto-rip-eject" checked />
+                            <label for="auto-rip-eject" style="margin: 0;">Auto-eject disc when done</label>
+                        </div>
+                        <div class="help-text" style="margin-top: 10px; color: #27ae60;">
+                            💡 Workflow: Insert CD → Auto-rip starts → Disc ejects when done → Insert next CD
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <div class="form-group">
                 <label for="filename-format">Filename Format</label>
                 <select id="filename-format">
@@ -390,7 +417,27 @@ function loadBasicSettings() {
     fetch('/api/cd/settings')
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            if (data.status === 'success') {
+                const settings = data.settings;
+                document.getElementById('output-dir').value = settings.output_dir || '/media/music/ripped';
+                document.getElementById('output-format').value = settings.format || 'flac';
+                document.getElementById('embed-art').checked = settings.album_art_embed !== false;
+                document.getElementById('save-art').checked = settings.album_art_file !== false;
+                document.getElementById('auto-rip-enabled').checked = settings.auto_rip_enabled || false;
+                document.getElementById('auto-rip-skip-confirmation').checked = settings.skip_confirmation !== false;
+                document.getElementById('auto-rip-eject').checked = settings.auto_eject_when_done !== false;
+                
+                // Show/hide auto-rip options
+                toggleAutoRipOptions();
+            }
+        })
+        .catch(error => console.error('Error loading settings:', error));
+}
+
+function toggleAutoRipOptions() {
+    const enabled = document.getElementById('auto-rip-enabled').checked;
+    document.getElementById('auto-rip-options').style.display = enabled ? 'block' : 'none';
+}
                 const settings = data.settings;
                 document.getElementById('output-dir').value = settings.output_dir || '/var/lib/mpd/music';
                 document.getElementById('output-format').value = settings.format || 'flac';
@@ -413,11 +460,14 @@ function saveBasicSettings() {
         output_dir: document.getElementById('output-dir').value,
         format: document.getElementById('output-format').value,
         quality: document.getElementById('quality').value,
-        embed_art: document.getElementById('embed-art').checked,
-        save_art: document.getElementById('save-art').checked,
+        album_art_embed: document.getElementById('embed-art').checked,
+        album_art_file: document.getElementById('save-art').checked,
         auto_eject: document.getElementById('auto-eject').checked,
         auto_update_mpd: document.getElementById('auto-update-mpd').checked,
-        filename_format: document.getElementById('filename-format').value
+        filename_format: document.getElementById('filename-format').value,
+        auto_rip_enabled: document.getElementById('auto-rip-enabled').checked,
+        skip_confirmation: document.getElementById('auto-rip-skip-confirmation').checked,
+        auto_eject_when_done: document.getElementById('auto-rip-eject').checked
     };
     
     fetch('/api/cd/settings', {
@@ -427,10 +477,10 @@ function saveBasicSettings() {
     })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                showMessage('Settings saved successfully!', 'success');
+            if (data.status === 'success') {
+                showMessage('✅ Settings saved successfully!', 'success');
             } else {
-                showMessage('Error: ' + data.error, 'error');
+                showMessage('Error: ' + data.message, 'error');
             }
         })
         .catch(error => {

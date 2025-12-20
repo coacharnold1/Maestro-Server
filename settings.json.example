@@ -14,6 +14,11 @@
     "auto_eject": true,
     "parallel_encode": true,
     "max_processes": 4,
+    "auto_rip": {
+      "enabled": false,
+      "skip_confirmation": true,
+      "auto_eject_when_done": true
+    },
     "album_art": {
       "enabled": true,
       "embed": true,

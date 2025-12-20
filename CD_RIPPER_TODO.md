@@ -49,6 +49,71 @@
 
 ## 🔨 TODO FOR TOMORROW
 
+### Auto-Rip Feature (NEW REQUEST - Dec 20, 2025)
+**Goal**: Automatically start ripping when CD is inserted (toggle on/off)
+
+**Implementation Approach:**
+
+1. **Add Toggle Setting**
+   - CD Ripper settings page: checkbox for "Auto-rip on CD insert"
+   - Store in settings.json: `cd_ripper.auto_rip: true/false`
+   - Backend API: GET/POST `/api/cd/settings`
+
+2. **CD Detection Service**
+   - Create systemd service `maestro-cd-monitor.service`
+   - Python script polls CD drive every 2-3 seconds
+   - On disc detected → check if auto_rip enabled → trigger rip
+   
+   **OR** (better approach):
+   
+   - Use udev rule to detect CD insertion
+   - Trigger script that checks auto_rip setting
+   - Call admin API to start rip if enabled
+
+3. **udev Rule Implementation** (Recommended)
+   ```
+   /etc/udev/rules.d/99-maestro-cd.rules:
+   
+   SUBSYSTEM=="block", KERNEL=="sr[0-9]", ACTION=="change", ENV{DISK_MEDIA_CHANGE}=="1", \
+   RUN+="/home/fausto/maestro/scripts/cd-inserted.sh"
+   ```
+
+4. **CD Insert Handler Script**
+   ```bash
+   #!/bin/bash
+   # Check if auto-rip enabled in settings
+   # If yes: POST to /api/cd/rip with default options
+   # If no: do nothing
+   ```
+
+5. **UI Changes**
+   - CD Settings page with auto-rip toggle
+   - Auto-rip defaults:
+     - Album art: both embedded + cover.jpg
+     - Auto-eject when done: yes/no
+     - Skip metadata confirmation (use MB data as-is)
+   - Status indicator showing "Auto-rip mode: ENABLED"
+
+6. **Safety Features**
+   - Max rip queue (don't start new rip if one in progress)
+   - Notification when auto-rip starts
+   - Log file for auto-rip activity
+   - Option to pause/disable auto-rip temporarily
+
+**Benefits:**
+- Batch ripping workflow: insert → walk away → disc ejects → next disc
+- Perfect for digitizing large CD collections
+- Optional feature, doesn't affect manual workflow
+
+**Estimated Work:**
+- udev rule + handler script: 2 hours
+- Settings API + storage: 1 hour
+- UI toggle + status display: 2 hours
+- Testing + debugging: 2 hours
+- **Total: ~7 hours**
+
+---
+
 ### 1. CD Settings Page (admin/templates/cd_settings.html)
 **Purpose**: Configure CD ripper settings via web UI instead of editing JSON
 
