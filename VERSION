@@ -1,8 +1,8 @@
 Maestro MPD Server v2.1
-Release Date: Tue Dec 17 00:00:00 UTC 2025
+Release Date: Fri Dec 20 00:00:00 UTC 2025
 Version: 2.1.0
 
-🎵 FEATURE RELEASE - Enhanced Playlist & UI 🎵
+🎵 FEATURE RELEASE - HTTP Streaming UI & Critical Fixes 🎵
 
 Core Features:
 - Web UI (port 5003) - Music playback control with modern interface

@@ -1,5 +1,34 @@
 # Maestro Server - Changelog
 
+## Version 2.1.0 - HTTP Streaming UI & Critical Fixes (December 20, 2025)
+
+### 🎧 HTTP Streaming Configuration
+- **Admin UI for HTTP Streaming**: Configure MPD HTTP streaming without manual config editing
+- **Simple Toggle**: Enable/disable HTTP streaming with one click
+- **Advanced Settings**: Full control over port, encoder, bitrate, format, max clients, and bind address
+- **Smart Defaults**: Pre-configured with optimal settings (port 8000, LAME encoder, 192kbps)
+- **Auto-restart MPD**: Automatic service restart after configuration changes
+- **Stream URL Display**: Shows connection URL for clients when streaming is enabled
+- **Multi-room Setup**: Complete documentation for Raspberry Pi MPV clients
+
+### 🔒 Critical Fixes
+- **Database Backup/Restore**: Fixed missing sudo permissions for MPD database operations
+- **Sudoers Configuration**: Added passwordless `cp` commands for backup/restore functionality
+- **Update Script Enhancement**: Regenerate sudoers during updates for consistency
+- **NFS Mount Recovery**: Documented solution for network share mount failures after reboot
+
+### 🎨 UI/UX Improvements
+- **Navigation Rebranding**: Changed "MPD Control" to "Maestro Control" across all admin pages
+- **Navigation Consistency**: Removed new window behavior, direct navigation for better UX
+- **OS Update Warnings**: Added safety notices with screen/tmux command examples
+
+### 📚 Documentation
+- **Ras-Pi-Client.md**: Complete guide for multi-room Raspberry Pi client setup
+- **Admin UI Instructions**: Step-by-step streaming configuration via web interface
+- **Alternative Methods**: Manual mpd.conf configuration documented as fallback
+
+---
+
 ## Version 2.0.0 - Admin API Integration (December 14, 2025)
 
 ### 🎉 Major Release - Complete Music Server Solution
