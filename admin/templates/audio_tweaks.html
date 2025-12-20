@@ -196,6 +196,88 @@
         </div>
         
         <div class="section">
+            <h2 class="section-title">🌐 HTTP Streaming (Multi-Room Playback)</h2>
+            <p style="color: #95a5a6; margin-bottom: 20px;">Enable HTTP streaming for multi-room playback using Raspberry Pi clients or mpv</p>
+            
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; padding: 15px; background: rgba(52, 152, 219, 0.1); border-radius: 8px;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0;">
+                    <input type="checkbox" id="streaming-enabled" onchange="toggleStreaming()" style="width: 20px; height: 20px; cursor: pointer;">
+                    <span style="font-size: 1.1em; font-weight: 600;">Enable HTTP Streaming</span>
+                </label>
+                <div id="stream-url-display" style="flex: 1; text-align: right; font-family: monospace; color: #3498db; display: none;"></div>
+            </div>
+            
+            <div id="streaming-advanced" style="display: none; margin-top: 20px;">
+                <h3 style="color: #3498db; margin-bottom: 15px; font-size: 1.2em;">Advanced Settings</h3>
+                
+                <div class="form-group">
+                    <label>Stream Name</label>
+                    <input type="text" id="stream-name" value="HTTP Stream" style="width: 100%; padding: 10px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #ecf0f1;">
+                    <small style="color: #7f8c8d; margin-top: 5px; display: block;">Name that appears to clients</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Port</label>
+                    <input type="number" id="stream-port" value="8000" min="1024" max="65535" style="width: 100%; padding: 10px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #ecf0f1;">
+                    <small style="color: #7f8c8d; margin-top: 5px; display: block;">TCP port for streaming (default: 8000)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Encoder</label>
+                    <select id="stream-encoder" style="width: 100%; padding: 10px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #ecf0f1;">
+                        <option value="lame">MP3 (LAME)</option>
+                        <option value="vorbis">Ogg Vorbis</option>
+                        <option value="opus">Opus</option>
+                    </select>
+                    <small style="color: #7f8c8d; margin-top: 5px; display: block;">Audio codec for streaming</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Bitrate (kbps)</label>
+                    <select id="stream-bitrate" style="width: 100%; padding: 10px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #ecf0f1;">
+                        <option value="128">128 kbps</option>
+                        <option value="192" selected>192 kbps</option>
+                        <option value="256">256 kbps</option>
+                        <option value="320">320 kbps</option>
+                    </select>
+                    <small style="color: #7f8c8d; margin-top: 5px; display: block;">Higher = better quality, more bandwidth</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Format</label>
+                    <input type="text" id="stream-format" value="44100:16:2" style="width: 100%; padding: 10px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #ecf0f1;">
+                    <small style="color: #7f8c8d; margin-top: 5px; display: block;">samplerate:bits:channels (44100:16:2 = CD quality)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Max Clients</label>
+                    <input type="number" id="stream-max-clients" value="0" min="0" max="100" style="width: 100%; padding: 10px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #ecf0f1;">
+                    <small style="color: #7f8c8d; margin-top: 5px; display: block;">0 = unlimited</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Bind Address</label>
+                    <input type="text" id="stream-bind-address" value="0.0.0.0" style="width: 100%; padding: 10px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #ecf0f1;">
+                    <small style="color: #7f8c8d; margin-top: 5px; display: block;">0.0.0.0 = listen on all interfaces</small>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn" onclick="saveStreamingConfig()">💾 Save Streaming Config</button>
+                <button class="btn" onclick="toggleAdvancedStreaming()" style="background: rgba(52, 152, 219, 0.2); border: 1px solid #3498db; color: #3498db;">⚙️ Advanced</button>
+            </div>
+            
+            <div id="streaming-info" style="margin-top: 20px; padding: 15px; background: rgba(52, 152, 219, 0.1); border-left: 4px solid #3498db; border-radius: 4px; display: none;">
+                <strong style="color: #3498db;">📱 Client Setup</strong>
+                <p style="margin: 10px 0; color: #ecf0f1;">To connect a Raspberry Pi or other device, use mpv:</p>
+                <code style="display: block; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px; color: #2ecc71; font-family: monospace;">
+                    mpv --no-video --audio-device=alsa/hw:1,0 http://SERVER-IP:PORT
+                </code>
+                <p style="margin: 10px 0 0 0; font-size: 0.9em; color: #95a5a6;">See Ras-Pi-Client.md for detailed multi-room setup instructions</p>
+            </div>
+        </div>
+        
+        <div class="section">
             <h2 class="section-title">System Audio Optimization</h2>
             <p style="color: #95a5a6; margin-bottom: 20px;">Optimize system settings for audiophile playback (requires restart)</p>
             
@@ -360,6 +442,111 @@
                     if (config.dsd_mode) document.getElementById('dsd-mode').value = config.dsd_mode;
                 }
             });
+
+        // HTTP Streaming functions
+        function toggleAdvancedStreaming() {
+            const advanced = document.getElementById('streaming-advanced');
+            const toggle = event.currentTarget;
+            if (advanced.style.display === 'none') {
+                advanced.style.display = 'block';
+                toggle.textContent = 'Hide Advanced Settings';
+            } else {
+                advanced.style.display = 'none';
+                toggle.textContent = 'Show Advanced Settings';
+            }
+        }
+
+        function loadStreamingConfig() {
+            fetch('/api/streaming/config')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const config = data.config;
+                        document.getElementById('streaming-enabled').checked = config.enabled;
+                        document.getElementById('streaming-name').value = config.name || 'Maestro HTTP Stream';
+                        document.getElementById('streaming-port').value = config.port || '8000';
+                        document.getElementById('streaming-encoder').value = config.encoder || 'lame';
+                        document.getElementById('streaming-bitrate').value = config.bitrate || '192';
+                        document.getElementById('streaming-format').value = config.format || '44100:16:2';
+                        document.getElementById('streaming-max-clients').value = config.max_clients || '0';
+                        document.getElementById('streaming-bind').value = config.bind_to_address || '0.0.0.0';
+                        
+                        // Update stream URL display
+                        const hostname = window.location.hostname;
+                        const port = config.port || '8000';
+                        document.getElementById('stream-url').textContent = `http://${hostname}:${port}/`;
+                        document.getElementById('stream-url-display').style.display = config.enabled ? 'block' : 'none';
+                    }
+                })
+                .catch(error => showMessage('Failed to load streaming config: ' + error.message, 'error'));
+        }
+
+        function toggleStreaming() {
+            const enabled = document.getElementById('streaming-enabled').checked;
+            const config = {
+                enabled: enabled,
+                name: document.getElementById('streaming-name').value,
+                port: document.getElementById('streaming-port').value,
+                encoder: document.getElementById('streaming-encoder').value,
+                bitrate: document.getElementById('streaming-bitrate').value,
+                format: document.getElementById('streaming-format').value,
+                max_clients: document.getElementById('streaming-max-clients').value,
+                bind_to_address: document.getElementById('streaming-bind').value
+            };
+
+            fetch('/api/streaming/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showMessage(`✅ HTTP streaming ${enabled ? 'enabled' : 'disabled'}!\n\n${data.message}`, 'success');
+                    loadStreamingConfig();
+                } else {
+                    showMessage('Error: ' + data.message, 'error');
+                    document.getElementById('streaming-enabled').checked = !enabled;
+                }
+            })
+            .catch(error => {
+                showMessage('Network error: ' + error.message, 'error');
+                document.getElementById('streaming-enabled').checked = !enabled;
+            });
+        }
+
+        function saveStreamingConfig() {
+            const enabled = document.getElementById('streaming-enabled').checked;
+            const config = {
+                enabled: enabled,
+                name: document.getElementById('streaming-name').value,
+                port: document.getElementById('streaming-port').value,
+                encoder: document.getElementById('streaming-encoder').value,
+                bitrate: document.getElementById('streaming-bitrate').value,
+                format: document.getElementById('streaming-format').value,
+                max_clients: document.getElementById('streaming-max-clients').value,
+                bind_to_address: document.getElementById('streaming-bind').value
+            };
+
+            fetch('/api/streaming/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showMessage(`✅ HTTP streaming configuration saved!\n\n${data.message}`, 'success');
+                    loadStreamingConfig();
+                } else {
+                    showMessage('Error: ' + data.message, 'error');
+                }
+            })
+            .catch(error => showMessage('Network error: ' + error.message, 'error'));
+        }
+
+        // Load streaming config on page load
+        loadStreamingConfig();
     </script>
 </body>
 </html>
