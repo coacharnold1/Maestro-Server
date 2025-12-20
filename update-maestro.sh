@@ -65,6 +65,14 @@ if [ -f "$HOME/.abcde.conf" ]; then
     echo -e "${GREEN}✓ Backed up abcde.conf${NC}"
 fi
 
+# Ensure ripped directory exists for CD ripping
+if [ ! -d "/media/music/ripped" ]; then
+    echo -e "${YELLOW}Creating ripped directory for CD ripping...${NC}"
+    sudo mkdir -p /media/music/ripped
+    sudo chown mpd:audio /media/music/ripped
+    echo -e "${GREEN}✓ Created /media/music/ripped${NC}"
+fi
+
 echo ""
 echo -e "${GREEN}[3/6] Updating main application...${NC}"
 # Copy main app files

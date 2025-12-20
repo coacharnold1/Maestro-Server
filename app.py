@@ -3297,16 +3297,31 @@ def recent_albums_page():
 
 def get_recent_albums_from_mpd(limit=25, force_refresh=False):
     """
-    Get recently added albums from the 'gidney' and 'down' directories - where new music is staged.
+    Get recently added albums from configured directories in settings.json.
     This is much faster and more accurate than scanning the entire database.
     Uses smart caching to avoid rescanning when directories haven't changed.
     """
     import time
     global recent_albums_cache, recent_albums_cache_mod_times
     
+    # Get directories from settings
+    settings = load_settings()
+    recent_dirs = settings.get('recent_albums_dir', 'ripped')
+    
+    # Parse comma-separated directories and clean them up
+    if isinstance(recent_dirs, str):
+        # Remove /media/music/ prefix if present, MPD uses relative paths
+        directories_to_check = [d.strip().replace('/media/music/', '') for d in recent_dirs.split(',') if d.strip()]
+    else:
+        directories_to_check = ['ripped']  # fallback default
+    
+    if not directories_to_check:
+        directories_to_check = ['ripped']  # ensure we have at least one directory
+    
+    print(f"Checking recent albums from directories: {directories_to_check}")
+    
     # Simple change detection cache - safe fallback to normal scan
     try:
-        directories_to_check = ['gidney', 'down']
         
         # Skip cache check if force refresh is requested
         if force_refresh:
@@ -3363,10 +3378,8 @@ def get_recent_albums_from_mpd(limit=25, force_refresh=False):
     start_time = time.time()
     
     try:
-        print(f"Getting recent albums from 'down' and 'gidney' directories...")
+        print(f"Getting recent albums from configured directories: {directories_to_check}")
         
-        # Check both directories for recent albums
-        directories_to_check = ['gidney', 'down']
         all_albums_dict = {}
         
         for directory in directories_to_check:

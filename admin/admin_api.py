@@ -1515,10 +1515,13 @@ def rip_cd():
                     embed_art = album_art_opts.get('embed', True)
                     save_art = album_art_opts.get('save_file', True)
                     
-                    actions = 'cddb,read,encode,tag,move'
+                    actions = 'cddb,read,encode,tag'
+                    # Add getalbumart action if either embed or save is enabled
+                    if embed_art or save_art:
+                        actions += ',getalbumart'
                     if embed_art:
                         actions += ',embedalbumart'
-                    actions += ',clean'
+                    actions += ',move,clean'
                     f.write(f'''ACTIONS={actions}\n''')
                     
                     # Album art settings
@@ -1526,8 +1529,8 @@ def rip_cd():
                         f.write(f'''# Album art settings\n''')
                         f.write(f'''ALBUMARTFILE="cover.jpg"\n''')
                         f.write(f'''ALBUMARTTYPE="JPEG"\n''')
-                        if save_art:
-                            f.write(f'''COVERART=y\n''')
+                        # COVERART tells abcde to keep the cover art file
+                        f.write(f'''COVERART={1 if save_art else 0}\n''')
                         f.write(f'''COVERARTWGET=y\n''')
                     
                     # Format-specific settings
