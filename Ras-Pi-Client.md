@@ -7,9 +7,42 @@ I use a bare Raspberry Pi running Raspbian with a nice USB DAC attached and conf
 
 1. Install MPV player on the client device
 2. Install the below script as a systemd service file
-3. HTTP streaming is already enabled in MPD.conf
+3. Configure HTTP streaming on the Maestro server (see below)
 
 **Note:** If using on a Windows machine it might get more complicated, ask Claude.
+
+## Enable HTTP Streaming on Maestro Server
+
+You can enable HTTP streaming two ways:
+
+### Option 1: Admin UI (Recommended)
+
+1. Open the Maestro Admin interface at `http://your-server-ip:5004`
+2. Navigate to **Audio Tweaks** page
+3. In the **HTTP Streaming Configuration** section:
+   - Toggle the switch to **Enable HTTP streaming**
+   - Use default settings (port 8000, LAME encoder, 192kbps)
+   - Or click **Show Advanced Settings** to customize
+4. MPD will automatically restart with the new configuration
+
+### Option 2: Manual Configuration
+
+Edit `/etc/mpd.conf` and add:
+
+```conf
+audio_output {
+    type        "httpd"
+    name        "Maestro HTTP Stream"
+    encoder     "lame"
+    port        "8000"
+    bitrate     "192"
+    format      "44100:16:2"
+    max_clients "0"
+    bind_to_address "0.0.0.0"
+}
+```
+
+Then restart MPD: `sudo systemctl restart mpd`
 
 ## Systemd Service File
 
