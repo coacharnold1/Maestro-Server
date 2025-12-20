@@ -84,15 +84,27 @@ echo -e "${GREEN}✓ Updated admin interface files${NC}"
 
 echo ""
 echo -e "${GREEN}[5/6] Updating Python dependencies...${NC}"
-# Update main app dependencies
-cd "$INSTALL_DIR"
-python3 -m pip install --upgrade -r requirements.txt --quiet
-echo -e "${GREEN}✓ Updated main app dependencies${NC}"
+# Update main app dependencies (use virtual environment)
+if [ -d "$INSTALL_DIR/web/venv" ]; then
+    cd "$INSTALL_DIR/web"
+    source venv/bin/activate
+    pip install --upgrade -r "$INSTALL_DIR/requirements.txt" --quiet
+    deactivate
+    echo -e "${GREEN}✓ Updated main app dependencies${NC}"
+else
+    echo -e "${YELLOW}⚠ Virtual environment not found at $INSTALL_DIR/web/venv${NC}"
+fi
 
-# Update admin dependencies
-cd "$INSTALL_DIR/admin"
-python3 -m pip install --upgrade -r requirements.txt --quiet
-echo -e "${GREEN}✓ Updated admin dependencies${NC}"
+# Update admin dependencies (use virtual environment)
+if [ -d "$INSTALL_DIR/admin/venv" ]; then
+    cd "$INSTALL_DIR/admin"
+    source venv/bin/activate
+    pip install --upgrade -r requirements.txt --quiet
+    deactivate
+    echo -e "${GREEN}✓ Updated admin dependencies${NC}"
+else
+    echo -e "${YELLOW}⚠ Virtual environment not found at $INSTALL_DIR/admin/venv${NC}"
+fi
 
 echo ""
 echo -e "${GREEN}[6/6] Restarting services...${NC}"
