@@ -202,7 +202,8 @@ install_dependencies() {
                 nfs-common cifs-utils \
                 curl wget git \
                 build-essential \
-                cdparanoia cd-discid abcde flac lame vorbis-tools eject imagemagick
+                cdparanoia cd-discid abcde flac lame vorbis-tools eject imagemagick \
+                vsftpd
             ;;
         arch|manjaro)
             sudo pacman -Syu --noconfirm \
@@ -211,7 +212,8 @@ install_dependencies() {
                 alsa-utils \
                 nfs-utils cifs-utils \
                 curl wget git \
-                base-devel
+                base-devel \
+                vsftpd
             
             # On Arch, add user to audio group for device detection
             if ! groups $USER | grep -q audio; then
@@ -576,9 +578,76 @@ EOF
     echo -e "${GREEN}✓ Sudo permissions configured${NC}"
 }
 
+# Configure FTP access
+configure_ftp() {
+    echo -e "${GREEN}[7/9] Configuring FTP access...${NC}"
+    
+    # Backup original vsftpd.conf if it exists
+    if [ -f /etc/vsftpd.conf ]; then
+        sudo cp /etc/vsftpd.conf /etc/vsftpd.conf.backup
+        echo -e "  ${YELLOW}Backed up original vsftpd.conf${NC}"
+    fi
+    
+    # Create vsftpd configuration
+    sudo tee /etc/vsftpd.conf > /dev/null <<EOF
+# Maestro FTP Configuration
+# Allow local users to log in
+local_enable=YES
+
+# Enable write permissions
+write_enable=YES
+
+# Set local umask to 022 (files: 644, dirs: 755)
+local_umask=022
+
+# Disable anonymous access
+anonymous_enable=NO
+
+# Restrict users to their home directory and /media/music
+chroot_local_user=NO
+
+# Allow users to access /media/music
+# Users can navigate to /media/music to manage ripped CDs
+user_sub_token=\$USER
+local_root=/home/\$USER
+
+# Enable passive mode for better firewall compatibility
+pasv_enable=YES
+pasv_min_port=40000
+pasv_max_port=40100
+
+# Logging
+xferlog_enable=YES
+xferlog_file=/var/log/vsftpd.log
+
+# Security settings
+ssl_enable=NO
+allow_writeable_chroot=YES
+
+# Performance
+use_localtime=YES
+EOF
+    
+    # Ensure music directory exists and has proper permissions
+    sudo mkdir -p /media/music/ripped
+    sudo chown -R $USER:$USER /media/music
+    sudo chmod -R 755 /media/music
+    
+    # Enable and start vsftpd
+    sudo systemctl enable vsftpd
+    sudo systemctl restart vsftpd
+    
+    if systemctl is-active --quiet vsftpd; then
+        echo -e "${GREEN}✓ FTP server configured and running${NC}"
+        echo -e "  ${YELLOW}Users can FTP to organize music in /media/music/${NC}"
+    else
+        echo -e "${YELLOW}⚠ FTP server failed to start. Check logs: journalctl -u vsftpd${NC}"
+    fi
+}
+
 # Create systemd services
 create_systemd_services() {
-    echo -e "${GREEN}[7/8] Creating systemd services...${NC}"
+    echo -e "${GREEN}[8/9] Creating systemd services...${NC}"
     
     # Web UI service
     sudo tee /etc/systemd/system/maestro-web.service > /dev/null <<EOF
@@ -632,7 +701,7 @@ EOF
 
 # Start services
 start_services() {
-    echo -e "${GREEN}[8/8] Starting Maestro services...${NC}"
+    echo -e "${GREEN}[9/9] Starting Maestro services...${NC}"
     
     # Start web UI
     if [ -f "$INSTALL_DIR/web/app.py" ]; then
@@ -684,17 +753,20 @@ print_success() {
     echo -e "   Web UI:    ${GREEN}http://$IP:$WEB_PORT${NC}"
     echo -e "   Admin API: ${GREEN}http://$IP:$ADMIN_PORT${NC}"
     echo -e "   MPD:       ${GREEN}$IP:$MPD_PORT${NC}"
+    echo -e "   FTP:       ${GREEN}ftp://$IP${NC} (username: ${YELLOW}$USER${NC})"
     echo ""
     echo -e "${BLUE}📋 Service Management:${NC}"
     echo -e "   Web UI:    ${YELLOW}sudo systemctl {start|stop|restart|status} maestro-web${NC}"
     echo -e "   Admin API: ${YELLOW}sudo systemctl {start|stop|restart|status} maestro-admin${NC}"
     echo -e "   MPD:       ${YELLOW}sudo systemctl {start|stop|restart|status} mpd${NC}"
+    echo -e "   FTP:       ${YELLOW}sudo systemctl {start|stop|restart|status} vsftpd${NC}"
     echo ""
     echo -e "${BLUE}📁 Add Music:${NC}"
     echo -e "   1. Copy music to: ${GREEN}/media/music${NC}"
     echo -e "      (Subdirectories inside /media/music will appear in Recent Albums)"
     echo -e "   2. Or mount network shares inside ${GREEN}/media/music/${NC}"
-    echo -e "   3. Update MPD library: ${YELLOW}mpc update${NC}"
+    echo -e "   3. Use FTP to organize ripped CDs: ${GREEN}ftp://$IP/media/music/ripped${NC}"
+    echo -e "   4. Update MPD library: ${YELLOW}mpc update${NC}"
     echo ""
     echo -e "${BLUE}🔧 Logs:${NC}"
     echo -e "   Web UI:    ${YELLOW}journalctl -u maestro-web -f${NC}"
@@ -732,6 +804,7 @@ main() {
     create_settings
     install_admin_api
     configure_sudo
+    configure_ftp
     create_systemd_services
     start_services
     
