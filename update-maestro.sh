@@ -65,6 +65,51 @@ if [ -f "$HOME/.abcde.conf" ]; then
     echo -e "${GREEN}✓ Backed up abcde.conf${NC}"
 fi
 
+# Update sudoers permissions (critical for backup/restore)
+echo -e "${YELLOW}Updating sudo permissions for admin functions...${NC}"
+SUDOERS_FILE="/etc/sudoers.d/maestro"
+sudo tee "$SUDOERS_FILE" > /dev/null <<EOF
+# Maestro MPD Control - Sudo permissions
+# Allow user to run system management commands without password
+
+$USER ALL=(ALL) NOPASSWD: /usr/bin/apt update
+$USER ALL=(ALL) NOPASSWD: /usr/bin/apt upgrade
+$USER ALL=(ALL) NOPASSWD: /usr/bin/apt upgrade -y
+$USER ALL=(ALL) NOPASSWD: /usr/bin/pacman
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart mpd
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop mpd
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl start mpd
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl reboot
+$USER ALL=(ALL) NOPASSWD: /sbin/shutdown
+$USER ALL=(ALL) NOPASSWD: /sbin/reboot
+$USER ALL=(ALL) NOPASSWD: /bin/mount
+$USER ALL=(ALL) NOPASSWD: /bin/umount
+$USER ALL=(ALL) NOPASSWD: /usr/bin/mount
+$USER ALL=(ALL) NOPASSWD: /usr/bin/umount
+$USER ALL=(ALL) NOPASSWD: /usr/bin/aplay
+$USER ALL=(ALL) NOPASSWD: /usr/bin/journalctl
+$USER ALL=(ALL) NOPASSWD: /usr/bin/tee /etc/mpd.conf
+$USER ALL=(ALL) NOPASSWD: /usr/bin/dpkg --configure -a
+# MPD Database Backup/Restore commands
+$USER ALL=(ALL) NOPASSWD: /usr/bin/cp /var/lib/mpd/database /var/lib/mpd/database.backup.*
+$USER ALL=(ALL) NOPASSWD: /usr/bin/cp /var/lib/mpd/database.backup.* /var/lib/mpd/database
+$USER ALL=(ALL) NOPASSWD: /usr/bin/find /var/lib/mpd/ -name database.backup.* -type f
+$USER ALL=(ALL) NOPASSWD: /usr/bin/du -h /var/lib/mpd/database*
+$USER ALL=(ALL) NOPASSWD: /usr/bin/stat -c %y /var/lib/mpd/database*
+$USER ALL=(ALL) NOPASSWD: /usr/bin/test -f /var/lib/mpd/database*
+# CD Ripping commands
+$USER ALL=(ALL) NOPASSWD: /usr/bin/cdparanoia
+$USER ALL=(ALL) NOPASSWD: /usr/bin/cd-discid
+$USER ALL=(ALL) NOPASSWD: /usr/bin/abcde
+$USER ALL=(ALL) NOPASSWD: /usr/bin/eject
+# File management commands for imported music
+$USER ALL=(ALL) NOPASSWD: /usr/bin/mv /media/music/*
+$USER ALL=(ALL) NOPASSWD: /usr/bin/rm /media/music/*
+$USER ALL=(ALL) NOPASSWD: /usr/bin/rm -rf /media/music/*
+EOF
+sudo chmod 440 "$SUDOERS_FILE"
+echo -e "${GREEN}✓ Updated sudo permissions${NC}"
+
 # Ensure ripped directory exists for CD ripping
 if [ ! -d "/media/music/ripped" ]; then
     echo -e "${YELLOW}Creating ripped directory for CD ripping...${NC}"
