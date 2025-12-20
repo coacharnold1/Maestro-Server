@@ -465,19 +465,22 @@
                     if (data.status === 'success') {
                         const config = data.config;
                         document.getElementById('streaming-enabled').checked = data.enabled;
-                        document.getElementById('streaming-name').value = config.name || 'Maestro HTTP Stream';
-                        document.getElementById('streaming-port').value = config.port || '8000';
-                        document.getElementById('streaming-encoder').value = config.encoder || '';
-                        document.getElementById('streaming-bitrate').value = config.bitrate || '';
-                        document.getElementById('streaming-format').value = config.format || '';
-                        document.getElementById('streaming-max-clients').value = config.max_clients || '0';
-                        document.getElementById('streaming-bind').value = config.bind_to_address || '0.0.0.0';
+                        document.getElementById('stream-name').value = config.name || 'Maestro HTTP Stream';
+                        document.getElementById('stream-port').value = config.port || '8000';
+                        document.getElementById('stream-encoder').value = config.encoder || '';
+                        document.getElementById('stream-bitrate').value = config.bitrate || '';
+                        document.getElementById('stream-format').value = config.format || '';
+                        document.getElementById('stream-max-clients').value = config.max_clients || '0';
+                        document.getElementById('stream-bind-address').value = config.bind_to_address || '0.0.0.0';
                         
                         // Update stream URL display
                         const hostname = window.location.hostname;
                         const port = config.port || '8000';
-                        document.getElementById('stream-url').textContent = `http://${hostname}:${port}/`;
-                        document.getElementById('stream-url-display').style.display = config.enabled ? 'block' : 'none';
+                        const urlDisplay = document.getElementById('stream-url-display');
+                        if (urlDisplay) {
+                            urlDisplay.textContent = `Stream URL: http://${hostname}:${port}/`;
+                            urlDisplay.style.display = data.enabled ? 'block' : 'none';
+                        }
                     }
                 })
                 .catch(error => showMessage('Failed to load streaming config: ' + error.message, 'error'));
@@ -487,13 +490,13 @@
             const enabled = document.getElementById('streaming-enabled').checked;
             const config = {
                 enabled: enabled,
-                name: document.getElementById('streaming-name').value,
-                port: document.getElementById('streaming-port').value,
-                encoder: document.getElementById('streaming-encoder').value,
-                bitrate: document.getElementById('streaming-bitrate').value,
-                format: document.getElementById('streaming-format').value,
-                max_clients: document.getElementById('streaming-max-clients').value,
-                bind_to_address: document.getElementById('streaming-bind').value
+                name: document.getElementById('stream-name').value,
+                port: document.getElementById('stream-port').value,
+                encoder: document.getElementById('stream-encoder').value,
+                bitrate: document.getElementById('stream-bitrate').value,
+                format: document.getElementById('stream-format').value,
+                max_clients: document.getElementById('stream-max-clients').value,
+                bind_to_address: document.getElementById('stream-bind-address').value
             };
 
             fetch('/api/streaming/config', {
@@ -521,13 +524,13 @@
             const enabled = document.getElementById('streaming-enabled').checked;
             const config = {
                 enabled: enabled,
-                name: document.getElementById('streaming-name').value,
-                port: document.getElementById('streaming-port').value,
-                encoder: document.getElementById('streaming-encoder').value,
-                bitrate: document.getElementById('streaming-bitrate').value,
-                format: document.getElementById('streaming-format').value,
-                max_clients: document.getElementById('streaming-max-clients').value,
-                bind_to_address: document.getElementById('streaming-bind').value
+                name: document.getElementById('stream-name').value,
+                port: document.getElementById('stream-port').value,
+                encoder: document.getElementById('stream-encoder').value,
+                bitrate: document.getElementById('stream-bitrate').value,
+                format: document.getElementById('stream-format').value,
+                max_clients: document.getElementById('stream-max-clients').value,
+                bind_to_address: document.getElementById('stream-bind-address').value
             };
 
             fetch('/api/streaming/config', {
