@@ -263,9 +263,17 @@
             <div style="background: #c0392b; border-left: 4px solid #e74c3c; padding: 12px; margin-bottom: 20px; border-radius: 4px;">
                 <strong style="color: #fff;">⚠️ Warning:</strong>
                 <span style="color: #ecf0f1; font-size: 0.95em;">
-                    If the update affects network components, you may lose connection to this interface.
-                    For critical updates, consider using SSH directly. The update will continue even if connection is lost.
+                    Network updates may interrupt your connection. For critical updates, use a detached session or have console access available. 
+                    The update will continue running even if you lose connection, but you won't see the result.
                 </span>
+                <div style="margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 3px; font-family: monospace; font-size: 0.9em;">
+                    <div style="color: #3498db;">Via SSH with screen:</div>
+                    <div style="color: #ecf0f1; margin-left: 10px;">$ screen -S update</div>
+                    <div style="color: #95a5a6; margin-left: 10px; font-size: 0.85em;">(detach: Ctrl+A then D, reattach: screen -r update)</div>
+                    <div style="color: #3498db; margin-top: 8px;">Or with tmux:</div>
+                    <div style="color: #ecf0f1; margin-left: 10px;">$ tmux new -s update</div>
+                    <div style="color: #95a5a6; margin-left: 10px; font-size: 0.85em;">(detach: Ctrl+B then D, reattach: tmux attach -t update)</div>
+                </div>
             </div>
             <button class="btn btn-warning" onclick="updateSystem()">📦 Update OS Packages</button>
         </div>
@@ -341,7 +349,7 @@
         }
 
         function updateSystem() {
-            if (!confirm('Update the operating system?\n\n⚠️ WARNING: Network connectivity may be interrupted if networking components are updated. The update will continue running even if you lose connection.\n\nThis may take several minutes. Continue?')) {
+            if (!confirm('Update the operating system?\n\n⚠️ WARNING: If network components are updated, you may lose connection.\n\nFor critical updates via SSH, use a detached session:\n• screen -S update  (detach: Ctrl+A D, reattach: screen -r update)\n• tmux new -s update  (detach: Ctrl+B D, reattach: tmux attach -t update)\n\nOr have console access available.\n\nThis may take several minutes. Continue?')) {
                 return;
             }
 
