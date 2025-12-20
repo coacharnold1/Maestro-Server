@@ -1927,7 +1927,7 @@ def get_streaming_config():
         # Read mpd.conf
         result = run_command(['cat', '/etc/mpd.conf'], require_sudo=True)
         if not result['success']:
-            return jsonify({'success': False, 'error': 'Failed to read mpd.conf'}), 500
+            return jsonify({'status': 'error', 'message': 'Failed to read mpd.conf'}), 500
         
         config_text = result['stdout']
         
@@ -1938,16 +1938,16 @@ def get_streaming_config():
         if not httpd_match:
             # No HTTP streaming configured
             return jsonify({
-                'success': True,
+                'status': 'success',
                 'enabled': False,
                 'config': {
-                    'name': 'HTTP Stream',
+                    'name': 'Maestro HTTP Stream',
                     'port': '8000',
                     'encoder': 'lame',
                     'bitrate': '192',
                     'format': '44100:16:2',
                     'max_clients': '0',
-                    'bind_address': '0.0.0.0'
+                    'bind_to_address': '0.0.0.0'
                 }
             })
         
@@ -1960,27 +1960,26 @@ def get_streaming_config():
             return match.group(1) if match else default
         
         config = {
-            'name': extract_value('name', 'HTTP Stream'),
+            'name': extract_value('name', 'Maestro HTTP Stream'),
             'port': extract_value('port', '8000'),
             'encoder': extract_value('encoder', 'lame'),
             'bitrate': extract_value('bitrate', '192'),
             'format': extract_value('format', '44100:16:2'),
             'max_clients': extract_value('max_clients', '0'),
-            'bind_address': extract_value('bind_to_address', '0.0.0.0')
+            'bind_to_address': extract_value('bind_to_address', '0.0.0.0')
         }
         
-        # Check if commented out
-        lines_before = config_text[:httpd_match.start()].split('\n')
-        is_commented = False
-        for line in reversed(lines_before[-10:]):  # Check last 10 lines before block
-            if line.strip().startswith('#audio_output'):
-                is_commented = True
-                break
-            if 'audio_output' in line:
-                break
+        # Check if the audio_output line itself is commented
+        # Find the start of the audio_output line
+        block_start = httpd_match.start()
+        lines_before = config_text[:block_start].split('\n')
+        last_line = lines_before[-1].strip() if lines_before else ''
+        
+        # Check if the audio_output { line starts with #
+        is_commented = last_line.startswith('#audio_output') or last_line.startswith('# audio_output')
         
         return jsonify({
-            'success': True,
+            'status': 'success',
             'enabled': not is_commented,
             'config': config
         })
