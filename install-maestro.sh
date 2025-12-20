@@ -677,6 +677,23 @@ configure_cd_autorip() {
 create_systemd_services() {
     echo -e "${GREEN}[8/9] Creating systemd services...${NC}"
     
+    # Configure MPD to wait for NFS mounts (fixes database loss issue)
+    echo -e "${YELLOW}Configuring MPD to wait for NFS mounts...${NC}"
+    sudo mkdir -p /etc/systemd/system/mpd.service.d
+    sudo tee /etc/systemd/system/mpd.service.d/nfs-wait.conf > /dev/null <<'MPDEOF'
+[Unit]
+# Wait for NFS mounts before starting MPD
+After=network-online.target remote-fs.target
+Wants=network-online.target
+Requires=remote-fs.target
+
+[Service]
+# Restart MPD if it crashes due to NFS issues
+Restart=on-failure
+RestartSec=10
+MPDEOF
+    echo -e "${GREEN}✓ Configured MPD to wait for remote filesystems${NC}"
+    
     # Web UI service
     sudo tee /etc/systemd/system/maestro-web.service > /dev/null <<EOF
 [Unit]

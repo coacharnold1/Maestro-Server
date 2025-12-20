@@ -383,7 +383,7 @@ def api_add_mount():
 
 @app.route('/api/library/mounts/<int:mount_id>/mount', methods=['POST'])
 def api_mount_share(mount_id):
-    """Mount a configured network share"""
+    """Mount a configured network share with optimized NFS options"""
     try:
         # Load mounts
         if not MOUNTS_CONFIG.exists():
@@ -402,16 +402,31 @@ def api_mount_share(mount_id):
         # Create mount point if it doesn't exist
         os.makedirs(mount_point, exist_ok=True)
         
-        # Build mount command
+        # Build mount command with optimized options for MPD stability
         if mount['type'] == 'nfs':
-            cmd = f"mount -t nfs {mount['server']}:{mount['share_path']} {mount_point}"
+            # NFS options optimized for reliability with MPD:
+            # - auto: mount at boot
+            # - x-systemd.automount: auto-remount on access
+            # - x-systemd.requires: wait for network
+            # - _netdev: network filesystem
+            # - ro: read-only (adjust if you need write access)
+            # - timeo=30: 3 second timeout (30 deciseconds)
+            # - retrans=2: retry twice
+            # - soft: fail after timeout (vs hard which hangs)
+            # - nofail: don't fail boot if unavailable
+            # - intr: allow interruption of hung operations
+            nfs_opts = "auto,x-systemd.automount,x-systemd.requires=network-online.target,_netdev,ro,timeo=30,retrans=2,soft,nofail,intr"
+            cmd = f"mount -t nfs -o {nfs_opts} {mount['server']}:{mount['share_path']} {mount_point}"
         elif mount['type'] == 'smb':
             creds = ""
             if mount['username']:
                 creds = f"username={mount['username']},password={mount['password']}"
+            smb_opts = "auto,x-systemd.automount,x-systemd.requires=network-online.target,_netdev,nofail"
             cmd = f"mount -t cifs //{mount['server']}/{mount['share_path']} {mount_point}"
             if creds:
-                cmd += f" -o {creds}"
+                cmd += f" -o {smb_opts},{creds}"
+            else:
+                cmd += f" -o {smb_opts}"
         else:
             return jsonify({'status': 'error', 'message': 'Unknown mount type'}), 400
         
@@ -419,7 +434,7 @@ def api_mount_share(mount_id):
         result = run_command(cmd, require_sudo=True)
         
         if result['success']:
-            return jsonify({'status': 'success', 'message': f"Mounted {mount['name']}"})
+            return jsonify({'status': 'success', 'message': f"Mounted {mount['name']} with optimized options"})
         else:
             return jsonify({'status': 'error', 'message': result.get('stderr', 'Mount failed')}), 500
     except Exception as e:
@@ -463,6 +478,82 @@ def api_delete_mount(mount_id):
         
         # Remove mount
         mounts = [m for m in mounts if m['id'] != mount_id]
+        
+        # Save
+        with open(MOUNTS_CONFIG, 'w') as f:
+            json.dump(mounts, f, indent=2)
+        
+        return jsonify({'status': 'success', 'message': 'Mount configuration deleted'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/library/mounts/<int:mount_id>/add-to-fstab', methods=['POST'])
+def api_add_mount_to_fstab(mount_id):
+    """Add a mount configuration to /etc/fstab for persistence across reboots"""
+    try:
+        # Load mounts
+        if not MOUNTS_CONFIG.exists():
+            return jsonify({'status': 'error', 'message': 'No mounts configured'}), 404
+        
+        with open(MOUNTS_CONFIG, 'r') as f:
+            mounts = json.load(f)
+        
+        # Find mount
+        mount = next((m for m in mounts if m['id'] == mount_id), None)
+        if not mount:
+            return jsonify({'status': 'error', 'message': 'Mount not found'}), 404
+        
+        # Check if already in fstab
+        try:
+            with open('/etc/fstab', 'r') as f:
+                fstab_content = f.read()
+                if mount['mount_point'] in fstab_content:
+                    return jsonify({'status': 'warning', 'message': 'Mount point already exists in fstab'}), 400
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': f'Cannot read fstab: {str(e)}'}), 500
+        
+        # Build fstab entry with optimized options
+        if mount['type'] == 'nfs':
+            device = f"{mount['server']}:{mount['share_path']}"
+            fs_type = "nfs"
+            # Optimized NFS options for MPD stability
+            options = "auto,x-systemd.automount,x-systemd.requires=network-online.target,_netdev,ro,timeo=30,retrans=2,soft,nofail,intr"
+        elif mount['type'] == 'smb':
+            device = f"//{mount['server']}/{mount['share_path']}"
+            fs_type = "cifs"
+            options = "auto,x-systemd.automount,x-systemd.requires=network-online.target,_netdev,nofail"
+            if mount.get('username'):
+                # Note: In production, use credentials file instead of password in fstab
+                options += f",username={mount['username']},password={mount['password']}"
+        else:
+            return jsonify({'status': 'error', 'message': 'Unknown mount type'}), 400
+        
+        # Create fstab entry
+        fstab_entry = f"\n# Maestro-managed mount: {mount['name']}\n"
+        fstab_entry += f"{device} {mount['mount_point']} {fs_type} {options} 0 0\n"
+        
+        # Append to fstab
+        try:
+            # Use tee to write with sudo
+            cmd = f"echo '{fstab_entry}' | sudo tee -a /etc/fstab"
+            result = run_command(cmd, require_sudo=False)  # sudo already in command
+            
+            if not result['success']:
+                return jsonify({'status': 'error', 'message': f"Failed to update fstab: {result.get('stderr', 'Unknown error')}"}), 500
+            
+            # Reload systemd
+            run_command("systemctl daemon-reload", require_sudo=True)
+            
+            return jsonify({
+                'status': 'success',
+                'message': f"Added {mount['name']} to /etc/fstab. Mount will persist across reboots.",
+                'fstab_entry': fstab_entry.strip()
+            })
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': f'Failed to update fstab: {str(e)}'}), 500
+            
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
         
         # Save
         with open(MOUNTS_CONFIG, 'w') as f:

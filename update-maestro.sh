@@ -110,6 +110,23 @@ EOF
 sudo chmod 440 "$SUDOERS_FILE"
 echo -e "${GREEN}✓ Updated sudo permissions${NC}"
 
+# Configure MPD to wait for NFS mounts (fixes database loss issue)
+echo -e "${YELLOW}Configuring MPD to wait for NFS mounts...${NC}"
+sudo mkdir -p /etc/systemd/system/mpd.service.d
+sudo tee /etc/systemd/system/mpd.service.d/nfs-wait.conf > /dev/null <<'MPDEOF'
+[Unit]
+# Wait for NFS mounts before starting MPD
+After=network-online.target remote-fs.target
+Wants=network-online.target
+Requires=remote-fs.target
+
+[Service]
+# Restart MPD if it crashes due to NFS issues
+Restart=on-failure
+RestartSec=10
+MPDEOF
+echo -e "${GREEN}✓ Configured MPD to wait for remote filesystems${NC}"
+
 # Ensure ripped directory exists for CD ripping
 if [ ! -d "/media/music/ripped" ]; then
     echo -e "${YELLOW}Creating ripped directory for CD ripping...${NC}"
@@ -179,6 +196,10 @@ fi
 
 echo ""
 echo -e "${GREEN}[6/6] Restarting services...${NC}"
+
+# Reload systemd to pick up MPD changes
+sudo systemctl daemon-reload
+
 # Restart services
 if systemctl is-active --quiet maestro-web.service; then
     sudo systemctl restart maestro-web.service
