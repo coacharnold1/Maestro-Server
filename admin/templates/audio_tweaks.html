@@ -225,28 +225,30 @@
                 <div class="form-group">
                     <label>Encoder</label>
                     <select id="stream-encoder" style="width: 100%; padding: 10px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #ecf0f1;">
-                        <option value="lame">MP3 (LAME)</option>
-                        <option value="vorbis">Ogg Vorbis</option>
-                        <option value="opus">Opus</option>
+                        <option value="">None (Lossless WAVE - High Bandwidth)</option>
+                        <option value="lame">MP3 (LAME) - Good Quality, Compatible</option>
+                        <option value="vorbis">Ogg Vorbis - Better Quality</option>
+                        <option value="opus">Opus - Best Quality/Size Ratio</option>
                     </select>
-                    <small style="color: #7f8c8d; margin-top: 5px; display: block;">Audio codec for streaming</small>
+                    <small style="color: #7f8c8d; margin-top: 5px; display: block;">⚠️ No encoder = lossless but uses ~1.5 Mbps bandwidth</small>
                 </div>
                 
                 <div class="form-group">
                     <label>Bitrate (kbps)</label>
                     <select id="stream-bitrate" style="width: 100%; padding: 10px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #ecf0f1;">
+                        <option value="">Default (codec dependent)</option>
                         <option value="128">128 kbps</option>
-                        <option value="192" selected>192 kbps</option>
+                        <option value="192">192 kbps</option>
                         <option value="256">256 kbps</option>
                         <option value="320">320 kbps</option>
                     </select>
-                    <small style="color: #7f8c8d; margin-top: 5px; display: block;">Higher = better quality, more bandwidth</small>
+                    <small style="color: #7f8c8d; margin-top: 5px; display: block;">Only used when encoder is selected</small>
                 </div>
                 
                 <div class="form-group">
                     <label>Format</label>
-                    <input type="text" id="stream-format" value="44100:16:2" style="width: 100%; padding: 10px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #ecf0f1;">
-                    <small style="color: #7f8c8d; margin-top: 5px; display: block;">samplerate:bits:channels (44100:16:2 = CD quality)</small>
+                    <input type="text" id="stream-format" placeholder="44100:16:2 or leave empty for MPD default" style="width: 100%; padding: 10px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #ecf0f1;">
+                    <small style="color: #7f8c8d; margin-top: 5px; display: block;">samplerate:bits:channels (empty = use audio file's format)</small>
                 </div>
                 
                 <div class="form-group">

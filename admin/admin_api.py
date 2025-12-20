@@ -1943,9 +1943,9 @@ def get_streaming_config():
                 'config': {
                     'name': 'Maestro HTTP Stream',
                     'port': '8000',
-                    'encoder': 'lame',
-                    'bitrate': '192',
-                    'format': '44100:16:2',
+                    'encoder': '',  # Empty = lossless WAVE
+                    'bitrate': '',
+                    'format': '',
                     'max_clients': '0',
                     'bind_to_address': '0.0.0.0'
                 }
@@ -1962,21 +1962,28 @@ def get_streaming_config():
         config = {
             'name': extract_value('name', 'Maestro HTTP Stream'),
             'port': extract_value('port', '8000'),
-            'encoder': extract_value('encoder', 'lame'),
-            'bitrate': extract_value('bitrate', '192'),
-            'format': extract_value('format', '44100:16:2'),
+            'encoder': extract_value('encoder', ''),  # Empty = lossless WAVE
+            'bitrate': extract_value('bitrate', ''),
+            'format': extract_value('format', ''),
             'max_clients': extract_value('max_clients', '0'),
             'bind_to_address': extract_value('bind_to_address', '0.0.0.0')
         }
         
-        # Check if the audio_output line itself is commented
-        # Find the start of the audio_output line
-        block_start = httpd_match.start()
-        lines_before = config_text[:block_start].split('\n')
-        last_line = lines_before[-1].strip() if lines_before else ''
+        # Check if the entire block is commented (look for # before the audio_output keyword)
+        # Get the text around the match to check for comments
+        start_pos = httpd_match.start()
+        # Look back up to 50 characters to find the start of the line
+        line_start = max(0, start_pos - 50)
+        prefix_text = config_text[line_start:start_pos]
         
-        # Check if the audio_output { line starts with #
-        is_commented = last_line.startswith('#audio_output') or last_line.startswith('# audio_output')
+        # Check if there's a # before audio_output on the same line
+        last_newline = prefix_text.rfind('\n')
+        if last_newline != -1:
+            line_prefix = prefix_text[last_newline+1:].strip()
+        else:
+            line_prefix = prefix_text.strip()
+        
+        is_commented = line_prefix.startswith('#')
         
         return jsonify({
             'status': 'success',
@@ -1985,7 +1992,7 @@ def get_streaming_config():
         })
         
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/api/streaming/config', methods=['POST'])
 def update_streaming_config():
@@ -2002,17 +2009,39 @@ def update_streaming_config():
         
         config_text = result['stdout']
         
-        # Build HTTP streaming block
-        httpd_block = f'''audio_output {{
-    type        "httpd"
-    name        "{config.get('name', 'HTTP Stream')}"
-    encoder     "{config.get('encoder', 'lame')}"
-    port        "{config.get('port', '8000')}"
-    bitrate     "{config.get('bitrate', '192')}"
-    format      "{config.get('format', '44100:16:2')}"
-    max_clients "{config.get('max_clients', '0')}"
-    bind_to_address "{config.get('bind_address', '0.0.0.0')}"
-}}'''
+        # Build HTTP streaming block based on encoder setting
+        name = config.get('name', 'Maestro HTTP Stream')
+        port = config.get('port', '8000')
+        encoder = config.get('encoder', '').strip()
+        bitrate = config.get('bitrate', '').strip()
+        format_val = config.get('format', '').strip()
+        max_clients = config.get('max_clients', '0')
+        bind_addr = config.get('bind_to_address', '0.0.0.0')
+        
+        # Build config lines - only include fields that have values
+        config_lines = [
+            'audio_output {',
+            f'    type        "httpd"',
+            f'    name        "{name}"',
+            f'    port        "{port}"',
+        ]
+        
+        # Optional fields - only add if they have values
+        if encoder:
+            config_lines.append(f'    encoder     "{encoder}"')
+        if bitrate:
+            config_lines.append(f'    bitrate     "{bitrate}"')
+        if format_val:
+            config_lines.append(f'    format      "{format_val}"')
+        
+        config_lines.extend([
+            f'    max_clients "{max_clients}"',
+            f'    bind_to_address "{bind_addr}"',
+            f'    mixer_type  "software"',
+            '}'
+        ])
+        
+        httpd_block = '\n'.join(config_lines)
         
         # Remove existing httpd audio_output block (commented or not)
         import re
