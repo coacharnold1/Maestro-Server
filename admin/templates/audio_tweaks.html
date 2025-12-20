@@ -464,12 +464,12 @@
                 .then(data => {
                     if (data.status === 'success') {
                         const config = data.config;
-                        document.getElementById('streaming-enabled').checked = config.enabled;
+                        document.getElementById('streaming-enabled').checked = data.enabled;
                         document.getElementById('streaming-name').value = config.name || 'Maestro HTTP Stream';
                         document.getElementById('streaming-port').value = config.port || '8000';
-                        document.getElementById('streaming-encoder').value = config.encoder || 'lame';
-                        document.getElementById('streaming-bitrate').value = config.bitrate || '192';
-                        document.getElementById('streaming-format').value = config.format || '44100:16:2';
+                        document.getElementById('streaming-encoder').value = config.encoder || '';
+                        document.getElementById('streaming-bitrate').value = config.bitrate || '';
+                        document.getElementById('streaming-format').value = config.format || '';
                         document.getElementById('streaming-max-clients').value = config.max_clients || '0';
                         document.getElementById('streaming-bind').value = config.bind_to_address || '0.0.0.0';
                         

@@ -2000,12 +2000,13 @@ def update_streaming_config():
     try:
         data = request.get_json()
         enabled = data.get('enabled', False)
-        config = data.get('config', {})
+        # Config is sent flat in the data, not nested
+        config = data
         
         # Read current mpd.conf
         result = run_command(['cat', '/etc/mpd.conf'], require_sudo=True)
         if not result['success']:
-            return jsonify({'success': False, 'error': 'Failed to read mpd.conf'}), 500
+            return jsonify({'status': 'error', 'message': 'Failed to read mpd.conf'}), 500
         
         config_text = result['stdout']
         
