@@ -162,9 +162,9 @@ fi
 echo ""
 echo -e "${GREEN}[6/6] Restarting services...${NC}"
 # Restart services
-if systemctl is-active --quiet maestro.service; then
-    sudo systemctl restart maestro.service
-    echo -e "${GREEN}✓ Restarted maestro.service${NC}"
+if systemctl is-active --quiet maestro-web.service; then
+    sudo systemctl restart maestro-web.service
+    echo -e "${GREEN}✓ Restarted maestro-web.service${NC}"
 fi
 
 if systemctl is-active --quiet maestro-admin.service; then
@@ -181,7 +181,7 @@ echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━�
 echo -e "${GREEN}Service Status:${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
-if systemctl is-active --quiet maestro.service; then
+if systemctl is-active --quiet maestro-web.service; then
     echo -e "Web UI:    ${GREEN}✓ Running${NC}"
 else
     echo -e "Web UI:    ${RED}✗ Not running${NC}"
