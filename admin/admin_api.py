@@ -1915,6 +1915,149 @@ def make_directory():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ============================================================================
+# HTTP STREAMING CONFIGURATION
+# ============================================================================
+
+@app.route('/api/streaming/config', methods=['GET'])
+def get_streaming_config():
+    """Get current HTTP streaming configuration from mpd.conf"""
+    try:
+        import re
+        
+        # Read mpd.conf
+        result = run_command(['cat', '/etc/mpd.conf'], require_sudo=True)
+        if not result['success']:
+            return jsonify({'success': False, 'error': 'Failed to read mpd.conf'}), 500
+        
+        config_text = result['stdout']
+        
+        # Parse httpd audio_output block
+        httpd_pattern = r'audio_output\s*\{[^}]*type\s+"httpd"[^}]*\}'
+        httpd_match = re.search(httpd_pattern, config_text, re.DOTALL)
+        
+        if not httpd_match:
+            # No HTTP streaming configured
+            return jsonify({
+                'success': True,
+                'enabled': False,
+                'config': {
+                    'name': 'HTTP Stream',
+                    'port': '8000',
+                    'encoder': 'lame',
+                    'bitrate': '192',
+                    'format': '44100:16:2',
+                    'max_clients': '0',
+                    'bind_address': '0.0.0.0'
+                }
+            })
+        
+        httpd_block = httpd_match.group(0)
+        
+        # Extract individual settings
+        def extract_value(key, default=''):
+            pattern = rf'{key}\s+"([^"]*)"'
+            match = re.search(pattern, httpd_block)
+            return match.group(1) if match else default
+        
+        config = {
+            'name': extract_value('name', 'HTTP Stream'),
+            'port': extract_value('port', '8000'),
+            'encoder': extract_value('encoder', 'lame'),
+            'bitrate': extract_value('bitrate', '192'),
+            'format': extract_value('format', '44100:16:2'),
+            'max_clients': extract_value('max_clients', '0'),
+            'bind_address': extract_value('bind_to_address', '0.0.0.0')
+        }
+        
+        # Check if commented out
+        lines_before = config_text[:httpd_match.start()].split('\n')
+        is_commented = False
+        for line in reversed(lines_before[-10:]):  # Check last 10 lines before block
+            if line.strip().startswith('#audio_output'):
+                is_commented = True
+                break
+            if 'audio_output' in line:
+                break
+        
+        return jsonify({
+            'success': True,
+            'enabled': not is_commented,
+            'config': config
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/streaming/config', methods=['POST'])
+def update_streaming_config():
+    """Update HTTP streaming configuration in mpd.conf"""
+    try:
+        data = request.get_json()
+        enabled = data.get('enabled', False)
+        config = data.get('config', {})
+        
+        # Read current mpd.conf
+        result = run_command(['cat', '/etc/mpd.conf'], require_sudo=True)
+        if not result['success']:
+            return jsonify({'success': False, 'error': 'Failed to read mpd.conf'}), 500
+        
+        config_text = result['stdout']
+        
+        # Build HTTP streaming block
+        httpd_block = f'''audio_output {{
+    type        "httpd"
+    name        "{config.get('name', 'HTTP Stream')}"
+    encoder     "{config.get('encoder', 'lame')}"
+    port        "{config.get('port', '8000')}"
+    bitrate     "{config.get('bitrate', '192')}"
+    format      "{config.get('format', '44100:16:2')}"
+    max_clients "{config.get('max_clients', '0')}"
+    bind_to_address "{config.get('bind_address', '0.0.0.0')}"
+}}'''
+        
+        # Remove existing httpd audio_output block (commented or not)
+        import re
+        # Remove commented blocks
+        config_text = re.sub(r'#\s*audio_output\s*\{[^}]*type\s+"httpd"[^}]*\}', '', config_text, flags=re.DOTALL)
+        # Remove active blocks
+        config_text = re.sub(r'audio_output\s*\{[^}]*type\s+"httpd"[^}]*\}', '', config_text, flags=re.DOTALL)
+        
+        # Add new block at the end if enabled, or commented if disabled
+        if enabled:
+            config_text += '\n\n# HTTP Streaming Output (Multi-room playback)\n' + httpd_block + '\n'
+        else:
+            # Add as commented block for reference
+            commented_block = '\n'.join(['#' + line if line.strip() else line for line in httpd_block.split('\n')])
+            config_text += '\n\n# HTTP Streaming Output (Multi-room playback) - DISABLED\n' + commented_block + '\n'
+        
+        # Write back to mpd.conf
+        write_result = run_command(
+            f'echo {repr(config_text)} | sudo tee /etc/mpd.conf > /dev/null',
+            require_sudo=False
+        )
+        
+        if not write_result['success']:
+            return jsonify({'success': False, 'error': 'Failed to write mpd.conf'}), 500
+        
+        # Restart MPD
+        restart_result = run_command(['systemctl', 'restart', 'mpd'], require_sudo=True)
+        
+        if restart_result['success']:
+            return jsonify({
+                'success': True,
+                'message': f'HTTP streaming {"enabled" if enabled else "disabled"} and MPD restarted',
+                'stream_url': f'http://{socket.gethostname()}:{config.get("port", "8000")}' if enabled else None
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Config updated but MPD restart failed'
+            }), 500
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
