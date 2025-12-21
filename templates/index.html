@@ -1103,7 +1103,6 @@
             <a href="http://{{ request.host.split(':')[0] }}:5004" class="small-btn" style="background-color:#e74c3c !important; padding: 4px 8px !important; font-weight: bold;">⚙️ Admin</a>
             <a href="{{ url_for('restart_mpd') }}"><button class="small-btn" style="background-color:#34495e !important; padding: 4px 8px !important;">Restart MPD</button></a>
             <a href="{{ url_for('update_mpd_db') }}" id="update-db-link"><button class="small-btn" id="update-db-btn" style="background-color:#34495e !important; padding: 4px 8px !important;">Update DB</button></a>
-            <button class="small-btn" id="clear-art-cache-btn" style="background-color:#34495e !important; padding: 4px 8px !important;">Clear Cache</button>
         </div>
 
     </div>
@@ -1309,9 +1308,6 @@
                         });
                 });
             }
-
-            // Clear Album Art Cache button
-            const clearArtCacheBtn = document.getElementById('clear-art-cache-btn');
 
             // Function to update the UI with new MPD status data
             function updateUI(data) {
@@ -1568,21 +1564,6 @@
                         });
                 });
             }
-
-            // Clear Album Art Cache Event Listener
-            clearArtCacheBtn.addEventListener('click', function () {
-                fetch('/clear_art_cache', {
-                    method: 'POST'
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        displayMessage('info', 'Album art cache cleared! Refresh page to see updated artwork.');
-                    })
-                    .catch(error => {
-                        console.error('Error clearing cache:', error);
-                        displayMessage('error', 'Error clearing album art cache');
-                    });
-            });
 
             // Database Update Monitoring
             let dbUpdateCheckInterval = null;
