@@ -1,8 +1,25 @@
-Maestro MPD Server v2.1
-Release Date: Fri Dec 20 00:00:00 UTC 2025
-Version: 2.1.0
+Maestro MPD Server v2.2
+Release Date: Sat Dec 21 00:00:00 UTC 2025
+Version: 2.2.0
 
-🎵 FEATURE RELEASE - HTTP Streaming UI & Critical Fixes 🎵
+🎵 UX ENHANCEMENT RELEASE - Navigation & Reliability Improvements 🎵
+
+Latest Features (Dec 21, 2025 - v2.2):
+✅ NEW: Letter Jump Navigation - Quick alphabetic navigation for artist lists >50 items
+✅ ENHANCED: Button Reorganization - Charts moved up, MPD controls in footer for cleaner UI
+✅ IMPROVED: NFS Mount Reliability - MPD waits for remote-fs.target, auto-restart on failure
+✅ IMPROVED: Theme Consistency - Search results now properly support all 8 themes
+✅ OPTIMIZED: UI Polish - Removed unused Clear Cache button, increased Charts button size
+✅ FIXED: Database Toast Behavior - Only shows when manually triggered, not on page load
+✅ SMART: Context-Aware Navigation - Letter jump only appears when useful (>50 artists)
+
+Previous Features (Dec 17, 2025 - v2.1):
+✅ Playlist Save/Load - M3U format with metadata, list/delete operations
+✅ Track Reordering - Up/down arrow buttons to move songs in playlist
+✅ Clickable Seeking - Click progress bar to jump to any position in track
+✅ 4 New Themes - Terminal (retro green), Sunset (warm), Forest (green), Midnight (purple)
+✅ Music Directory Standardization - /media/music/ with symlink support
+✅ Safe Installer - Preserves existing MPD config and database
 
 Core Features:
 - Web UI (port 5003) - Music playback control with modern interface
@@ -14,21 +31,12 @@ Core Features:
 - Multi-Disc Album Support - Nested disc display with individual controls
 - Album Art Display - Local files and Last.fm fallback
 - Real-time Updates - WebSocket-based status updates
-- Theme System - Dark, light, high-contrast, desert + 4 new themes
-- Network Mount Support - NFS and SMB share management
+- Theme System - 8 themes (dark, light, high-contrast, desert, terminal, sunset, forest, midnight)
+- Network Mount Support - NFS and SMB share management with reliability features
 - System Logs Viewer - Real-time monitoring of all services
 - Playlist Management - Save/load M3U playlists with metadata
 - Track Seeking - Clickable progress bar for precise playback control
-
-Latest Features (Dec 17, 2025 - v2.1):
-✅ NEW: Playlist Save/Load - M3U format with metadata, list/delete operations
-✅ NEW: Track Reordering - Up/down arrow buttons to move songs in playlist
-✅ NEW: Clickable Seeking - Click progress bar to jump to any position in track
-✅ NEW: 4 New Themes - Terminal (retro green), Sunset (warm), Forest (green), Midnight (purple)
-✅ ENHANCED: Music Directory Standardization - /media/music/ with symlink support
-✅ IMPROVED: Installer - Handles existing /media/music with backup/symlink options
-✅ IMPROVED: Admin Panel - Enforces /media/music/ structure for all mounts
-✅ OPTIMIZED: Debug Log Cleanup - Removed noisy console floods for cleaner logs
+- Letter Jump Navigation - Quick alphabetic navigation for long artist lists
 
 Previous Major Features (Dec 16, 2025 - v2.0):
 ✅ CRITICAL: Safe Installer - Preserves existing MPD config and database
