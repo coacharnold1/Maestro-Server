@@ -1080,16 +1080,16 @@
             </div>
         </div>
 
-        {# MPD Actions - compact minimal styling #}
+        {# Charts Button #}
         <div class="controls mpd-actions-small" style="margin-top: 15px; padding: 8px; border-top: 1px solid #34495e;">
             <div class="small-actions" style="display: flex; justify-content: center; gap: 6px; flex-wrap: wrap;">
-                <a href="{{ url_for('restart_mpd') }}"><button class="small-btn" style="font-size: 0.75em; padding: 4px 8px;">Restart MPD</button></a>
-                <a href="{{ url_for('update_mpd_db') }}" id="update-db-link"><button class="small-btn" id="update-db-btn" style="font-size: 0.75em; padding: 4px 8px;">Update DB</button></a>
-                <button class="small-btn" id="clear-art-cache-btn" style="font-size: 0.75em; padding: 4px 8px;">Clear Cache</button>
+                <a href="/charts" class="small-btn" style="background-color:#7f8c8d !important; padding: 4px 8px !important;">Charts</a>
             </div>
-            <div id="db-update-status" style="display: none; margin-top: 8px; padding: 8px; background-color: #3498db; color: white; border-radius: 5px; text-align: center; font-size: 0.85em;">
-                <span id="db-update-text">⏳ Updating database...</span>
-            </div>
+        </div>
+
+        {# Database Update Status Display #}
+        <div id="db-update-status" style="display: none; margin-top: 8px; padding: 8px; background-color: #3498db; color: white; border-radius: 5px; text-align: center; font-size: 0.85em;">
+            <span id="db-update-text">⏳ Updating database...</span>
         </div>
 
 
@@ -1100,8 +1100,10 @@
         <div class="controls mpd-actions-small" style="margin-top: 18px;">
             <span id="version-info">Loading version info...</span>
             <a href="/settings" class="small-btn" style="background-color:#7f8c8d !important; padding: 4px 8px !important;">Settings</a>
-            <a href="/charts" class="small-btn" style="background-color:#7f8c8d !important; padding: 4px 8px !important;">Charts</a>
             <a href="http://{{ request.host.split(':')[0] }}:5004" class="small-btn" style="background-color:#e74c3c !important; padding: 4px 8px !important; font-weight: bold;">⚙️ Admin</a>
+            <a href="{{ url_for('restart_mpd') }}"><button class="small-btn" style="background-color:#34495e !important; padding: 4px 8px !important;">Restart MPD</button></a>
+            <a href="{{ url_for('update_mpd_db') }}" id="update-db-link"><button class="small-btn" id="update-db-btn" style="background-color:#34495e !important; padding: 4px 8px !important;">Update DB</button></a>
+            <button class="small-btn" id="clear-art-cache-btn" style="background-color:#34495e !important; padding: 4px 8px !important;">Clear Cache</button>
         </div>
 
     </div>
