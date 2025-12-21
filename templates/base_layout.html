@@ -582,7 +582,9 @@
             <span id="version-info">Loading version info...</span>
         </div>
         <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
-            {% if request.path != '/settings' %}
+            {% if request.path == '/settings' %}
+            <a href="/" class="button" style="padding: 8px 16px;">Back</a>
+            {% else %}
             <a href="/settings" class="button" style="padding: 8px 16px;">Settings</a>
             {% endif %}
             <a href="/charts" class="button" style="padding: 8px 16px;">Charts</a>
