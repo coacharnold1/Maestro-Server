@@ -578,13 +578,14 @@
     
     <!-- Footer with version info -->
     <footer style="text-align: center; padding: 15px; font-size: 14px; margin-top: 30px;">
-        <span id="version-info">Loading version info...</span>
-        &nbsp;•&nbsp;
-        <a href="/settings" style="text-decoration: none;">Settings</a>
-        &nbsp;•&nbsp;
-        <a href="/charts" style="text-decoration: none;">Charts</a>
-        &nbsp;•&nbsp;
-        <a href="http://{{ request.host.split(':')[0] }}:5004" style="color:#e74c3c; text-decoration: none; font-weight: bold;">⚙️ Admin</a>
+        <div style="margin-bottom: 10px;">
+            <span id="version-info">Loading version info...</span>
+        </div>
+        <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+            <a href="/settings" class="button" style="padding: 8px 16px;">Settings</a>
+            <a href="/charts" class="button" style="padding: 8px 16px;">Charts</a>
+            <a href="http://{{ request.host.split(':')[0] }}:5004" class="button" style="background: #e74c3c; padding: 8px 16px;">⚙️ Admin</a>
+        </div>
     </footer>
     
     <script>
