@@ -582,7 +582,9 @@
             <span id="version-info">Loading version info...</span>
         </div>
         <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+            {% if request.path != '/settings' %}
             <a href="/settings" class="button" style="padding: 8px 16px;">Settings</a>
+            {% endif %}
             <a href="/charts" class="button" style="padding: 8px 16px;">Charts</a>
             <a href="http://{{ request.host.split(':')[0] }}:5004" class="button" style="background: #e74c3c; padding: 8px 16px;">⚙️ Admin</a>
         </div>
