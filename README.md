@@ -192,43 +192,57 @@ SCREENSHOT RECOMMENDATION #5: Installation Success
 
 ## 📸 Screenshots
 
-<!-- 
-SCREENSHOT GUIDE:
-Create a screenshots/ directory in your repo and add these images:
-
-1. hero-player.png - Main player with album art and queue (1920x1080)
-2. themes.png - 4 themes side-by-side showing visual variety
-3. browse-albums.png - Album grid view showing library
-4. browse-artists.png - Artist list with letter navigation visible
-5. admin-dashboard.png - System monitoring with graphs
-6. cd-ripper.png - CD ripper configuration page
-7. library-management.png - NFS mount configuration
-8. recent-albums.png - Recent albums page showing newly added music
-9. mobile-view.png - Mobile responsive view on phone screen
-
-Tips for great screenshots:
-- Use 1920x1080 resolution for desktop views
-- Use actual music/album art (not copyrighted material)
-- Show filled playlists/queues (not empty)
-- Capture during active playback for visual interest
-- Use appealing themes (Desert, Sunset, Forest look great)
-- For mobile: Use browser dev tools to capture phone size
--->
-
 ### Main Player Interface
-<!-- Add: screenshots/hero-player.png here -->
+![Maestro Main Player](screenshots/hero-player.png)
+*Beautiful player interface with album art, queue management, and playback controls*
 
 ### Theme Variety
-<!-- Add: screenshots/themes.png here -->
+![Desert Theme](screenshots/Screenshot_Desert-Theme.png)
+*Desert theme with warm, earthy colors*
+
+![High Contrast Theme](screenshots/Screenshot_High-Contrast-Theme.png)
+*High contrast theme for improved accessibility*
+
+![Multiple Themes](screenshots/themes.png)
+*Choose from 8 beautiful themes to match your style*
 
 ### Library Browsing
-<!-- Add: screenshots/browse-albums.png and browse-artists.png here -->
+![Browse Albums](screenshots/browse-albums.png)
+*Grid view of your album collection with cover art*
+
+![Browse Interface](screenshots/Screenshot_Browse.png)
+*Intuitive browsing with multiple view options*
+
+![Recently Added](screenshots/Screenshot_Recently-Added.png)
+*Keep track of newly added albums to your library*
+
+### Playback Features
+![Playlist Management](screenshots/Screenshot_Playlist.png)
+*Manage your current playlist with drag-and-drop*
+
+![Random and Radio](screenshots/Screenshot_Random-and-Radio.png)
+*Random playback and internet radio station support*
+
+![Search](screenshots/Screenshot_Search.png)
+*Powerful search across your entire music library*
+
+![Last.fm Charts](screenshots/Screenshot_LAST-FM-Charts.png)
+*View your Last.fm listening charts and statistics*
+
+### Settings & Configuration
+![Settings Page](screenshots/Screenshot_22-Settings.png)
+*Comprehensive settings for customization and Last.fm integration*
 
 ### Admin Dashboard
-<!-- Add: screenshots/admin-dashboard.png here -->
+![Admin Dashboard](screenshots/admin-dashboard.png)
+*Powerful admin interface with system monitoring and library management*
 
 ### Mobile Responsive
-<!-- Add: screenshots/mobile-view.png here -->
+![Mobile Interface 1](screenshots/mobile1.png)
+![Mobile Interface 2](screenshots/mobile2.png)
+![Mobile Main Player](screenshots/mobile3-main.png)
+![Mobile Interface 4](screenshots/mobile4.png)
+*Fully responsive design that works beautifully on mobile devices*
 
 ## 🎯 Use Cases
 
