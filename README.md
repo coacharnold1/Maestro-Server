@@ -32,6 +32,7 @@ SCREENSHOT RECOMMENDATION #1: Hero Image
 - Place the image below this comment like:
   ![Maestro Player Interface](screenshots/hero-player.png)
 -->
+![Maestro Player Interface](screenshots/hero-player.png)
 
 ## 🎯 Why Maestro?
 
