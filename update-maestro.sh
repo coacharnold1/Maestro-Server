@@ -60,9 +60,47 @@ if [ -f "$INSTALL_DIR/settings.json" ]; then
     echo -e "${GREEN}✓ Backed up settings.json${NC}"
 fi
 
+if [ -f "$INSTALL_DIR/web/settings.json" ]; then
+    cp "$INSTALL_DIR/web/settings.json" "$INSTALL_DIR/web/settings.json.backup"
+    echo -e "${GREEN}✓ Backed up web/settings.json${NC}"
+fi
+
 if [ -f "$HOME/.abcde.conf" ]; then
     cp "$HOME/.abcde.conf" "$HOME/.abcde.conf.backup"
     echo -e "${GREEN}✓ Backed up abcde.conf${NC}"
+fi
+
+# Migrate settings - add missing fields
+echo -e "${YELLOW}Migrating settings configuration...${NC}"
+for settings_path in "$INSTALL_DIR/settings.json" "$INSTALL_DIR/web/settings.json"; do
+    if [ -f "$settings_path" ]; then
+        # Check if recent_albums_dir is missing
+        if ! grep -q "recent_albums_dir" "$settings_path"; then
+            echo -e "${YELLOW}Adding recent_albums_dir to $(basename $(dirname $settings_path))/settings.json${NC}"
+            # Use Python to safely add the field to JSON
+            python3 <<EOF
+import json
+with open('$settings_path', 'r') as f:
+    settings = json.load(f)
+if 'recent_albums_dir' not in settings:
+    settings['recent_albums_dir'] = 'ripped'
+with open('$settings_path', 'w') as f:
+    json.dump(settings, f, indent=2)
+EOF
+            echo -e "${GREEN}✓ Added recent_albums_dir field${NC}"
+        fi
+    fi
+done
+
+# Sync settings between locations
+if [ -f "$INSTALL_DIR/web/settings.json" ] && [ -f "$INSTALL_DIR/settings.json" ]; then
+    # Use the web version as source of truth (it's what the service uses)
+    cp "$INSTALL_DIR/web/settings.json" "$INSTALL_DIR/settings.json"
+    echo -e "${GREEN}✓ Synchronized settings between locations${NC}"
+elif [ -f "$INSTALL_DIR/settings.json" ] && [ ! -f "$INSTALL_DIR/web/settings.json" ]; then
+    # Copy from root to web if web is missing
+    cp "$INSTALL_DIR/settings.json" "$INSTALL_DIR/web/settings.json"
+    echo -e "${GREEN}✓ Copied settings to web directory${NC}"
 fi
 
 # Update sudoers permissions (critical for backup/restore)
