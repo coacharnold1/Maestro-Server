@@ -37,7 +37,7 @@ SCREENSHOT RECOMMENDATION #1: Hero Image
 
 **Maestro** is not just another MPD web interface - it's a complete music server ecosystem designed for audiophiles, self-hosters, and music enthusiasts who demand:
 
-✨ **Professional-grade features** - CD ripping, multi-disc detection, Last.fm scrobbling, letter jump navigation  
+✨ **Professional-grade features** - CD ripping, multi-disc detection, Last.fm scrobbling  
 🎨 **Beautiful UI** - 8 gorgeous themes, mobile-responsive, modern design  
 🔧 **Full system control** - NFS/SMB mounts, audio configuration, OS updates, real-time monitoring  
 🚀 **Zero-hassle setup** - One-command installation, automatic MPD detection, smart defaults  
