@@ -254,44 +254,43 @@
             background-color: #27ae60;
         }
 
-        /* Playback button styles */
-        .controls button {
-            color: white;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .btn-previous {
+        /* Playback button styles - must be more specific than .controls button */
+        .controls button.btn-previous {
             background-color: #9b59b6;
+            color: white;
         }
-        .btn-previous:hover {
+        .controls button.btn-previous:hover {
             background-color: #8e44ad;
         }
-        .btn-play {
+        .controls button.btn-play {
             background-color: #27ae60;
+            color: white;
         }
-        .btn-play:hover {
+        .controls button.btn-play:hover {
             background-color: #229954;
         }
-        .btn-stop {
+        .controls button.btn-stop {
             background-color: #f39c12;
+            color: white;
         }
-        .btn-stop:hover {
+        .controls button.btn-stop:hover {
             background-color: #e67e22;
         }
-        .btn-pause {
+        .controls button.btn-pause {
             background-color: #e74c3c;
+            color: white;
         }
-        .btn-pause:hover {
+        .controls button.btn-pause:hover {
             background-color: #c0392b;
         }
-        .btn-next {
+        .controls button.btn-next {
             background-color: #3498db;
+            color: white;
         }
-        .btn-next:hover {
+        .controls button.btn-next:hover {
             background-color: #2980b9;
         }
-        .btn-back {
+        button.btn-back {
             background-color: #95a5a6;
             color: white;
             padding: 10px 20px;
@@ -299,7 +298,7 @@
             border-radius: 5px;
             cursor: pointer;
         }
-        .btn-back:hover {
+        button.btn-back:hover {
             background-color: #7f8c8d;
         }
 
