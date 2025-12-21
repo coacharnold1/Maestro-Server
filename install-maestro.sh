@@ -17,6 +17,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 INSTALL_DIR="$HOME/maestro"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WEB_PORT=5003
 ADMIN_PORT=5004
 MPD_PORT=6600
@@ -471,7 +472,10 @@ EOF
 }
 EOF
     
-    echo -e "${GREEN}✓ Initial settings created${NC}"
+    # Copy to web directory as well (web is source of truth)
+    cp "$settings_file" "$INSTALL_DIR/web/settings.json"
+    
+    echo -e "${GREEN}✓ Initial settings created (root and web)${NC}"
 }
 
 # Install Admin API

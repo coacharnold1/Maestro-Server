@@ -14,8 +14,8 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Installation paths
-INSTALL_DIR="/opt/maestro"
-MUSIC_DIR="/var/music"
+INSTALL_DIR="$HOME/maestro"
+MUSIC_DIR="/media/music"
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then 
@@ -94,6 +94,11 @@ remove_install_dir() {
     echo -e "${GREEN}[3/7] Removing installation directory...${NC}"
     
     if [ -d "$INSTALL_DIR" ]; then
+        # Backup settings before removal
+        if [ -f "$INSTALL_DIR/settings.json" ]; then
+            cp "$INSTALL_DIR/settings.json" /tmp/maestro-settings.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
+            echo -e "  ${GREEN}✓ Settings backed up to /tmp${NC}"
+        fi
         rm -rf "$INSTALL_DIR"
         echo -e "${GREEN}✓ Removed $INSTALL_DIR${NC}"
     else
@@ -172,9 +177,37 @@ remove_venvs() {
     echo -e "${GREEN}✓ Virtual environments removed${NC}"
 }
 
+# Remove additional configuration
+remove_config() {
+    echo -e "${GREEN}[7/8] Removing additional configuration...${NC}"
+    
+    # Remove sudo permissions
+    if [ -f /etc/sudoers.d/maestro ]; then
+        rm -f /etc/sudoers.d/maestro
+        echo -e "  ${GREEN}✓ Sudo permissions removed${NC}"
+    fi
+    
+    # Remove udev rules
+    if [ -f /etc/udev/rules.d/99-maestro-cd.rules ]; then
+        rm -f /etc/udev/rules.d/99-maestro-cd.rules
+        udevadm control --reload-rules 2>/dev/null || true
+        echo -e "  ${GREEN}✓ Udev rules removed${NC}"
+    fi
+    
+    # Remove MPD NFS wait override
+    if [ -f /etc/systemd/system/mpd.service.d/nfs-wait.conf ]; then
+        rm -f /etc/systemd/system/mpd.service.d/nfs-wait.conf
+        rmdir /etc/systemd/system/mpd.service.d 2>/dev/null || true
+        systemctl daemon-reload
+        echo -e "  ${GREEN}✓ MPD overrides removed${NC}"
+    fi
+    
+    echo -e "${GREEN}✓ Additional configuration removed${NC}"
+}
+
 # Remove log files
 remove_logs() {
-    echo -e "${GREEN}[7/7] Removing log files...${NC}"
+    echo -e "${GREEN}[8/8] Removing log files...${NC}"
     
     rm -f /tmp/maestro-web.log
     rm -f /tmp/maestro-admin.log
@@ -190,6 +223,7 @@ main() {
     remove_mpd
     remove_mpd_data
     remove_venvs
+    remove_config
     remove_logs
     
     echo ""
@@ -215,8 +249,12 @@ EOF
     echo "  • Admin API: Removed"
     echo "  • Services: Removed"
     echo "  • Installation: Removed"
+    echo "  • Sudo permissions: Removed"
+    echo "  • Udev rules: Removed"
     echo ""
-    echo -e "${YELLOW}Config backup: /tmp/mpd.conf.backup.*${NC}"
+    echo -e "${YELLOW}Backups created:${NC}"
+    echo "  • MPD config: /tmp/mpd.conf.backup.*"
+    echo "  • Settings: /tmp/maestro-settings.backup.*"
     echo ""
     echo -e "${BLUE}Thank you for using Maestro Server!${NC}"
 }
