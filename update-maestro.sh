@@ -159,6 +159,7 @@ sudo cp -r "$REPO_DIR/templates" "$INSTALL_DIR/"
 sudo cp -r "$REPO_DIR/templates" "$INSTALL_DIR/web/"
 sudo cp -r "$REPO_DIR/static" "$INSTALL_DIR/"
 sudo cp "$REPO_DIR/app.py" "$INSTALL_DIR/"
+sudo cp "$REPO_DIR/app.py" "$INSTALL_DIR/web/"
 sudo cp "$REPO_DIR/requirements.txt" "$INSTALL_DIR/"
 echo -e "${GREEN}✓ Updated main application files${NC}"
 
