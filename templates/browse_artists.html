@@ -198,6 +198,44 @@
             color: #bdc3c7;
         }
 
+        .letter-nav {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #34495e;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .letter-nav h3 {
+            margin: 0 0 10px 0;
+            color: #ecf0f1;
+            font-size: 1em;
+        }
+
+        .letter-btn {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            padding: 5px 8px;
+            margin: 2px;
+            border-radius: 3px;
+            transition: background-color 0.3s;
+            font-weight: bold;
+            font-size: 0.9em;
+            cursor: pointer;
+            border: none;
+        }
+
+        .letter-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .letter-btn.active {
+            background-color: #e74c3c;
+        }
+
         /* Minimal theme overrides */
         body.light {
             background-color: #f5f5f7;
@@ -340,6 +378,22 @@
                 margin: 5px auto;
                 padding: 12px;
             }
+
+            /* Mobile-friendly letter navigation */
+            .letter-nav {
+                padding: 10px;
+            }
+
+            .letter-nav h3 {
+                font-size: 0.9em;
+                margin-bottom: 8px;
+            }
+
+            .letter-btn {
+                padding: 4px 6px;
+                font-size: 0.8em;
+                margin: 1px;
+            }
         }
     </style>
 </head>
@@ -381,6 +435,11 @@
 
         <div class="stats" id="stats" style="display: none;">
             <span id="artist-count">0</span> artists in this genre
+        </div>
+
+        <div class="letter-nav" id="letter-nav">
+            <h3>Jump to Letter</h3>
+            <div id="letter-buttons"></div>
         </div>
 
         <ul id="artist-list" class="artist-list" style="display: none;"></ul>
@@ -449,18 +508,32 @@
 
         function displayArtists(artists) {
             const artistList = document.getElementById('artist-list');
+            const letterNav = document.getElementById('letter-nav');
             artistList.innerHTML = '';
 
             if (artists.length === 0) {
                 artistList.innerHTML = '<li style="text-align: center; padding: 40px; color: #bdc3c7;">No artists found</li>';
                 artistList.style.display = 'block';
+                letterNav.style.display = 'none';
                 return;
             }
+
+            // Show letter navigation only if more than 50 artists
+            if (artists.length > 50) {
+                createLetterNavigation(artists);
+                letterNav.style.display = 'block';
+            } else {
+                letterNav.style.display = 'none';
+            }
+
+            // Store all artists globally for letter jumping
+            window.allArtists = artists;
 
             artists.forEach(artist => {
                 const listItem = document.createElement('li');
                 listItem.className = 'artist-item';
                 listItem.onclick = () => browseAlbums(artist.name);
+                listItem.setAttribute('data-artist-name', artist.name.toLowerCase());
 
                 listItem.innerHTML = `
                     <div class="artist-name">${escapeHtml(artist.name)}</div>
@@ -470,6 +543,58 @@
             });
 
             artistList.style.display = 'block';
+        }
+
+        function createLetterNavigation(artists) {
+            const letterButtons = document.getElementById('letter-buttons');
+            letterButtons.innerHTML = '';
+
+            // Get all starting letters from artists
+            const letters = new Set();
+            artists.forEach(artist => {
+                const firstLetter = artist.name.charAt(0).toUpperCase();
+                if (firstLetter.match(/[A-Z0-9]/)) {
+                    letters.add(firstLetter);
+                }
+            });
+
+            // Create buttons for each letter
+            Array.from(letters).sort().forEach(letter => {
+                const btn = document.createElement('button');
+                btn.className = 'letter-btn';
+                btn.textContent = letter;
+                btn.onclick = () => jumpToLetter(letter);
+                letterButtons.appendChild(btn);
+            });
+        }
+
+        function jumpToLetter(letter) {
+            // Remove active class from all buttons
+            document.querySelectorAll('.letter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Add active class to clicked button
+            event.target.classList.add('active');
+
+            // Find first artist starting with this letter
+            const targetArtist = window.allArtists.find(artist =>
+                artist.name.charAt(0).toUpperCase() === letter
+            );
+
+            if (targetArtist) {
+                const artistElement = document.querySelector(
+                    `[data-artist-name="${targetArtist.name.toLowerCase()}"]`
+                );
+                if (artistElement) {
+                    artistElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // Highlight the artist briefly
+                    artistElement.style.backgroundColor = '#e74c3c';
+                    setTimeout(() => {
+                        artistElement.style.backgroundColor = '';
+                    }, 1000);
+                }
+            }
         }
 
         function browseAlbums(artistName) {
