@@ -1983,10 +1983,14 @@ def play_file():
         data = request.json
         path = data.get('path')
         
+        print(f"DEBUG: play_file called with path: {path}", flush=True)
+        
         # Add to MPD playlist
         result = run_command(['mpc', 'add', path])
+        print(f"DEBUG: mpc add result: success={result['success']}, stdout={result.get('stdout')}, stderr={result.get('stderr')}", flush=True)
+        
         if not result['success']:
-            return jsonify({'success': False, 'error': 'Failed to add file to playlist'}), 500
+            return jsonify({'success': False, 'error': f"Failed to add file: {result.get('stderr', 'Unknown error')}"}), 500
         
         # Play the newly added song
         result = run_command(['mpc', 'play'])
@@ -1995,6 +1999,7 @@ def play_file():
         else:
             return jsonify({'success': False, 'error': 'Failed to start playback'}), 500
     except Exception as e:
+        print(f"DEBUG: Exception in play_file: {e}", flush=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/files/delete', methods=['POST'])
