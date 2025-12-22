@@ -255,11 +255,12 @@ SCREENSHOT RECOMMENDATION #5: Installation Success
 ![System Logs](screenshots/logs-admin.png)
 *Real-time system logs viewer for troubleshooting and monitoring*
 
+### CD Ripping & Automation
 ![CD Ripper](screenshots/cd-ripper.png)
-*Automatic CD ripping interface with metadata lookup and configuration options*
+*Automatic CD ripping interface with MusicBrainz metadata lookup, album art, and track listing*
 
 ![CD Ripper Settings](screenshots/cd-ripper-settings.png)
-*Configure CD ripping format, quality, output location, and automatic ripping behavior*
+*Configure ripping format (FLAC/MP3/WAV/OGG), quality settings, output location, and automatic ripping behavior*
 
 ### Mobile Responsive
 ![Mobile Interface 1](screenshots/mobile1.png)
