@@ -1336,36 +1336,43 @@ def get_cd_info():
     
     print(f"DEBUG: get_cd_info() called", flush=True)
     try:
-        # Get disc ID using cd-discid
-        result = run_command(['/usr/bin/cd-discid', '/dev/cdrom'])
-        if result['returncode'] != 0:
+        # Get disc ID using python discid library for proper MusicBrainz disc ID
+        import discid
+        try:
+            disc = discid.read('/dev/cdrom')
+            disc_id = disc.id  # MusicBrainz disc ID
+            freedb_id = disc.freedb_id  # FreeDB disc ID for cache key
+            track_count = len(disc.tracks)
+            print(f"DEBUG: Got disc ID: {disc_id}, FreeDB ID: {freedb_id}, Tracks: {track_count}", flush=True)
+        except discid.DiscError as e:
+            print(f"DEBUG: DiscError: {str(e)}", flush=True)
             # Clear cache if no disc
             cd_metadata_cache = {'disc_id': None, 'mb_disc_id': None, 'metadata': None, 'timestamp': 0}
             return jsonify({
                 'success': False,
-                'error': 'Could not read disc ID. Is a CD in the drive?'
+                'error': f'Could not read disc ID: {str(e)}. Is a CD in the drive?'
             }), 400
-        
-        # Parse cd-discid output: discid nframes track1 track2 ... trackN
-        disc_info = result['stdout'].strip().split()
-        if len(disc_info) < 3:
-            return jsonify({'success': False, 'error': 'Invalid disc ID'}), 400
-        
-        disc_id = disc_info[0]
-        track_count = len(disc_info) - 2
+        except Exception as e:
+            print(f"DEBUG: Unexpected error reading disc: {str(e)}", flush=True)
+            # Clear cache if no disc
+            cd_metadata_cache = {'disc_id': None, 'mb_disc_id': None, 'metadata': None, 'timestamp': 0}
+            return jsonify({
+                'success': False,
+                'error': f'Error reading disc: {str(e)}'
+            }), 400
         
         # Check cache - if same disc and cached within last 60 seconds, return cached data
         current_time = time.time()
-        if (cd_metadata_cache['disc_id'] == disc_id and 
+        if (cd_metadata_cache['disc_id'] == freedb_id and 
             cd_metadata_cache['metadata'] is not None and 
             (current_time - cd_metadata_cache['timestamp']) < 60):
-            print(f"DEBUG: Returning cached metadata for disc {disc_id}", flush=True)
+            print(f"DEBUG: Returning cached metadata for disc {freedb_id}", flush=True)
             cached_data = cd_metadata_cache['metadata'].copy()
             
             # Override with edited metadata if it exists (check both disc IDs)
             mb_disc_id = cd_metadata_cache.get('mb_disc_id', disc_id)
-            if mb_disc_id in cd_edited_metadata or disc_id in cd_edited_metadata:
-                edited = cd_edited_metadata.get(mb_disc_id) or cd_edited_metadata.get(disc_id)
+            if mb_disc_id in cd_edited_metadata or freedb_id in cd_edited_metadata:
+                edited = cd_edited_metadata.get(mb_disc_id) or cd_edited_metadata.get(freedb_id)
                 print(f"DEBUG: Applying edited metadata: {edited}", flush=True)
                 cached_data['artist'] = edited.get('artist', cached_data['artist'])
                 cached_data['album'] = edited.get('album', cached_data['album'])
@@ -1385,7 +1392,9 @@ def get_cd_info():
             'Accept': 'application/json'
         }
         
+        print(f"DEBUG: Querying MusicBrainz with URL: {mb_url}", flush=True)
         response = requests.get(mb_url, headers=headers, timeout=10)
+        print(f"DEBUG: MusicBrainz response status: {response.status_code}", flush=True)
         
         if response.status_code == 200:
             data = response.json()
