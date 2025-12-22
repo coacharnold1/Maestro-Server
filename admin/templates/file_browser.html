@@ -425,8 +425,8 @@ function selectFile(path) {
 }
 
 function playFile(path) {
-    // Get relative path from MPD music directory
-    const mpdPath = path.replace('/media/music/ripped/', '');
+    // Get relative path from MPD music directory - keep subdirectories like 'ripped/'
+    const mpdPath = path.replace('/media/music/', '');
     
     fetch('/api/files/play', {
         method: 'POST',
