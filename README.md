@@ -2,7 +2,7 @@
 
 # 🎵 Maestro MPD Server
 
-### The Ultimate Self-Hosted Music Server with Professional Web Interface
+### The Ultimate Self-Hosted Music Server with an easy to use Web Interface
 
 [![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)](https://github.com/coacharnold1/Maestro-Server)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -52,11 +52,11 @@ SCREENSHOT RECOMMENDATION #1: Hero Image
 
 **Maestro** is not just another MPD web interface - it's a complete music server ecosystem designed for audiophiles, self-hosters, and music enthusiasts who demand:
 
-✨ **Professional-grade features** - CD ripping, multi-disc detection, Last.fm scrobbling  
+✨ **Elite-grade features** - CD ripping, multi-disc detection, Last.fm scrobbling  
 🎨 **Beautiful UI** - 8 gorgeous themes, mobile-responsive, modern design  
 🔧 **Full system control** - NFS/SMB mounts, audio configuration, OS updates, real-time monitoring  
 🚀 **Zero-hassle setup** - One-command installation, automatic MPD detection, smart defaults  
-🎵 **Audiophile-ready** - Bit-perfect playback, DSD support, hardware device selection  
+🎵 **Audiophile-ready** - Bit-perfect playback and audio configuration settings, DSD support, hardware device selection  
 📀 **Automatic CD ripping** - Insert disc → automatic rip → organized library  
 
 <!-- 
