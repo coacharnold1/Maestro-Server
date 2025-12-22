@@ -197,11 +197,6 @@ SCREENSHOT RECOMMENDATION #5: Installation Success
 *Beautiful player interface with album art, queue management, and playback controls*
 
 ### Theme Variety
-![Desert Theme](screenshots/Screenshot_Desert-Theme.png)
-*Desert theme with warm, earthy colors*
-
-![High Contrast Theme](screenshots/Screenshot_High-Contrast-Theme.png)
-*High contrast theme for improved accessibility*
 
 ![Multiple Themes](screenshots/themes.png)
 *Choose from 8 beautiful themes to match your style*
@@ -221,7 +216,7 @@ SCREENSHOT RECOMMENDATION #5: Installation Success
 *Manage your current playlist with drag-and-drop*
 
 ![Random and Radio](screenshots/Screenshot_Random-and-Radio.png)
-*Random playback and internet radio station support*
+*Random playback and user created custom radio stations *
 
 ![Search](screenshots/Screenshot_Search.png)
 *Powerful search across your entire music library*
