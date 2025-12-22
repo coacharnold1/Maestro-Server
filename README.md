@@ -258,6 +258,9 @@ SCREENSHOT RECOMMENDATION #5: Installation Success
 ![CD Ripper](screenshots/cd-ripper.png)
 *Automatic CD ripping interface with metadata lookup and configuration options*
 
+![CD Ripper Settings](screenshots/cd-ripper-settings.png)
+*Configure CD ripping format, quality, output location, and automatic ripping behavior*
+
 ### Mobile Responsive
 ![Mobile Interface 1](screenshots/mobile1.png)
 ![Mobile Interface 2](screenshots/mobile2.png)
