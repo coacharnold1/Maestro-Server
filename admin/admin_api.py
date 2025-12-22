@@ -1786,6 +1786,45 @@ def rip_cd():
                     rip_status['status'] = 'Rip completed successfully'
                     rip_status['progress'] = 100
                     
+                    # Download and save album art if enabled
+                    album_art_settings = album_art_opts if 'album_art_opts' in locals() else {}
+                    save_art_file = album_art_settings.get('save_file', False)
+                    
+                    if save_art_file and disc_id:
+                        try:
+                            # Get metadata to find artist/album and album art URL
+                            metadata = cd_edited_metadata.get(disc_id, {})
+                            artist = metadata.get('artist', 'Unknown Artist')
+                            album = metadata.get('album', 'Unknown Album')
+                            
+                            # Try to get album art URL from cache
+                            if cd_metadata_cache.get('disc_id') == disc_id and cd_metadata_cache.get('metadata'):
+                                album_art_url = cd_metadata_cache['metadata'].get('album_art_url')
+                                
+                                if album_art_url:
+                                    import requests
+                                    print(f"DEBUG: Downloading album art from {album_art_url}", flush=True)
+                                    
+                                    # Construct output directory
+                                    output_path = os.path.join(output_dir, f"{artist.replace('/', '_')} - {album.replace('/', '_')}")
+                                    if os.path.exists(output_path):
+                                        cover_path = os.path.join(output_path, 'cover.jpg')
+                                        
+                                        # Download album art
+                                        art_response = requests.get(album_art_url, timeout=10)
+                                        if art_response.status_code == 200:
+                                            with open(cover_path, 'wb') as f:
+                                                f.write(art_response.content)
+                                            print(f"DEBUG: Album art saved to {cover_path}", flush=True)
+                                        else:
+                                            print(f"DEBUG: Failed to download album art, status: {art_response.status_code}", flush=True)
+                                    else:
+                                        print(f"DEBUG: Output directory not found: {output_path}", flush=True)
+                                else:
+                                    print(f"DEBUG: No album art URL available", flush=True)
+                        except Exception as art_error:
+                            print(f"DEBUG: Error downloading album art: {art_error}", flush=True)
+                    
                     # Update MPD database
                     run_command(['mpc', 'update'])
                     
@@ -1944,20 +1983,17 @@ def play_file():
         data = request.json
         path = data.get('path')
         
-        # Add to MPD and play
-        result = run_command(['mpc', 'clear'])
-        if not result['success']:
-            return jsonify({'success': False, 'error': 'Failed to clear playlist'}), 500
-        
+        # Add to MPD playlist
         result = run_command(['mpc', 'add', path])
         if not result['success']:
-            return jsonify({'success': False, 'error': 'Failed to add file'}), 500
+            return jsonify({'success': False, 'error': 'Failed to add file to playlist'}), 500
         
+        # Play the newly added song
         result = run_command(['mpc', 'play'])
         if result['success']:
-            return jsonify({'success': True, 'message': 'Playing'})
+            return jsonify({'success': True, 'message': 'Added to playlist and playing'})
         else:
-            return jsonify({'success': False, 'error': 'Failed to play'}), 500
+            return jsonify({'success': False, 'error': 'Failed to start playback'}), 500
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
