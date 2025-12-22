@@ -42,7 +42,7 @@ SCREENSHOT RECOMMENDATION #1: Hero Image
 
 **[▶️ Watch the Complete Visual Tour on YouTube](https://youtu.be/hCz-VLTOxZY)**
 
-*Silent walkthrough demonstrating The web interface, admin panel, and all major features*
+*Silent walkthrough demonstrating the web interface, admin panel, and all major features*
 
 </div>
 
@@ -230,7 +230,7 @@ SCREENSHOT RECOMMENDATION #5: Installation Success
 *Manage your current playlist with drag-and-drop*
 
 ![Random and Radio](screenshots/Screenshot_Random-and-Radio.png)
-*Random playback and user created custom radio stations *
+*Random playback and user-created custom radio stations*
 
 ![Search](screenshots/Screenshot_Search.png)
 *Powerful search across your entire music library*
