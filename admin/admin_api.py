@@ -40,6 +40,8 @@ def run_command(command, require_sudo=False):
         # Use longer timeout for system updates and other long operations
         timeout = 300 if 'apt upgrade' in str(command) or 'pacman' in str(command) else 30
         
+        print(f"DEBUG run_command: Executing command: {command}", flush=True)
+        
         result = subprocess.run(
             command,
             shell=isinstance(command, str),
@@ -47,6 +49,9 @@ def run_command(command, require_sudo=False):
             text=True,
             timeout=timeout
         )
+        
+        print(f"DEBUG run_command: returncode={result.returncode}, stdout={result.stdout[:200]}, stderr={result.stderr[:200]}", flush=True)
+        
         return {
             'success': result.returncode == 0,
             'stdout': result.stdout.strip(),
@@ -54,9 +59,13 @@ def run_command(command, require_sudo=False):
             'returncode': result.returncode
         }
     except subprocess.TimeoutExpired:
-        return {'success': False, 'error': 'Command timeout'}
+        print(f"DEBUG run_command: Command timeout", flush=True)
+        return {'success': False, 'error': 'Command timeout', 'stdout': '', 'stderr': ''}
     except Exception as e:
-        return {'success': False, 'error': str(e)}
+        print(f"DEBUG run_command: Exception: {type(e).__name__}: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+        return {'success': False, 'error': str(e), 'stdout': '', 'stderr': ''}
 
 def get_system_info():
     """Get current system information"""
