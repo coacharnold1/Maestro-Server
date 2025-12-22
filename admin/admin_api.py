@@ -40,8 +40,6 @@ def run_command(command, require_sudo=False):
         # Use longer timeout for system updates and other long operations
         timeout = 300 if 'apt upgrade' in str(command) or 'pacman' in str(command) else 30
         
-        print(f"DEBUG run_command: Executing command: {command}", flush=True)
-        
         result = subprocess.run(
             command,
             shell=isinstance(command, str),
@@ -50,8 +48,6 @@ def run_command(command, require_sudo=False):
             timeout=timeout
         )
         
-        print(f"DEBUG run_command: returncode={result.returncode}, stdout={result.stdout[:200]}, stderr={result.stderr[:200]}", flush=True)
-        
         return {
             'success': result.returncode == 0,
             'stdout': result.stdout.strip(),
@@ -59,12 +55,8 @@ def run_command(command, require_sudo=False):
             'returncode': result.returncode
         }
     except subprocess.TimeoutExpired:
-        print(f"DEBUG run_command: Command timeout", flush=True)
         return {'success': False, 'error': 'Command timeout', 'stdout': '', 'stderr': ''}
     except Exception as e:
-        print(f"DEBUG run_command: Exception: {type(e).__name__}: {e}", flush=True)
-        import traceback
-        traceback.print_exc()
         return {'success': False, 'error': str(e), 'stdout': '', 'stderr': ''}
 
 def get_system_info():
@@ -1992,11 +1984,8 @@ def play_file():
         data = request.json
         path = data.get('path')
         
-        print(f"DEBUG: play_file called with path: {path}", flush=True)
-        
         # Add to MPD playlist
         result = run_command(['/usr/bin/mpc', 'add', path])
-        print(f"DEBUG: mpc add result: success={result['success']}, stdout={result.get('stdout')}, stderr={result.get('stderr')}", flush=True)
         
         if not result['success']:
             return jsonify({'success': False, 'error': f"Failed to add file: {result.get('stderr', 'Unknown error')}"}), 500
@@ -2008,7 +1997,6 @@ def play_file():
         else:
             return jsonify({'success': False, 'error': 'Failed to start playback'}), 500
     except Exception as e:
-        print(f"DEBUG: Exception in play_file: {e}", flush=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/files/delete', methods=['POST'])
