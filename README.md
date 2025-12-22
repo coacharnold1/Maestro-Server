@@ -246,6 +246,15 @@ SCREENSHOT RECOMMENDATION #5: Installation Success
 ![Admin Dashboard](screenshots/admin-dashboard.png)
 *Powerful admin interface with system monitoring and library management*
 
+![System Administration](screenshots/System-Admin.png)
+*System administration panel for updates, service management, and system control*
+
+![Audio Tweaks](screenshots/Audio-tweaks-admin.png)
+*Advanced audio configuration - select hardware devices, configure bit-perfect playback, and optimize audio settings*
+
+![System Logs](screenshots/logs-admin.png)
+*Real-time system logs viewer for troubleshooting and monitoring*
+
 ### Mobile Responsive
 ![Mobile Interface 1](screenshots/mobile1.png)
 ![Mobile Interface 2](screenshots/mobile2.png)
