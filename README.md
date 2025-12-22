@@ -12,7 +12,7 @@
 
 **Transform your music collection into a powerful streaming server with beautiful web UI, automatic CD ripping, Last.fm integration, and comprehensive system management.**
 
-[Features](#-features) • [Quick Start](#-quick-start) • [Screenshots](#-screenshots) • [Documentation](#-documentation)
+[Features](#-features) • [Quick Start](#-quick-start) • [📹 Video Tour](#-video-walkthrough) • [Screenshots](#-screenshots) • [Documentation](#-documentation)
 
 </div>
 
@@ -33,6 +33,20 @@ SCREENSHOT RECOMMENDATION #1: Hero Image
   ![Maestro Player Interface](screenshots/hero-player.png)
 -->
 ![Maestro Player Interface](screenshots/hero-player.png)
+
+## 📹 Video Walkthrough
+
+<div align="center">
+
+[![Maestro Server Complete Walkthrough](https://img.youtube.com/vi/hCz-VLTOxZY/maxresdefault.jpg)](https://youtu.be/hCz-VLTOxZY)
+
+**[▶️ Watch the Complete Visual Tour on YouTube](https://youtu.be/hCz-VLTOxZY)**
+
+*Silent walkthrough demonstrating installation, web interface, admin panel, and all major features*
+
+</div>
+
+---
 
 ## 🎯 Why Maestro?
 
