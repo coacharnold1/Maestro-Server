@@ -1835,7 +1835,7 @@ def rip_cd():
                             print(f"DEBUG: Error downloading album art: {art_error}", flush=True)
                     
                     # Update MPD database
-                    run_command(['mpc', 'update'])
+                    run_command(['/usr/bin/mpc', 'update'])
                     
                     # Auto-eject if enabled
                     if cd_settings.get('auto_eject', True):
@@ -1995,14 +1995,14 @@ def play_file():
         print(f"DEBUG: play_file called with path: {path}", flush=True)
         
         # Add to MPD playlist
-        result = run_command(['mpc', 'add', path])
+        result = run_command(['/usr/bin/mpc', 'add', path])
         print(f"DEBUG: mpc add result: success={result['success']}, stdout={result.get('stdout')}, stderr={result.get('stderr')}", flush=True)
         
         if not result['success']:
             return jsonify({'success': False, 'error': f"Failed to add file: {result.get('stderr', 'Unknown error')}"}), 500
         
         # Play the newly added song
-        result = run_command(['mpc', 'play'])
+        result = run_command(['/usr/bin/mpc', 'play'])
         if result['success']:
             return jsonify({'success': True, 'message': 'Added to playlist and playing'})
         else:
@@ -2039,7 +2039,7 @@ def delete_file():
 def update_mpd_library():
     """Update MPD library database"""
     try:
-        result = run_command(['mpc', 'update'])
+        result = run_command(['/usr/bin/mpc', 'update'])
         if result['success']:
             return jsonify({'success': True, 'message': 'MPD library update started'})
         else:
@@ -2065,7 +2065,7 @@ def move_file():
         
         if result['success']:
             # Update MPD database
-            run_command(['mpc', 'update'])
+            run_command(['/usr/bin/mpc', 'update'])
             return jsonify({'success': True, 'message': 'File moved successfully'})
         else:
             return jsonify({'success': False, 'error': result.get('error', 'Move failed')}), 500
