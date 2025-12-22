@@ -255,6 +255,9 @@ SCREENSHOT RECOMMENDATION #5: Installation Success
 ![System Logs](screenshots/logs-admin.png)
 *Real-time system logs viewer for troubleshooting and monitoring*
 
+![CD Ripper](screenshots/cd-ripper.png)
+*Automatic CD ripping interface with metadata lookup and configuration options*
+
 ### Mobile Responsive
 ![Mobile Interface 1](screenshots/mobile1.png)
 ![Mobile Interface 2](screenshots/mobile2.png)
