@@ -42,7 +42,7 @@ SCREENSHOT RECOMMENDATION #1: Hero Image
 
 **[▶️ Watch the Complete Visual Tour on YouTube](https://youtu.be/hCz-VLTOxZY)**
 
-*Silent walkthrough demonstrating installation, web interface, admin panel, and all major features*
+*Silent walkthrough demonstrating The web interface, admin panel, and all major features*
 
 </div>
 
