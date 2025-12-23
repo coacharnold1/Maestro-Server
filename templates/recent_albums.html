@@ -680,7 +680,8 @@
                     file_count: Number(album.file_count) || 0,
                     duration_formatted: String(album.duration_formatted || '--:--'),
                     sample_file: String(album.sample_file || ''),
-                    is_multi_disc: Boolean(album.is_multi_disc)  // New: flag for multi-disc albums
+                    is_multi_disc: Boolean(album.is_multi_disc),  // New: flag for multi-disc albums
+                    album_dir: album.sample_file ? String(album.sample_file).split('/').slice(0, -1).join('/') : ''  // Extract directory path
                 };
                 
                 const listItem = document.createElement('li');
@@ -714,10 +715,10 @@
                                     </div>
                                 </div>
                                 <div class="album-actions">
-                                    <button class="btn btn-primary" onclick="addAlbumToPlaylist('${safeAlbum.album.replace(/'/g, "\\'")}', '${safeAlbum.artist.replace(/'/g, "\\'")}', '${safeAlbum.original_artist.replace(/'/g, "\\'")}')">
+                                    <button class="btn btn-primary" onclick="addAlbumToPlaylist('${safeAlbum.album.replace(/'/g, "\\'")}', '${safeAlbum.artist.replace(/'/g, "\\'")}', '${safeAlbum.original_artist.replace(/'/g, "\\'")}', null, '${safeAlbum.album_dir.replace(/'/g, "\\'")}')">
                                         ➕ Add Album
                                     </button>
-                                    <button class="btn btn-secondary" onclick="toggleAlbumDetails('${safeAlbum.album.replace(/'/g, "\\'")}', '${safeAlbum.original_artist.replace(/'/g, "\\'")}', ${index})">
+                                    <button class="btn btn-secondary" onclick="toggleAlbumDetails('${safeAlbum.album.replace(/'/g, "\\'")}', '${safeAlbum.original_artist.replace(/'/g, "\\'")}', ${index}, '${safeAlbum.album_dir.replace(/'/g, "\\'")}')">
                                         🔍 View Tracks
                                     </button>
                                 </div>
@@ -741,9 +742,9 @@
         // Track pending album additions to prevent duplicates
         const pendingAlbumAdditions = new Set();
 
-        function addAlbumToPlaylist(albumName, artistDisplayName, originalArtistName, discNumber) {
+        function addAlbumToPlaylist(albumName, artistDisplayName, originalArtistName, discNumber, albumDir) {
             // Create unique key for this album/disc combination
-            const addKey = `${originalArtistName}|||${albumName}|||${discNumber || 'all'}`;
+            const addKey = `${originalArtistName}|||${albumName}|||${discNumber || 'all'}|||${albumDir || ''}`;
             
             // Check if this album is already being added
             if (pendingAlbumAdditions.has(addKey)) {
@@ -766,6 +767,12 @@
             // Add disc number if provided
             if (discNumber) {
                 payload.disc_number = discNumber;
+            }
+            
+            // Add album directory for filtering if provided
+            if (albumDir) {
+                payload.album_dir = albumDir;
+                console.log('[Add Album] Using directory filter:', albumDir);
             }
 
             fetch('/add_album_to_playlist', {
@@ -816,7 +823,7 @@
                 });
         }
 
-        function toggleAlbumDetails(albumName, originalArtistName, index) {
+        function toggleAlbumDetails(albumName, originalArtistName, index, albumDir) {
             const detailsDiv = document.getElementById(`details-${index}`);
             const loadingDiv = document.getElementById(`loading-${index}`);
             const tracksDiv = document.getElementById(`tracks-${index}`);
@@ -837,7 +844,7 @@
                         if (data.status === 'success' && data.tracks && data.tracks.length > 0) {
                             // Check if this is a multi-disc album
                             if (data.disc_structure) {
-                                displayMultiDiscTracks(data.disc_structure, albumName, originalArtistName, index);
+                                displayMultiDiscTracks(data.disc_structure, albumName, originalArtistName, index, albumDir);
                             } else {
                                 displayTracks(data.tracks, index);
                             }
@@ -888,7 +895,7 @@
             tracksDiv.innerHTML = tracksHtml;
         }
 
-        function displayMultiDiscTracks(discStructure, albumName, originalArtistName, index) {
+        function displayMultiDiscTracks(discStructure, albumName, originalArtistName, index, albumDir) {
             const tracksDiv = document.getElementById(`tracks-${index}`);
             
             let discsHtml = '';
@@ -915,7 +922,7 @@
                                     ${discTracks.length} tracks • ${discDurationFormatted}
                                 </div>
                             </div>
-                            <button class="btn btn-primary" onclick="addAlbumToPlaylist('${albumName.replace(/'/g, "\\'")}', '${originalArtistName.replace(/'/g, "\\'")}', '${originalArtistName.replace(/'/g, "\\'")}', ${discNum})">
+                            <button class="btn btn-primary" onclick="addAlbumToPlaylist('${albumName.replace(/'/g, "\\'")}', '${originalArtistName.replace(/'/g, "\\'")}', '${originalArtistName.replace(/'/g, "\\'")}', ${discNum}, '${albumDir ? albumDir.replace(/'/g, "\\'") : ''}')">
                                 ➕ Add Disc ${discNum}
                             </button>
                         </div>

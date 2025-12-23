@@ -2193,10 +2193,12 @@ def add_album_to_playlist():
             artist = data.get('original_artist') or data.get('artist')  # Try original_artist first
             album = data.get('album')
             disc_number = data.get('disc_number')  # New: optional disc number
+            album_dir = data.get('album_dir')  # New: directory filter for disambiguation
         else:
             artist = request.form.get('original_artist') or request.form.get('artist')
             album = request.form.get('album')
             disc_number = request.form.get('disc_number')  # New: optional disc number
+            album_dir = request.form.get('album_dir')  # New: directory filter
         
         if not artist or not album:
             if request.is_json:
@@ -2211,13 +2213,19 @@ def add_album_to_playlist():
 
         try:
             print(f"[DEBUG] Searching for album: artist='{artist}', album='{album}'" + 
-                  (f", disc={disc_number}" if disc_number else ""), flush=True)
+                  (f", disc={disc_number}" if disc_number else "") +
+                  (f", dir='{album_dir}'" if album_dir else ""), flush=True)
             # Find all songs from this album - try AlbumArtist first, then Artist
             songs = []
             try:
                 songs = client.find('albumartist', artist, 'album', album)
                 if songs:
                     print(f"[DEBUG] Found {len(songs)} songs using AlbumArtist", flush=True)
+                    # Filter by directory if provided (to handle multiple albums with same name)
+                    if album_dir:
+                        original_count = len(songs)
+                        songs = [s for s in songs if s.get('file', '').startswith(album_dir + '/')]
+                        print(f"[DEBUG] Filtered by directory '{album_dir}': {original_count} -> {len(songs)} songs", flush=True)
             except Exception as e:
                 print(f"[DEBUG] AlbumArtist search failed: {e}", flush=True)
                     
@@ -2226,6 +2234,11 @@ def add_album_to_playlist():
                 songs = client.find('artist', artist, 'album', album)
                 if songs:
                     print(f"[DEBUG] Found {len(songs)} songs using Artist", flush=True)
+                    # Filter by directory if provided
+                    if album_dir:
+                        original_count = len(songs)
+                        songs = [s for s in songs if s.get('file', '').startswith(album_dir + '/')]
+                        print(f"[DEBUG] Filtered by directory '{album_dir}': {original_count} -> {len(songs)} songs", flush=True)
                 else:
                     print(f"[DEBUG] No songs found with Artist search either", flush=True)
 
