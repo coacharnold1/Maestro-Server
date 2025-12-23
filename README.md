@@ -561,6 +561,36 @@ The updater:
 - ✅ Restarts services
 - ✅ Migrates configuration if needed
 
+## 🔌 Related Projects
+
+### MPD Framebuffer Display
+
+Want to display album art on a physical screen connected to your Maestro server?
+
+**[mpd-framebuffer-display](https://github.com/coacharnold1/mpd-framebuffer-display)** - A companion service that displays real-time album artwork on framebuffer devices (TFT screens, monitors, etc.)
+
+**Features:**
+- 🖼️ Real-time album art on framebuffer/TTY displays
+- 🔄 Automatic updates on track changes
+- 🌐 HTTP API for remote access
+- 📺 Perfect for Raspberry Pi with small TFT screens
+- 🔌 Integrates seamlessly with Maestro MPD Server
+
+**Quick Install:**
+```bash
+git clone https://github.com/coacharnold1/mpd-framebuffer-display
+cd mpd-framebuffer-display
+sudo ./install.sh
+```
+
+**Use Cases:**
+- Mini music player with album art display
+- Kiosk mode music station
+- Desktop album art visualizer
+- Multi-room audio with visual feedback
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please:
