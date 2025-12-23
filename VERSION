@@ -1,10 +1,16 @@
-Maestro MPD Server v2.2
-Release Date: Sat Dec 21 00:00:00 UTC 2025
-Version: 2.2.0
+Maestro MPD Server v2.3
+Release Date: Mon Dec 23 00:00:00 UTC 2025
+Version: 2.3.0
 
-🎵 UX ENHANCEMENT RELEASE - Navigation & Reliability Improvements 🎵
+🎵 CD RIPPER ENHANCEMENT RELEASE - Album Art & Bug Fixes 🎵
 
-Latest Features (Dec 21, 2025 - v2.2):
+Latest Features (Dec 23, 2025 - v2.3):
+✅ NEW: Pre-download Album Art - Cover art downloads BEFORE ripping starts
+✅ FIXED: CD Ripping with Parentheses - Albums with parentheses in names now rip correctly
+✅ FIXED: Metadata Cache - MusicBrainz metadata properly cached for ripping
+✅ ENHANCED: Album Organization - Tracks and cover art now in same folder
+
+Previous Release (Dec 21, 2025 - v2.2):
 ✅ NEW: Letter Jump Navigation - Quick alphabetic navigation for artist lists >50 items
 ✅ ENHANCED: Button Reorganization - Charts moved up, MPD controls in footer for cleaner UI
 ✅ IMPROVED: NFS Mount Reliability - MPD waits for remote-fs.target, auto-restart on failure
