@@ -738,7 +738,22 @@
             albumList.style.display = 'block';
         }
 
+        // Track pending album additions to prevent duplicates
+        const pendingAlbumAdditions = new Set();
+
         function addAlbumToPlaylist(albumName, artistDisplayName, originalArtistName, discNumber) {
+            // Create unique key for this album/disc combination
+            const addKey = `${originalArtistName}|||${albumName}|||${discNumber || 'all'}`;
+            
+            // Check if this album is already being added
+            if (pendingAlbumAdditions.has(addKey)) {
+                console.log('[Duplicate Prevention] Ignoring duplicate request for:', addKey);
+                return;
+            }
+            
+            // Mark this album as pending
+            pendingAlbumAdditions.add(addKey);
+            
             const discText = discNumber ? ` (Disc ${discNumber})` : '';
             showMessage(`Adding album${discText} to playlist...`, 'info');
 
@@ -792,6 +807,12 @@
                 })
                 .catch(err => {
                     showMessage('Error adding album: ' + err.message, 'error');
+                })
+                .finally(() => {
+                    // Remove from pending set after a delay (prevents rapid re-clicks)
+                    setTimeout(() => {
+                        pendingAlbumAdditions.delete(addKey);
+                    }, 1000);
                 });
         }
 
