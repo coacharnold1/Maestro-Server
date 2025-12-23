@@ -1466,7 +1466,7 @@ def get_cd_info():
                             'title': track.get('title', f"Track {track.get('position', 0)}")
                         })
                 
-                return jsonify({
+                metadata = {
                     'success': True,
                     'artist': artist,
                     'album': album,
@@ -1475,7 +1475,16 @@ def get_cd_info():
                     'tracks': tracks,
                     'disc_id': disc_id,
                     'album_art_url': album_art_url
-                })
+                }
+                
+                # Cache the result
+                cd_metadata_cache['disc_id'] = freedb_id
+                cd_metadata_cache['mb_disc_id'] = disc_id
+                cd_metadata_cache['metadata'] = metadata
+                cd_metadata_cache['timestamp'] = time.time()
+                print(f"DEBUG: Cached metadata for FreeDB: {freedb_id}, MB: {disc_id}", flush=True)
+                
+                return jsonify(metadata)
         
         print(f"DEBUG: First MusicBrainz query failed, trying fallback. Status: {response.status_code if 'response' in locals() else 'no response'}", flush=True)
         
@@ -1652,13 +1661,60 @@ def rip_cd():
         
         # Start ripping in background thread
         def rip_thread():
-            global rip_status, cd_edited_metadata
+            global rip_status, cd_edited_metadata, cd_metadata_cache
             rip_status['active'] = True
             rip_status['status'] = 'Starting rip...'
             rip_status['progress'] = 0
             rip_status['error'] = None
             
             try:
+                # Pre-download album art if enabled
+                # (Cache should already be populated by UI calling /api/cd/info before rip)
+                save_art_file = album_art_opts.get('save_file', True)
+                # Use MusicBrainz disc ID from cache instead of FreeDB ID
+                mb_disc_id = cd_metadata_cache.get('mb_disc_id')
+                if save_art_file and mb_disc_id and cd_metadata_cache.get('metadata'):
+                    try:
+                        # Get metadata from cache (prefer edited if available, fallback to cache)
+                        cache_metadata = cd_metadata_cache.get('metadata', {})
+                        edited_metadata = cd_edited_metadata.get(mb_disc_id, {})
+                        
+                        artist = edited_metadata.get('artist') or cache_metadata.get('artist', 'Unknown Artist')
+                        album = edited_metadata.get('album') or cache_metadata.get('album', 'Unknown Album')
+                        year = edited_metadata.get('year') or cache_metadata.get('year', '')
+                        
+                        # Get album art URL from cache
+                        if cache_metadata.get('album_art_url'):
+                            album_art_url = cache_metadata['album_art_url']
+                            
+                            if album_art_url:
+                                # Construct album folder path (same format as abcde will use)
+                                artist_safe = artist.replace('/', '_').replace(' ', '_')
+                                album_safe = album.replace('/', '_').replace(' ', '_')
+                                if year:
+                                    dir_name = f"{artist_safe} - {album_safe} ({year})"
+                                else:
+                                    dir_name = f"{artist_safe} - {album_safe}"
+                                album_folder = os.path.join(output_dir, dir_name)
+                                
+                                # Create album folder
+                                os.makedirs(album_folder, exist_ok=True)
+                                print(f"DEBUG: Created album folder: {album_folder}", flush=True)
+                                
+                                # Download album art
+                                import requests
+                                print(f"DEBUG: Pre-downloading album art from {album_art_url}", flush=True)
+                                art_response = requests.get(album_art_url, timeout=10)
+                                if art_response.status_code == 200:
+                                    cover_path = os.path.join(album_folder, 'cover.jpg')
+                                    with open(cover_path, 'wb') as f:
+                                        f.write(art_response.content)
+                                    print(f"DEBUG: Album art saved to {cover_path}", flush=True)
+                                else:
+                                    print(f"DEBUG: Failed to download album art, status: {art_response.status_code}", flush=True)
+                    except Exception as art_error:
+                        print(f"DEBUG: Error pre-downloading album art: {art_error}", flush=True)
+                
                 # Create temporary abcde config
                 import tempfile
                 with tempfile.NamedTemporaryFile(mode='w', suffix='.conf', delete=False) as f:
