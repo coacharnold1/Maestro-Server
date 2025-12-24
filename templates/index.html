@@ -1347,7 +1347,7 @@
                     // Update album art
                     // Construct the URL for the album art route, passing current song info with cache busting
                     const timestamp = new Date().getTime();
-                    const newArtSrc = `/album_art?song_file=${encodeURIComponent(data.song_file)}&artist=${encodeURIComponent(data.artist)}&album=${encodeURIComponent(data.album)}&t=${timestamp}`;
+                    const newArtSrc = `/album_art?song_file=${encodeURIComponent(data.song_file)}&artist=${encodeURIComponent(data.artist)}&album=${encodeURIComponent(data.album)}&title=${encodeURIComponent(data.song_title)}&t=${timestamp}`;
                     if (albumArtImg.src.split('&t=')[0] !== newArtSrc.split('&t=')[0]) { // Only update if different (ignoring timestamp)
                         albumArtImg.src = newArtSrc;
                         albumArtImg.onerror = function () {

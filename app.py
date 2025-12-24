@@ -296,6 +296,29 @@ def get_auto_fill_status():
 # Simple in-memory cache for Last.fm album art data
 album_art_cache = {}
 
+def parse_stream_metadata(title_field):
+    """
+    Parse streaming radio metadata that often comes as 'Artist - Title' in a single field.
+    Returns tuple: (artist, title)
+    """
+    if not title_field or title_field == 'N/A':
+        return None, None
+    
+    # Common separators: ' - ', ' – ', ' — '
+    separators = [' - ', ' – ', ' — ', ' – ']
+    
+    for sep in separators:
+        if sep in title_field:
+            parts = title_field.split(sep, 1)  # Split only on first occurrence
+            if len(parts) == 2:
+                artist = parts[0].strip()
+                title = parts[1].strip()
+                if artist and title:  # Make sure neither is empty
+                    return artist, title
+    
+    # If no separator found, return None (will use title as-is)
+    return None, None
+
 def connect_mpd_client():
     """Helper function to connect to MPD and return the client object."""
     client = MPDClient()
@@ -407,7 +430,19 @@ def get_mpd_status_for_display():
         formatted_total = f"{total_time_int // 60:02d}:{total_time_int % 60:02d}"
 
         current_artist = current_song.get('artist', 'N/A')
+        current_title = current_song.get('title', 'N/A')
         current_genre = current_song.get('genre', 'N/A')
+        
+        # Detect if this is a stream (URL instead of file path)
+        is_stream = song_file_path and (song_file_path.startswith('http://') or song_file_path.startswith('https://'))
+        
+        # If streaming and artist is N/A, try to parse from title field
+        if is_stream and current_artist == 'N/A' and current_title != 'N/A':
+            parsed_artist, parsed_title = parse_stream_metadata(current_title)
+            if parsed_artist and parsed_title:
+                current_artist = parsed_artist
+                current_title = parsed_title
+                print(f"[Stream] Parsed metadata: {current_artist} - {current_title}")
 
         # Update last known artist/genre for auto-fill
         if current_artist != 'N/A':
@@ -417,7 +452,7 @@ def get_mpd_status_for_display():
 
         current_status_info = {
             'state': status.get('state', 'unknown'),
-            'song_title': current_song.get('title', 'N/A'),
+            'song_title': current_title,
             'artist': current_artist,
             'album': current_song.get('album', 'N/A'),
             'genre': current_genre,
@@ -2708,6 +2743,7 @@ def get_album_art():
     """
     Serves album art for the currently playing song or thumbnails for browse pages.
     Prioritizes local files, then fetches from Last.fm if not found.
+    For streams, attempts to fetch art via Last.fm track.getInfo.
     Supports 'size=thumb' parameter for 64x64px thumbnails.
     """
     song_file = request.args.get('song_file', '') or request.args.get('file', '')
@@ -2715,8 +2751,11 @@ def get_album_art():
     album = request.args.get('album', '')
     size = request.args.get('size', 'full')  # 'full' or 'thumb'
 
-    # 1. Try local album art first
-    if song_file:
+    # Detect if this is a stream
+    is_stream = song_file and (song_file.startswith('http://') or song_file.startswith('https://'))
+
+    # 1. Try local album art first (skip for streams)
+    if song_file and not is_stream:
         full_song_path = os.path.join(MUSIC_DIRECTORY, song_file)
         album_dir = os.path.dirname(full_song_path)
 
@@ -2763,7 +2802,81 @@ def get_album_art():
                 
                 return send_from_directory(album_dir, filename, mimetype='image/jpeg')
     
-    # 2. If no local art, try Last.fm (only if API key is provided)
+    # 2. For streams with artist but no album, try Last.fm track.getInfo
+    if is_stream and artist and artist != 'N/A' and LASTFM_API_KEY:
+        # Get title from request args
+        title = request.args.get('title', '')
+        
+        if title and title != 'N/A':
+            cache_key = f"stream-{artist}-{title}" if size == 'full' else f"thumb-stream-{artist}-{title}"
+            cached_image_data = album_art_cache.get(cache_key)
+
+            if cached_image_data:
+                print(f"Serving stream album art for {artist} - {title} from cache.")
+                return Response(cached_image_data['data'], mimetype=cached_image_data['mimetype'])
+            
+            try:
+                # Use track.getInfo to get album art for the current track
+                params = {
+                    'method': 'track.getinfo',
+                    'api_key': LASTFM_API_KEY,
+                    'artist': artist,
+                    'track': title,
+                    'format': 'json'
+                }
+                print(f"Attempting to fetch album art for stream: {artist} - {title} from Last.fm...")
+                response = requests.get(LASTFM_API_URL, params=params, timeout=5)
+                response.raise_for_status()
+                data = response.json()
+
+                image_url = None
+                if 'track' in data and 'album' in data['track'] and 'image' in data['track']['album']:
+                    # Find the highest quality image
+                    for size_preference in ['extralarge', 'large', 'medium']:
+                        for img in data['track']['album']['image']:
+                            if img.get('size') == size_preference and img.get('#text'):
+                                image_url = img['#text']
+                                print(f"Found {size_preference} image for {artist} - {title}")
+                                break
+                        if image_url:
+                            break
+
+                if image_url:
+                    image_response = requests.get(image_url, timeout=5)
+                    image_response.raise_for_status()
+                    image_data = image_response.content
+                    mimetype = image_response.headers.get('Content-Type', 'image/jpeg')
+
+                    # Generate thumbnail if requested
+                    if size == 'thumb':
+                        try:
+                            from PIL import Image
+                            import io
+                            
+                            with Image.open(io.BytesIO(image_data)) as img:
+                                img.thumbnail((64, 64), Image.Resampling.LANCZOS)
+                                img_io = io.BytesIO()
+                                img.save(img_io, 'JPEG', quality=85, optimize=True)
+                                thumb_data = img_io.getvalue()
+                                
+                                album_art_cache[cache_key] = {'data': thumb_data, 'mimetype': 'image/jpeg'}
+                                return Response(thumb_data, mimetype='image/jpeg')
+                        except Exception as e:
+                            print(f"Error generating stream thumbnail: {e}")
+
+                    # Store full image in cache
+                    full_cache_key = f"stream-{artist}-{title}"
+                    album_art_cache[full_cache_key] = {'data': image_data, 'mimetype': mimetype}
+                    return Response(image_data, mimetype=mimetype)
+                else:
+                    print(f"No image found for stream track: {artist} - {title}")
+
+            except requests.exceptions.RequestException as req_e:
+                print(f"Error fetching stream album art from Last.fm: {req_e}")
+            except Exception as e:
+                print(f"An unexpected error occurred during Last.fm stream art fetch: {e}")
+    
+    # 3. If no local art or stream art, try Last.fm album lookup (only if API key is provided)
     if artist and album and LASTFM_API_KEY:
         # Create more unique cache keys by including file path if available
         if song_file:
