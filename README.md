@@ -56,7 +56,7 @@ SCREENSHOT RECOMMENDATION #1: Hero Image
 🎨 **Beautiful UI** - 8 gorgeous themes, mobile-responsive, modern design  
 🔧 **Full system control** - NFS/SMB mounts, audio configuration, OS updates, real-time monitoring  
 🚀 **Zero-hassle setup** - One-command installation, automatic MPD detection, smart defaults  
-🎵 **Audiophile-ready** - Bit-perfect playback and audio configuration settings, DSD support, hardware device selection  
+🎵 **Audiophile-ready** - Bit-perfect playback up to DSD512/384kHz, all formats supported, hardware device selection  
 📀 **Automatic CD ripping** - Insert disc → automatic rip → organized library  
 
 <!-- 
