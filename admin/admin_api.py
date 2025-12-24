@@ -258,7 +258,7 @@ def api_maestro_update_check():
         for path in possible_paths:
             path = Path(path)
             if path.exists() and (path / '.git').exists():
-                repo_dir = path
+                repo_dir = str(path)
                 break
         
         if not repo_dir:
@@ -267,42 +267,92 @@ def api_maestro_update_check():
                 'message': 'Could not find Maestro git repository'
             }), 404
         
-        # Get current version/commit
-        result = run_command(f'git -C {repo_dir} rev-parse --short HEAD')
-        if not result['success']:
-            return jsonify({'status': 'error', 'message': 'Failed to get current version'}), 500
-        current_commit = result['stdout'].strip()
+        # Get current version/commit - use subprocess directly for better control
+        try:
+            result = subprocess.run(
+                ['git', '-C', repo_dir, 'rev-parse', '--short', 'HEAD'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            if result.returncode != 0:
+                return jsonify({
+                    'status': 'error', 
+                    'message': f'Failed to get current version: {result.stderr}'
+                }), 500
+            current_commit = result.stdout.strip()
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': f'Git command failed: {str(e)}'}), 500
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': f'Git command failed: {str(e)}'}), 500
         
         # Get current branch
-        result = run_command(f'git -C {repo_dir} branch --show-current')
-        if not result['success']:
-            return jsonify({'status': 'error', 'message': 'Failed to get current branch'}), 500
-        current_branch = result['stdout'].strip()
+        try:
+            result = subprocess.run(
+                ['git', '-C', repo_dir, 'branch', '--show-current'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            if result.returncode != 0:
+                return jsonify({
+                    'status': 'error',
+                    'message': f'Failed to get current branch: {result.stderr}'
+                }), 500
+            current_branch = result.stdout.strip()
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': f'Git branch failed: {str(e)}'}), 500
         
         # Fetch latest from origin (don't merge)
-        result = run_command(f'git -C {repo_dir} fetch origin')
-        if not result['success']:
-            return jsonify({'status': 'error', 'message': 'Failed to fetch updates'}), 500
+        try:
+            result = subprocess.run(
+                ['git', '-C', repo_dir, 'fetch', 'origin'],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            # Fetch might fail if no network, but that's ok - we'll use cached data
+        except Exception:
+            pass  # Continue anyway
         
         # Get latest commit on remote
-        result = run_command(f'git -C {repo_dir} rev-parse --short origin/{current_branch}')
-        if not result['success']:
-            return jsonify({'status': 'error', 'message': 'Failed to get remote version'}), 500
-        latest_commit = result['stdout'].strip()
+        try:
+            result = subprocess.run(
+                ['git', '-C', repo_dir, 'rev-parse', '--short', f'origin/{current_branch}'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            if result.returncode != 0:
+                return jsonify({
+                    'status': 'error',
+                    'message': f'Failed to get remote version: {result.stderr}'
+                }), 500
+            latest_commit = result.stdout.strip()
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': f'Git remote check failed: {str(e)}'}), 500
         
         # Check if updates available
         updates_available = (current_commit != latest_commit)
         
         # Get commit count difference
+        commits_behind = 0
         if updates_available:
-            result = run_command(f'git -C {repo_dir} rev-list --count {current_commit}..origin/{current_branch}')
-            commits_behind = int(result['stdout'].strip()) if result['success'] else 0
-        else:
-            commits_behind = 0
+            try:
+                result = subprocess.run(
+                    ['git', '-C', repo_dir, 'rev-list', '--count', f'{current_commit}..origin/{current_branch}'],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                if result.returncode == 0:
+                    commits_behind = int(result.stdout.strip())
+            except Exception:
+                commits_behind = 0
         
         return jsonify({
             'status': 'success',
-            'repo_path': str(repo_dir),
+            'repo_path': repo_dir,
             'current_commit': current_commit,
             'latest_commit': latest_commit,
             'current_branch': current_branch,
@@ -311,7 +361,7 @@ def api_maestro_update_check():
         })
         
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        return jsonify({'status': 'error', 'message': f'Unexpected error: {str(e)}'}), 500
 
 # ============================================================================
 # API ENDPOINTS - LIBRARY MANAGEMENT
