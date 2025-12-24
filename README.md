@@ -173,15 +173,22 @@ SCREENSHOT RECOMMENDATION #4: Admin Dashboard
 
 ## 🚀 Quick Start
 
-### One-Command Installation
+### One-Command Installation & Update
 
+**Install:**
 ```bash
 git clone https://github.com/coacharnold1/Maestro-Server.git
 cd Maestro-Server
 ./install-maestro.sh
 ```
 
-**That's it!** The installer will:
+**Update:**
+```bash
+cd ~/Maestro-Server
+./update-maestro.sh
+```
+
+**Installation:** The installer will:
 1. ✅ Detect existing MPD or install new
 2. ✅ Configure music directories
 3. ✅ Set up Web UI (port 5003) and Admin API (port 5004)
