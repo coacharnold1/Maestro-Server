@@ -945,6 +945,8 @@
     </style>
     <!-- Include Socket.IO client library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
+    <!-- Include i18n translation handler -->
+    <script src="{{ url_for('static', filename='i18n.js') }}"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 </head>
 
@@ -957,12 +959,12 @@
         </div>
 
         <div class="nav-links">
-            <a href="/" class="current-page">🏠 Main</a>
-            <a href="/playlist">🎵 Playlist</a>
-            <a href="/add_music">🎲 Add Music</a>
-            <a href="/search">🔍 Search</a>
-            <a href="/recent">📀 Recent</a>
-            <a href="/browse">🗂️ Browse</a>
+            <a href="/" class="current-page" data-i18n="main">🏠 Main</a>
+            <a href="/playlist" data-i18n="playlist">🎵 Playlist</a>
+            <a href="/add_music" data-i18n="add_music">🎲 Add Music</a>
+            <a href="/search" data-i18n="search">🔍 Search</a>
+            <a href="/recent" data-i18n="recent">📀 Recent</a>
+            <a href="/browse" data-i18n="browse">🗂️ Browse</a>
         </div>
 
         <div class="status-box">
@@ -1005,17 +1007,17 @@
         </div>
 
         <div class="controls">
-            <h2>Playback Controls</h2>
-            <button onclick="previousTrack()" style="background-color: #9b59b6; color: white;">⏮️ Previous</button>
-            <button onclick="playMusic()" style="background-color: #27ae60; color: white;">▶️ Play</button>
-            <button onclick="stopMusic()" style="background-color: #f39c12; color: white;">⏹️ Stop</button>
-            <button onclick="pauseMusic()" style="background-color: #e74c3c; color: white;">⏸️ Pause</button>
-            <button onclick="nextTrack()" style="background-color: #3498db; color: white;">⏭️ Next</button>
+            <h2 data-i18n="playback_controls">Playback Controls</h2>
+            <button onclick="previousTrack()" style="background-color: #9b59b6; color: white;" data-i18n="previous">⏮️ Previous</button>
+            <button onclick="playMusic()" style="background-color: #27ae60; color: white;" data-i18n="play">▶️ Play</button>
+            <button onclick="stopMusic()" style="background-color: #f39c12; color: white;" data-i18n="stop">⏹️ Stop</button>
+            <button onclick="pauseMusic()" style="background-color: #e74c3c; color: white;" data-i18n="pause">⏸️ Pause</button>
+            <button onclick="nextTrack()" style="background-color: #3498db; color: white;" data-i18n="next">⏭️ Next</button>
         </div>
 
         {# VOLUME CONTROLS - Simple and Clean #}
         <div class="controls volume-controls-simple">
-            <h2>Volume: <span class="volume-value" id="volume-percentage-display">{{ mpd_info.volume | default(0)
+            <h2><span data-i18n="volume">Volume</span>: <span class="volume-value" id="volume-percentage-display">{{ mpd_info.volume | default(0)
                     }}%</span></h2>
             <div class="volume-buttons-row">
                 <button class="volume-btn-small" onclick="adjustVolume(5)">+5</button>
@@ -1028,23 +1030,23 @@
 
         {# NEW: MPD Options (Consume Mode) #}
         <div class="controls mpd-options-controls">
-            <h2>MPD Options</h2>
+            <h2 data-i18n="mpd_options">MPD Options</h2>
             <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; max-width: 800px; margin: 0 auto; justify-items: center;">
                 <span style="display: flex; flex-direction: column; align-items: flex-start;">
                     <span style="display: flex; align-items: center;">
                         <input type="checkbox" id="consume-mode-checkbox" {{ 'checked' if mpd_info.consume_mode else ''
                             }}>
-                        <label for="consume-mode-checkbox" style="margin-left: 8px;">Consume Mode</label>
+                        <label for="consume-mode-checkbox" style="margin-left: 8px;" data-i18n="consume_mode">Consume Mode</label>
                     </span>
-                    <small style="color: #95a5a6; font-size: 0.8em; margin-left: 20px;">Remove played tracks</small>
+                    <small style="color: #95a5a6; font-size: 0.8em; margin-left: 20px;" data-i18n="consume_mode_desc">Remove played tracks</small>
                 </span>
                 <span style="display: flex; flex-direction: column; align-items: flex-start;">
                     <span style="display: flex; align-items: center;">
                         <input type="checkbox" id="shuffle-mode-checkbox" {{ 'checked' if mpd_info.shuffle_mode else ''
                             }}>
-                        <label for="shuffle-mode-checkbox" style="margin-left: 8px;">Shuffle Mode</label>
+                        <label for="shuffle-mode-checkbox" style="margin-left: 8px;" data-i18n="shuffle_mode">Shuffle Mode</label>
                     </span>
-                    <small style="color: #95a5a6; font-size: 0.8em; margin-left: 20px;">Random play order</small>
+                    <small style="color: #95a5a6; font-size: 0.8em; margin-left: 20px;" data-i18n="shuffle_mode_desc">Random play order</small>
                 </span>
                 <span style="display: flex; flex-direction: column; align-items: flex-start;">
                     <span style="display: flex; align-items: center;">
