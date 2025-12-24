@@ -146,7 +146,8 @@ SCREENSHOT RECOMMENDATION #3: Browse Albums View
 - 🔧 **System audio optimizations** (CPU governor, swappiness)
 
 #### System Administration
-- 📦 **OS package updates** with real-time progress
+- � **Maestro update checker** - see available updates and commits behind
+- �📦 **OS package updates** with real-time progress
 - 🔄 **Service management** (MPD, Web UI, Admin)
 - 🖥️ **System reboot** with countdown
 - 📋 **System logs** viewer
@@ -547,6 +548,14 @@ which mount.nfs
 
 ## 🔄 Updating
 
+### Check for Updates
+The **Admin** → **System Admin** page shows:
+- Current Maestro version (git commit)
+- Latest available version from GitHub
+- Number of commits behind
+- SSH instructions for manual update
+
+### Run Update Script
 Keep Maestro up to date:
 
 ```bash
