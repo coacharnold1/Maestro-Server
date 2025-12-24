@@ -267,10 +267,11 @@ def api_maestro_update_check():
                 'message': 'Could not find Maestro git repository'
             }), 404
         
-        # Get current version/commit - use subprocess directly for better control
+        # Get current version/commit - use full path to git (not in systemd PATH)
+        git_path = '/usr/bin/git'
         try:
             result = subprocess.run(
-                ['git', '-C', repo_dir, 'rev-parse', '--short', 'HEAD'],
+                [git_path, '-C', repo_dir, 'rev-parse', '--short', 'HEAD'],
                 capture_output=True,
                 text=True,
                 timeout=10
@@ -289,7 +290,7 @@ def api_maestro_update_check():
         # Get current branch
         try:
             result = subprocess.run(
-                ['git', '-C', repo_dir, 'branch', '--show-current'],
+                [git_path, '-C', repo_dir, 'branch', '--show-current'],
                 capture_output=True,
                 text=True,
                 timeout=10
@@ -306,7 +307,7 @@ def api_maestro_update_check():
         # Fetch latest from origin (don't merge)
         try:
             result = subprocess.run(
-                ['git', '-C', repo_dir, 'fetch', 'origin'],
+                [git_path, '-C', repo_dir, 'fetch', 'origin'],
                 capture_output=True,
                 text=True,
                 timeout=30
@@ -318,7 +319,7 @@ def api_maestro_update_check():
         # Get latest commit on remote
         try:
             result = subprocess.run(
-                ['git', '-C', repo_dir, 'rev-parse', '--short', f'origin/{current_branch}'],
+                [git_path, '-C', repo_dir, 'rev-parse', '--short', f'origin/{current_branch}'],
                 capture_output=True,
                 text=True,
                 timeout=10
@@ -340,7 +341,7 @@ def api_maestro_update_check():
         if updates_available:
             try:
                 result = subprocess.run(
-                    ['git', '-C', repo_dir, 'rev-list', '--count', f'{current_commit}..origin/{current_branch}'],
+                    [git_path, '-C', repo_dir, 'rev-list', '--count', f'{current_commit}..origin/{current_branch}'],
                     capture_output=True,
                     text=True,
                     timeout=10
