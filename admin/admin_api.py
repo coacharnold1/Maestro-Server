@@ -242,6 +242,77 @@ def api_system_update():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@app.route('/api/maestro/update-check', methods=['GET'])
+def api_maestro_update_check():
+    """Check if Maestro updates are available"""
+    try:
+        # Determine repo directory (where the git repo is)
+        # Could be /home/fausto/Maestro-Server or wherever they cloned it
+        possible_paths = [
+            '/home/fausto/Maestro-Server',
+            Path.home() / 'Maestro-Server',
+            '/opt/Maestro-Server'
+        ]
+        
+        repo_dir = None
+        for path in possible_paths:
+            path = Path(path)
+            if path.exists() and (path / '.git').exists():
+                repo_dir = path
+                break
+        
+        if not repo_dir:
+            return jsonify({
+                'status': 'error',
+                'message': 'Could not find Maestro git repository'
+            }), 404
+        
+        # Get current version/commit
+        result = run_command(f'git -C {repo_dir} rev-parse --short HEAD')
+        if not result['success']:
+            return jsonify({'status': 'error', 'message': 'Failed to get current version'}), 500
+        current_commit = result['stdout'].strip()
+        
+        # Get current branch
+        result = run_command(f'git -C {repo_dir} branch --show-current')
+        if not result['success']:
+            return jsonify({'status': 'error', 'message': 'Failed to get current branch'}), 500
+        current_branch = result['stdout'].strip()
+        
+        # Fetch latest from origin (don't merge)
+        result = run_command(f'git -C {repo_dir} fetch origin')
+        if not result['success']:
+            return jsonify({'status': 'error', 'message': 'Failed to fetch updates'}), 500
+        
+        # Get latest commit on remote
+        result = run_command(f'git -C {repo_dir} rev-parse --short origin/{current_branch}')
+        if not result['success']:
+            return jsonify({'status': 'error', 'message': 'Failed to get remote version'}), 500
+        latest_commit = result['stdout'].strip()
+        
+        # Check if updates available
+        updates_available = (current_commit != latest_commit)
+        
+        # Get commit count difference
+        if updates_available:
+            result = run_command(f'git -C {repo_dir} rev-list --count {current_commit}..origin/{current_branch}')
+            commits_behind = int(result['stdout'].strip()) if result['success'] else 0
+        else:
+            commits_behind = 0
+        
+        return jsonify({
+            'status': 'success',
+            'repo_path': str(repo_dir),
+            'current_commit': current_commit,
+            'latest_commit': latest_commit,
+            'current_branch': current_branch,
+            'updates_available': updates_available,
+            'commits_behind': commits_behind
+        })
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 # ============================================================================
 # API ENDPOINTS - LIBRARY MANAGEMENT
 # ============================================================================

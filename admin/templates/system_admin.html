@@ -255,6 +255,42 @@
         </div>
 
         <div class="section">
+            <h2 class="section-title">Maestro Updates</h2>
+            <p style="color: #95a5a6; margin-bottom: 15px;">Check for updates to Maestro MPD Server.</p>
+            
+            <div id="maestro-update-info" style="display: none; background: rgba(52, 152, 219, 0.1); border-left: 4px solid #3498db; padding: 15px; margin-bottom: 15px; border-radius: 4px;">
+                <div style="margin-bottom: 10px;">
+                    <strong style="color: #3498db;">Repository:</strong> <span id="repo-path" style="color: #ecf0f1;"></span>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <strong style="color: #3498db;">Current Version:</strong> <span id="current-version" style="color: #ecf0f1;"></span>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <strong style="color: #3498db;">Latest Version:</strong> <span id="latest-version" style="color: #ecf0f1;"></span>
+                </div>
+                <div id="update-available-msg" style="display: none; margin-top: 15px; padding: 12px; background: rgba(46, 204, 113, 0.2); border-left: 4px solid #2ecc71; border-radius: 4px;">
+                    <strong style="color: #2ecc71;">✨ Updates Available!</strong>
+                    <div style="color: #ecf0f1; margin-top: 8px; font-size: 0.95em;">
+                        <span id="commits-behind"></span> new commit(s) available.
+                    </div>
+                    <div style="margin-top: 12px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 4px; font-family: monospace; font-size: 0.9em;">
+                        <div style="color: #3498db;">To update, SSH into the server and run:</div>
+                        <div style="color: #2ecc71; margin-top: 5px;">$ cd <span id="update-repo-path"></span></div>
+                        <div style="color: #2ecc71;">$ ./update-maestro.sh</div>
+                    </div>
+                </div>
+                <div id="up-to-date-msg" style="display: none; margin-top: 15px; padding: 12px; background: rgba(46, 204, 113, 0.2); border-left: 4px solid #2ecc71; border-radius: 4px;">
+                    <strong style="color: #2ecc71;">✅ Up to Date!</strong>
+                    <div style="color: #ecf0f1; margin-top: 5px; font-size: 0.95em;">
+                        You're running the latest version of Maestro.
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn" onclick="checkMaestroUpdates()">🔍 Check for Maestro Updates</button>
+        </div>
+
+        <div class="section">
             <h2 class="section-title">System Updates</h2>
             <p style="color: #95a5a6; margin-bottom: 15px;">Update the operating system packages. This may take several
                 minutes.</p>
@@ -344,6 +380,44 @@
             } else if (percent > 60) {
                 element.classList.add('warning');
             }
+        }
+
+        function checkMaestroUpdates() {
+            showMessage('🔍 Checking for Maestro updates...', 'warning');
+            
+            fetch('/api/maestro/update-check')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Show update info section
+                        document.getElementById('maestro-update-info').style.display = 'block';
+                        
+                        // Populate info
+                        document.getElementById('repo-path').textContent = data.repo_path;
+                        document.getElementById('current-version').textContent = `${data.current_branch}@${data.current_commit}`;
+                        document.getElementById('latest-version').textContent = `${data.current_branch}@${data.latest_commit}`;
+                        
+                        // Show appropriate message
+                        if (data.updates_available) {
+                            document.getElementById('update-available-msg').style.display = 'block';
+                            document.getElementById('up-to-date-msg').style.display = 'none';
+                            document.getElementById('commits-behind').textContent = data.commits_behind;
+                            document.getElementById('update-repo-path').textContent = data.repo_path;
+                            
+                            showMessage(`✨ Maestro Updates Available!\n\n${data.commits_behind} new commit(s) ready to install.\n\nSee instructions below to update.`, 'success');
+                        } else {
+                            document.getElementById('update-available-msg').style.display = 'none';
+                            document.getElementById('up-to-date-msg').style.display = 'block';
+                            
+                            showMessage('✅ Maestro is Up to Date!\n\nYou\'re running the latest version.', 'success');
+                        }
+                    } else {
+                        showMessage(`❌ Update Check Failed!\n\n${data.message}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    showMessage(`❌ Network Error!\n\n${error.message}`, 'error');
+                });
         }
 
         function updateSystem() {
