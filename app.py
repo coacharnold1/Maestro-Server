@@ -2845,8 +2845,8 @@ def toggle_auto_fill():
             'num_tracks_max': auto_fill_num_tracks_max,
             'genre_filter_enabled': auto_fill_genre_filter_enabled
         })
-        return ('', 200)
-    return ('', 400)
+        return jsonify({'status': 'success', 'active': auto_fill_active})
+    return jsonify({'status': 'error', 'message': 'Invalid state'}), 400
 
 @app.route('/set_auto_fill_settings', methods=['POST'])
 def set_auto_fill_settings():
