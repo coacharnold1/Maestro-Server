@@ -648,11 +648,11 @@
             <button onclick="playbackAction('next')" style="background-color: #3498db; color: white;">⏭️ Next</button>
         </div>
 
-        {# Radio Stations Section - Moved to top #}
+        {# Genre Stations Section - Moved to top #}
         <div class="controls auto-fill-buttons">
-            <h2>📻 Radio Stations</h2>
+            <h2>🎛️ Genre Stations</h2>
             <p style="text-align: center; margin-bottom: 15px; color: #bdc3c7;">
-                Save your current genre selections as radio station presets
+                Save your current genre selections as genre station presets
             </p>
 
             <div class="form-group">
@@ -800,7 +800,7 @@
             const autoFillGenreFilterCheckbox = document.getElementById('auto-fill-genre-filter-checkbox');
             const saveAutoFillSettingsBtn = document.getElementById('save-auto-fill-settings-btn');
 
-            // Radio Stations elements
+            // Genre Stations elements
             const stationNameInput = document.getElementById('station-name-input');
             const saveStationBtn = document.getElementById('save-station-btn');
             const manageStationsBtn = document.getElementById('manage-stations-btn');
@@ -848,11 +848,11 @@
                 const isActive = data.active || data;  // Handle both old format (boolean) and new format (object)
                 const minLength = data.min_queue_length || arguments[1];  // Handle both formats
 
-                if (typeof data === 'object' && data.radio_station_mode) {
+                if (typeof data === 'object' && data.genre_station_mode) {
                     // Radio station mode is active
-                    autoFillStatusDisplay.innerHTML = `🎵 <strong>Radio Station Mode</strong><br>
-                        Station: <span style="color: #3498db;">${data.radio_station_name}</span><br>
-                        Genres: <span style="color: #9b59b6;">${data.radio_station_genres.length} selected</span><br>
+                    autoFillStatusDisplay.innerHTML = `🎵 <strong>Genre Station Mode</strong><br>
+                        Station: <span style="color: #3498db;">${data.genre_station_name}</span><br>
+                        Genres: <span style="color: #9b59b6;">${data.genre_station_genres.length} selected</span><br>
                         Auto-fill: ${isActive ? `<span style="color: #2ecc71;">Enabled</span>, monitoring for < ${minLength} tracks` : '<span style="color: #e74c3c;">Disabled</span>'}`;
                     autoFillStatusDisplay.style.color = '#ffffff';
                 } else if (isActive) {
@@ -1074,10 +1074,10 @@
                 }
             }
 
-            // --- Radio Station Functions ---
+            // --- Genre Station Functions ---
 
             function loadStations() {
-                fetch('/api/radio_stations')
+                fetch('/api/genre_stations')
                     .then(response => response.json())
                     .then(data => {
                         if (data.status === 'success') {
@@ -1115,7 +1115,7 @@
                     return;
                 }
 
-                fetch('/api/radio_stations', {
+                fetch('/api/genre_stations', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1148,7 +1148,7 @@
                     return;
                 }
 
-                fetch(`/api/radio_stations/${encodeURIComponent(stationName)}`)
+                fetch(`/api/genre_stations/${encodeURIComponent(stationName)}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.status === 'success') {
@@ -1208,8 +1208,8 @@
                                     .then(response => response.json())
                                     .then(playData => {
                                         if (playData.status === 'success') {
-                                            // Set radio station mode for auto-fill
-                                            fetch('/api/radio_station_mode', {
+                                            // Set genre station mode for auto-fill
+                                            fetch('/api/genre_station_mode', {
                                                 method: 'POST',
                                                 headers: { 'Content-Type': 'application/json' },
                                                 body: JSON.stringify({
@@ -1221,7 +1221,7 @@
                                                 .then(modeData => {
                                                     console.log('Radio station mode set:', modeData);
                                                     
-                                                    // Auto-enable auto-fill when radio station is loaded
+                                                    // Auto-enable auto-fill when genre station is loaded
                                                     if (!autoFillToggle.checked) {
                                                         fetch('/toggle_auto_fill', {
                                                             method: 'POST',
@@ -1230,7 +1230,7 @@
                                                         })
                                                         .then(response => response.json())
                                                         .then(autoFillData => {
-                                                            console.log('Auto-fill enabled for radio station:', autoFillData);
+                                                            console.log('Auto-fill enabled for genre station:', autoFillData);
                                                             autoFillToggle.checked = true;
                                                         })
                                                         .catch(error => {
@@ -1238,7 +1238,7 @@
                                                         });
                                                     }
                                                     
-                                                    // Trigger auto-fill status update to reflect radio station mode
+                                                    // Trigger auto-fill status update to reflect genre station mode
                                                     fetch('/get_auto_fill_status')
                                                         .then(response => response.json())
                                                         .then(statusData => {
@@ -1247,7 +1247,7 @@
                                                         .catch(error => console.log('Error updating auto-fill status display:', error));
                                                 })
                                                 .catch(error => {
-                                                    console.error('Error setting radio station mode:', error);
+                                                    console.error('Error setting genre station mode:', error);
                                                 });
 
                                             displayMessage('success', `🎵 Radio station "${stationName}" is now playing!`);
@@ -1282,7 +1282,7 @@
             }
 
             function loadManageStations() {
-                fetch('/api/radio_stations')
+                fetch('/api/genre_stations')
                     .then(response => response.json())
                     .then(data => {
                         if (data.status === 'success') {
@@ -1315,7 +1315,7 @@
                     return;
                 }
 
-                fetch(`/api/radio_stations/${encodeURIComponent(stationName)}`, {
+                fetch(`/api/genre_stations/${encodeURIComponent(stationName)}`, {
                     method: 'DELETE'
                 })
                     .then(response => response.json())
@@ -1547,7 +1547,7 @@
                 }
             }
 
-            // --- Radio Station Event Listeners ---
+            // --- Genre Station Event Listeners ---
 
             saveStationBtn.addEventListener('click', saveStation);
             loadStationBtn.addEventListener('click', loadStation);

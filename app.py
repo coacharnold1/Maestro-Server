@@ -24,7 +24,7 @@ import random
 
 # Settings and data files
 SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'settings.json')
-RADIO_STATIONS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'radio_stations.json')
+GENRE_STATIONS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'genre_stations.json')
 
 # Settings helpers
 def load_settings():
@@ -179,7 +179,7 @@ show_scrobble_toasts = bool(_settings.get('show_scrobble_toasts', True))
 """
 Settings utilities moved near imports for early availability.
 """
-RADIO_STATIONS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'radio_stations.json')
+GENRE_STATIONS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'genre_stations.json')
 
 # Recent albums cache - simple and safe change detection
 recent_albums_cache = None
@@ -243,31 +243,31 @@ auto_fill_genre_filter_enabled = False
 auto_fill_last_artist = "N/A"
 auto_fill_last_genre = "N/A"
 
-# Radio station mode variables
-radio_station_mode = False
-radio_station_name = ""
-radio_station_genres = []
+# Genre station mode variables
+genre_station_mode = False
+genre_station_name = ""
+genre_station_genres = []
 
 # Radio stations storage functions
-def load_radio_stations():
-    """Load radio stations from JSON file"""
+def load_genre_stations():
+    """Load genre stations from JSON file"""
     try:
-        if os.path.exists(RADIO_STATIONS_FILE):
-            with open(RADIO_STATIONS_FILE, 'r') as f:
+        if os.path.exists(GENRE_STATIONS_FILE):
+            with open(GENRE_STATIONS_FILE, 'r') as f:
                 return json.load(f)
         return {}
     except (json.JSONDecodeError, IOError) as e:
-        print(f"Error loading radio stations: {e}")
+        print(f"Error loading genre stations: {e}")
         return {}
 
-def save_radio_stations(stations):
-    """Save radio stations to JSON file"""
+def save_genre_stations(stations):
+    """Save genre stations to JSON file"""
     try:
-        with open(RADIO_STATIONS_FILE, 'w') as f:
+        with open(GENRE_STATIONS_FILE, 'w') as f:
             json.dump(stations, f, indent=2)
         return True
     except IOError as e:
-        print(f"Error saving radio stations: {e}")
+        print(f"Error saving genre stations: {e}")
         return False
 
 # --- API endpoint for application version info ---
@@ -289,9 +289,9 @@ def get_auto_fill_status():
         'num_tracks_min': auto_fill_num_tracks_min,
         'num_tracks_max': auto_fill_num_tracks_max,
         'genre_filter_enabled': auto_fill_genre_filter_enabled,
-        'radio_station_mode': radio_station_mode,
-        'radio_station_name': radio_station_name,
-        'radio_station_genres': radio_station_genres
+        'genre_station_mode': genre_station_mode,
+        'genre_station_name': genre_station_name,
+        'genre_station_genres': genre_station_genres
     })
 # Simple in-memory cache for Last.fm album art data
 album_art_cache = {}
@@ -539,7 +539,7 @@ def mpd_status_monitor():
 
 def auto_fill_monitor():
     """Background task to monitor playlist length and trigger auto-fill."""
-    global auto_fill_active, auto_fill_min_queue_length, auto_fill_num_tracks_min, auto_fill_num_tracks_max, auto_fill_genre_filter_enabled, auto_fill_last_artist, auto_fill_last_genre, radio_station_mode, radio_station_name, radio_station_genres
+    global auto_fill_active, auto_fill_min_queue_length, auto_fill_num_tracks_min, auto_fill_num_tracks_max, auto_fill_genre_filter_enabled, auto_fill_last_artist, auto_fill_last_genre, genre_station_mode, genre_station_name, genre_station_genres
 
     last_auto_fill_time = 0  # Track when we last triggered auto-fill
     auto_fill_cooldown = 30  # Cooldown period in seconds
@@ -563,16 +563,16 @@ def auto_fill_monitor():
                     seed_artist = status_info.get('artist')
                     seed_genre = status_info.get('genre')
 
-                    # Check if we're in radio station mode
-                    if radio_station_mode and radio_station_genres:
+                    # Check if we're in genre station mode
+                    if genre_station_mode and genre_station_genres:
                         socketio.emit('server_message', {
                             'type': 'info', 
-                            'text': f'🎵 Radio Station Auto-fill: Adding {num_tracks_to_add} tracks from station "{radio_station_name}"...'
+                            'text': f'🎵 Genre Station Auto-fill: Adding {num_tracks_to_add} tracks from station "{genre_station_name}"...'
                         })
-                        # Use radio station auto-fill function
+                        # Use genre station auto-fill function
                         socketio.start_background_task(
-                            target=perform_radio_station_auto_fill,
-                            genres=radio_station_genres,
+                            target=perform_genre_station_auto_fill,
+                            genres=genre_station_genres,
                             num_tracks=num_tracks_to_add
                         )
                     else:
@@ -1225,12 +1225,12 @@ def perform_add_random_tracks_logic(artist_name_input, num_tracks, clear_playlis
         print(f"Error during track addition logic: {e}")
         socketio.emit('server_message', {'type': 'error', 'text': f'Error adding tracks to MPD: {e}'})
 
-def perform_radio_station_auto_fill(genres, num_tracks):
+def perform_genre_station_auto_fill(genres, num_tracks):
     """
     Radio station specific auto-fill function that adds tracks based on station genres.
     v3: Enhanced with batch processing for large genre lists (50+ genres) to prevent timeouts.
     """
-    print(f"Performing radio station auto-fill v3: {len(genres)} genres, {num_tracks} tracks needed")
+    print(f"Performing genre station auto-fill v3: {len(genres)} genres, {num_tracks} tracks needed")
     
     try:
         candidate_uris = []
@@ -1294,7 +1294,7 @@ def perform_radio_station_auto_fill(genres, num_tracks):
         if not candidate_uris:
             socketio.emit('server_message', {
                 'type': 'warning', 
-                'text': f'No songs found for radio station genres (processed {len(genres)} genres)'
+                'text': f'No songs found for genre station genres (processed {len(genres)} genres)'
             })
             return
         
@@ -1319,21 +1319,21 @@ def perform_radio_station_auto_fill(genres, num_tracks):
                 client.add(track_uri)
                 added_count += 1
             except Exception as e:
-                print(f"Error adding radio station track {track_uri}: {e}")
+                print(f"Error adding genre station track {track_uri}: {e}")
         
         client.disconnect()
         
         # Success message with genre count
         socketio.emit('server_message', {
             'type': 'success', 
-            'text': f'🎵 Radio Station Auto-fill: Added {added_count} tracks from {len(genres)} genres'
+            'text': f'🎵 Genre Station Auto-fill: Added {added_count} tracks from {len(genres)} genres'
         })
         
         # Trigger status update
         socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))
         
     except Exception as e:
-        print(f"Error during radio station auto-fill v3: {e}")
+        print(f"Error during genre station auto-fill v3: {e}")
         socketio.emit('server_message', {
             'type': 'error', 
             'text': f'Radio station auto-fill error: {e}'
@@ -1674,18 +1674,18 @@ def add_music_page():
 @app.route('/add_random_tracks', methods=['POST'])
 def add_random_tracks_manual():
     """Handle manual adding of random tracks."""
-    global radio_station_mode, radio_station_name, radio_station_genres
+    global genre_station_mode, genre_station_name, genre_station_genres
     
     artist_name_input = request.form.get('artist_name')
     num_tracks = request.form.get('num_tracks', type=int, default=5)
     clear_playlist = request.form.get('clear_playlist') == 'true'
     filter_by_genre = request.form.get('filter_by_genre') == 'true'
 
-    # Clear radio station mode when manually adding tracks
-    radio_station_mode = False
-    radio_station_name = ""
-    radio_station_genres = []
-    print("Radio station mode cleared due to manual track addition")
+    # Clear genre station mode when manually adding tracks
+    genre_station_mode = False
+    genre_station_name = ""
+    genre_station_genres = []
+    print("Genre station mode cleared due to manual track addition")
 
     # Use current playing genre as seed for manual add
     mpd_status = get_mpd_status_for_display()
@@ -1730,18 +1730,18 @@ def get_genres():
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Server error: {str(e)}'}), 500
 
-@app.route('/api/radio_stations', methods=['GET'])
-def get_radio_stations():
-    """Get all saved radio stations."""
+@app.route('/api/genre_stations', methods=['GET'])
+def get_genre_stations():
+    """Get all saved genre stations."""
     try:
-        stations = load_radio_stations()
+        stations = load_genre_stations()
         return jsonify({'status': 'success', 'stations': stations})
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Error loading stations: {str(e)}'}), 500
 
-@app.route('/api/radio_stations', methods=['POST'])
-def save_radio_station():
-    """Save a new radio station."""
+@app.route('/api/genre_stations', methods=['POST'])
+def save_genre_station():
+    """Save a new genre station."""
     try:
         data = request.get_json()
         if not data:
@@ -1757,7 +1757,7 @@ def save_radio_station():
             return jsonify({'status': 'error', 'message': 'At least one genre is required'}), 400
         
         # Load existing stations
-        stations = load_radio_stations()
+        stations = load_genre_stations()
         
         # Add new station
         stations[station_name] = {
@@ -1766,7 +1766,7 @@ def save_radio_station():
         }
         
         # Save stations
-        if save_radio_stations(stations):
+        if save_genre_stations(stations):
             return jsonify({'status': 'success', 'message': f'Station "{station_name}" saved'})
         else:
             return jsonify({'status': 'error', 'message': 'Failed to save station'}), 500
@@ -1774,11 +1774,11 @@ def save_radio_station():
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Error saving station: {str(e)}'}), 500
 
-@app.route('/api/radio_stations/<station_name>', methods=['GET'])
-def get_radio_station(station_name):
-    """Get a specific radio station."""
+@app.route('/api/genre_stations/<station_name>', methods=['GET'])
+def get_genre_station(station_name):
+    """Get a specific genre station."""
     try:
-        stations = load_radio_stations()
+        stations = load_genre_stations()
         
         if station_name not in stations:
             return jsonify({'status': 'error', 'message': 'Station not found'}), 404
@@ -1787,18 +1787,18 @@ def get_radio_station(station_name):
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Error loading station: {str(e)}'}), 500
 
-@app.route('/api/radio_stations/<station_name>', methods=['DELETE'])
-def delete_radio_station(station_name):
-    """Delete a radio station."""
+@app.route('/api/genre_stations/<station_name>', methods=['DELETE'])
+def delete_genre_station(station_name):
+    """Delete a genre station."""
     try:
-        stations = load_radio_stations()
+        stations = load_genre_stations()
         
         if station_name not in stations:
             return jsonify({'status': 'error', 'message': 'Station not found'}), 404
         
         del stations[station_name]
         
-        if save_radio_stations(stations):
+        if save_genre_stations(stations):
             return jsonify({'status': 'success', 'message': f'Station "{station_name}" deleted'})
         else:
             return jsonify({'status': 'error', 'message': 'Failed to delete station'}), 500
@@ -1806,10 +1806,10 @@ def delete_radio_station(station_name):
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Error deleting station: {str(e)}'}), 500
 
-@app.route('/api/radio_station_mode', methods=['POST'])
-def set_radio_station_mode():
-    """Set radio station mode for auto-fill."""
-    global radio_station_mode, radio_station_name, radio_station_genres
+@app.route('/api/genre_station_mode', methods=['POST'])
+def set_genre_station_mode():
+    """Set genre station mode for auto-fill."""
+    global genre_station_mode, genre_station_name, genre_station_genres
     
     try:
         data = request.get_json()
@@ -1817,21 +1817,21 @@ def set_radio_station_mode():
         genres = data.get('genres', [])
         
         if station_name and genres:
-            radio_station_mode = True
-            radio_station_name = station_name
-            radio_station_genres = genres
-            print(f"Radio station mode activated: '{station_name}' with genres {genres}")
-            return jsonify({'status': 'success', 'message': f'Radio station mode set to "{station_name}"'})
+            genre_station_mode = True
+            genre_station_name = station_name
+            genre_station_genres = genres
+            print(f"Genre station mode activated: '{station_name}' with genres {genres}")
+            return jsonify({'status': 'success', 'message': f'Genre station mode set to "{station_name}"'})
         else:
-            # Clear radio station mode
-            radio_station_mode = False
-            radio_station_name = ""
-            radio_station_genres = []
-            print("Radio station mode deactivated")
-            return jsonify({'status': 'success', 'message': 'Radio station mode cleared'})
+            # Clear genre station mode
+            genre_station_mode = False
+            genre_station_name = ""
+            genre_station_genres = []
+            print("Genre station mode deactivated")
+            return jsonify({'status': 'success', 'message': 'Genre station mode cleared'})
             
     except Exception as e:
-        return jsonify({'status': 'error', 'message': f'Error setting radio station mode: {str(e)}'}), 500
+        return jsonify({'status': 'error', 'message': f'Error setting genre station mode: {str(e)}'}), 500
 
 # --- Safer actions for Last.fm artist items (Charts page) ---
 @app.route('/add_top_albums_by_artist', methods=['POST'])
@@ -2867,9 +2867,9 @@ def set_auto_fill_settings():
             'num_tracks_min': auto_fill_num_tracks_min,
             'num_tracks_max': auto_fill_num_tracks_max,
             'genre_filter_enabled': auto_fill_genre_filter_enabled,
-            'radio_station_mode': radio_station_mode,
-            'radio_station_name': radio_station_name,
-            'radio_station_genres': radio_station_genres
+            'genre_station_mode': genre_station_mode,
+            'genre_station_name': genre_station_name,
+            'genre_station_genres': genre_station_genres
         })
         return ('', 200)
     except ValueError:
@@ -2958,7 +2958,7 @@ def move_track():
 @app.route('/clear_playlist', methods=['POST'])
 def clear_playlist():
     """Clears the entire MPD playlist."""
-    global radio_station_mode, radio_station_name, radio_station_genres
+    global genre_station_mode, genre_station_name, genre_station_genres
     
     client = connect_mpd_client()
     if not client:
@@ -2967,11 +2967,11 @@ def clear_playlist():
         client.clear()
         client.disconnect()
         
-        # Clear radio station mode when playlist is manually cleared
-        radio_station_mode = False
-        radio_station_name = ""
-        radio_station_genres = []
-        print("Radio station mode cleared due to manual playlist clear")
+        # Clear genre station mode when playlist is manually cleared
+        genre_station_mode = False
+        genre_station_name = ""
+        genre_station_genres = []
+        print("Genre station mode cleared due to manual playlist clear")
         
         socketio.emit('server_message', {'type': 'info', 'text': 'MPD playlist cleared.'})
         # Trigger a refresh of the playlist on all connected clients
@@ -3568,9 +3568,9 @@ def test_connect():
         'num_tracks_min': auto_fill_num_tracks_min,
         'num_tracks_max': auto_fill_num_tracks_max,
         'genre_filter_enabled': auto_fill_genre_filter_enabled,
-        'radio_station_mode': radio_station_mode,
-        'radio_station_name': radio_station_name,
-        'radio_station_genres': radio_station_genres
+        'genre_station_mode': genre_station_mode,
+        'genre_station_name': genre_station_name,
+        'genre_station_genres': genre_station_genres
     })
 
 @socketio.on('disconnect')

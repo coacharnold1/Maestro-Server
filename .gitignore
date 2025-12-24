@@ -2,7 +2,7 @@
 .env
 config.env
 settings.json
-radio_stations.json
+genre_stations.json
 maestro-setup.conf
 
 # Python
