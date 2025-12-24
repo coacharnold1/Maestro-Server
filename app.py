@@ -1833,6 +1833,55 @@ def set_genre_station_mode():
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Error setting genre station mode: {str(e)}'}), 500
 
+# --- EXPERIMENTAL: Internet Radio Streaming ---
+@app.route('/api/streaming_radio/test', methods=['POST'])
+def test_streaming_radio():
+    """
+    EXPERIMENTAL: Test internet radio streaming.
+    Clears playlist and plays the provided stream URL.
+    """
+    try:
+        data = request.get_json()
+        stream_url = data.get('url', '').strip()
+        
+        if not stream_url:
+            return jsonify({'status': 'error', 'message': 'Stream URL is required'}), 400
+        
+        # Basic URL validation
+        if not stream_url.startswith(('http://', 'https://')):
+            return jsonify({'status': 'error', 'message': 'Invalid URL. Must start with http:// or https://'}), 400
+        
+        # Connect to MPD
+        client = connect_mpd_client()
+        if not client:
+            return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
+        
+        try:
+            # Clear playlist and add stream
+            client.clear()
+            client.add(stream_url)
+            # Start playback
+            client.play(0)
+            
+            client.disconnect()
+            
+            socketio.emit('server_message', {
+                'type': 'success',
+                'text': f'🔴 LIVE: Tuned into stream'
+            })
+            
+            # Trigger status update
+            socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))
+            
+            return jsonify({'status': 'success', 'message': 'Stream started'})
+            
+        except Exception as e:
+            client.disconnect()
+            return jsonify({'status': 'error', 'message': f'MPD error: {str(e)}'}), 500
+            
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 # --- Safer actions for Last.fm artist items (Charts page) ---
 @app.route('/add_top_albums_by_artist', methods=['POST'])
 def add_top_albums_by_artist():

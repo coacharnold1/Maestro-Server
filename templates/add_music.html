@@ -648,6 +648,35 @@
             <button onclick="playbackAction('next')" style="background-color: #3498db; color: white;">⏭️ Next</button>
         </div>
 
+        {# EXPERIMENTAL: Internet Radio Test #}
+        <div class="controls auto-fill-buttons" style="border: 3px solid #e67e22; background: rgba(230, 126, 34, 0.1);">
+            <div style="background: #e67e22; color: white; padding: 10px; margin: -15px -15px 15px -15px; text-align: center; font-weight: bold; border-radius: 5px 5px 0 0;">
+                🚧 EXPERIMENTAL FEATURE - Internet Radio Streaming
+            </div>
+            <h2>📻 Test Internet Radio</h2>
+            <p style="text-align: center; margin-bottom: 15px; color: #e67e22; font-weight: bold;">
+                ⚠️ This is a test feature. Paste a stream URL to test MPD streaming capability.
+            </p>
+
+            <div class="form-group">
+                <label for="stream-url-input">Stream URL:</label>
+                <input type="text" id="stream-url-input" placeholder="https://stream.example.com/live.mp3"
+                    style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #34495e; box-sizing: border-box; font-family: monospace;">
+            </div>
+
+            <div style="margin-bottom: 10px;">
+                <button id="play-stream-btn" style="width: 100%; background: linear-gradient(135deg, #e74c3c, #c0392b); padding: 12px;">
+                    🔴 Play Stream (Clears Playlist)
+                </button>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px; font-size: 0.9em; color: #bdc3c7;">
+                <strong>Test URLs:</strong><br>
+                • SomaFM Groove Salad: <code style="color: #3498db;">https://ice1.somafm.com/groovesalad-128-mp3</code><br>
+                • Jazz24: <code style="color: #3498db;">https://live.wostreaming.net/direct/ppm-jazz24aac-ibc1</code>
+            </div>
+        </div>
+
         {# Genre Stations Section - Moved to top #}
         <div class="controls auto-fill-buttons">
             <h2>🎛️ Genre Stations</h2>
@@ -1545,6 +1574,56 @@
                             });
                     });
                 }
+            }
+
+            // --- EXPERIMENTAL: Internet Radio Test ---
+            
+            const streamUrlInput = document.getElementById('stream-url-input');
+            const playStreamBtn = document.getElementById('play-stream-btn');
+
+            if (playStreamBtn) {
+                playStreamBtn.addEventListener('click', function() {
+                    const streamUrl = streamUrlInput.value.trim();
+                    
+                    if (!streamUrl) {
+                        displayMessage('error', 'Please enter a stream URL');
+                        return;
+                    }
+
+                    if (!streamUrl.startsWith('http://') && !streamUrl.startsWith('https://')) {
+                        displayMessage('error', 'URL must start with http:// or https://');
+                        return;
+                    }
+
+                    if (!confirm('⚠️ This will clear your current playlist and play the stream.\n\nContinue?')) {
+                        return;
+                    }
+
+                    displayMessage('info', '🔴 Tuning in...');
+
+                    fetch('/api/streaming_radio/test', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            url: streamUrl
+                        })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                displayMessage('success', '🔴 LIVE: Stream playing! Check Now Playing page for metadata.');
+                                streamUrlInput.value = ''; // Clear input
+                            } else {
+                                displayMessage('error', `Failed: ${data.message}`);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error playing stream:', error);
+                            displayMessage('error', `Error: ${error.message}`);
+                        });
+                });
             }
 
             // --- Genre Station Event Listeners ---
