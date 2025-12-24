@@ -182,6 +182,11 @@ cd Maestro-Server
 ./install-maestro.sh
 ```
 
+**Italian users / Utenti italiani:**
+```bash
+./install-maestro-it.sh  # Installer in italiano
+```
+
 **Update:**
 ```bash
 cd ~/Maestro-Server
