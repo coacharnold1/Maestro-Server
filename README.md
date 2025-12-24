@@ -230,7 +230,7 @@ SCREENSHOT RECOMMENDATION #5: Installation Success
 *Manage your current playlist with drag-and-drop*
 
 ![Random and Radio](screenshots/Screenshot_Random-and-Radio.png)
-*Random playback and user-created custom radio stations*
+*Random playback and user-created custom genre stations*
 
 ![Search](screenshots/Screenshot_Search.png)
 *Powerful search across your entire music library*

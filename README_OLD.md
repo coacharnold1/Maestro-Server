@@ -22,7 +22,7 @@ Take a Tour **[PROJECT_SHOWCASE.md](PROJECT_SHOWCASE.md)**
 
 ### 🎵 **Advanced Music Management**
 - **🏆 Recent Albums**: Fixed! Automatically displays 25 most recently added albums
-- **📻 Radio Stations**: Save and manage genre-based radio stations
+- **📻 Genre Stations**: Save and manage genre-based genre stations
 - **🤖 Smart Auto-Fill**: Intelligent playlist management with Last.fm
 - **🔍 Advanced Search**: Comprehensive music library search
 - **📈 Last.fm Integration**: Charts, scrobbling, and music discovery
@@ -363,19 +363,19 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Previous Updates (November 13, 2025)
 
 ### ✅ Major Features & Enhancements
-- **NEW:** Radio Station Auto-Fill Enhancement - maintains genre diversity during auto-fill
+- **NEW:** Genre Station Auto-Fill Enhancement - maintains genre diversity during auto-fill
 - **NEW:** Navigation Standardization - consistent emoji-based navigation across all pages
-- **NEW:** Radio Station Mode - preserves original station genres instead of switching to "now playing" 
-- **ENHANCED:** Auto-fill status display shows radio station information and genre counts
+- **NEW:** Genre Station Mode - preserves original station genres instead of switching to "now playing" 
+- **ENHANCED:** Auto-fill status display shows genre station information and genre counts
 - **FIXED:** Playback timing issues - eliminated "failed to start playbook" errors
 - **IMPROVED:** Album art integration in playlist page with thumbnail display
 - **ADDED:** Professional UI consistency with current page indicators
 
-### 🎛️ Radio Station System
-- **Save/Load/Play:** Complete radio station management with genre preservation
+### 🎛️ Genre Station System
+- **Save/Load/Play:** Complete genre station management with genre preservation
 - **Auto-Fill Integration:** Radio stations maintain original genre sets during auto-fill
 - **Status Display:** Rich information showing active station and genre count
-- **Mode Management:** Automatic switching between normal and radio station auto-fill modes
+- **Mode Management:** Automatic switching between normal and genre station auto-fill modes
 
 ## Features
 
@@ -391,10 +391,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - 🎵 **Last.fm Integration**: Album art fetching and similar artist suggestions
 - 🔍 **Search Functionality**: Search your music library by artist, album, title, or any field
 - 🤖 **Auto-Fill Playlists**: Automatically add similar tracks when queue gets low
-- � **Radio Stations**: Save, load, and play genre-based radio stations with auto-fill integration
+- � **Genre Stations**: Save, load, and play genre-based genre stations with auto-fill integration
 - �🖼️ **Album Art Display**: Local folder art + Last.fm fallback with thumbnail support
 - 📱 **Real-time Updates**: WebSocket-powered live status updates
-- 🎛️ **Smart Filtering**: Genre-based filtering for auto-fill with radio station mode
+- 🎛️ **Smart Filtering**: Genre-based filtering for auto-fill with genre station mode
 - ✨ **Genre Selection**: Multi-select random music by genre with station save/load
 
 ### User Interface
@@ -598,7 +598,7 @@ Contributions welcome! Please:
 
 ## Backups
 
-Regular backups help preserve configuration and state (e.g., saved radio stations). A helper script `backup.sh` is provided.
+Regular backups help preserve configuration and state (e.g., saved genre stations). A helper script `backup.sh` is provided.
 
 ### Creating a Backup
 ```bash
