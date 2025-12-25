@@ -1,10 +1,20 @@
-Maestro MPD Server v2.3
-Release Date: Mon Dec 23 00:00:00 UTC 2025
-Version: 2.3.0
+Maestro MPD Server v2.4
+Release Date: Wed Dec 25 00:00:00 UTC 2025
+Version: 2.4.0
 
-🎵 CD RIPPER ENHANCEMENT RELEASE - Album Art & Bug Fixes 🎵
+📻 INTERNET RADIO RELEASE - Streaming Radio with Radio Browser Integration 📻
 
-Latest Features (Dec 23, 2025 - v2.3):
+Latest Features (Dec 25, 2025 - v2.4):
+✅ NEW: Internet Radio - Full streaming radio with Radio Browser API integration (22 countries)
+✅ NEW: Smart Metadata Parsing - Handles "Title by Artist - Station" and complex patterns
+✅ NEW: Toast Notifications - Real-time feedback with SocketIO integration
+✅ NEW: Station Favicon Art - Station logos display as album art when no Last.fm data
+✅ ENHANCED: API Redundancy - 3-server failover (de1, nl1, at1) with retry functionality
+✅ ENHANCED: Station Name Fallback - Shows "🔴 LIVE: Station Name" for streams with no metadata
+✅ IMPROVED: Confirmation Dialog - Asks before clearing playlist when playing radio
+✅ OPTIMIZED: UI Polish - Text overflow handling, no layout shift, reduced art jitter
+
+Previous Release (Dec 23, 2025 - v2.3):
 ✅ NEW: Pre-download Album Art - Cover art downloads BEFORE ripping starts
 ✅ FIXED: CD Ripping with Parentheses - Albums with parentheses in names now rip correctly
 ✅ FIXED: Metadata Cache - MusicBrainz metadata properly cached for ripping
