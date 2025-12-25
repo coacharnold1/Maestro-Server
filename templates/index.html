@@ -116,11 +116,24 @@
             font-size: 1em;
             /* Normal font size */
             line-height: 1.4;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
         }
 
         .status-item span {
             font-weight: bold;
             color: #bdc3c7;
+        }
+        
+        .status-item span:last-child {
+            display: inline-block;
+            max-width: 70%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            vertical-align: bottom;
         }
 
         .disconnected {
