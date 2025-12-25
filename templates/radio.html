@@ -740,10 +740,51 @@
         
         try {
             const response = await fetch(`/api/radio/stations?country=${currentCountry}&limit=50`);
+            
+            // Check if API returned error status
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const errorMsg = errorData.message || 'API servers unavailable';
+                container.innerHTML = `
+                    <div class="empty-state">
+                        ❌ Failed to load stations<br>
+                        <small>${errorMsg}</small><br><br>
+                        <button onclick="loadStations()" style="padding: 10px 20px; cursor: pointer; background: #3498db; color: white; border: none; border-radius: 5px;">
+                            🔄 Retry
+                        </button>
+                    </div>
+                `;
+                console.error('API error:', errorMsg);
+                return;
+            }
+            
             allStations = await response.json();
+            
+            // Check if it's an error object (legacy handling)
+            if (allStations.error) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        ❌ Failed to load stations<br>
+                        <small>${allStations.message || 'API error'}</small><br><br>
+                        <button onclick="loadStations()" style="padding: 10px 20px; cursor: pointer; background: #3498db; color: white; border: none; border-radius: 5px;">
+                            🔄 Retry
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
             renderStations(allStations);
         } catch (error) {
-            container.innerHTML = '<div class="empty-state">❌ Failed to load stations</div>';
+            container.innerHTML = `
+                <div class="empty-state">
+                    ❌ Failed to load stations<br>
+                    <small>Network error or timeout</small><br><br>
+                    <button onclick="loadStations()" style="padding: 10px 20px; cursor: pointer; background: #3498db; color: white; border: none; border-radius: 5px;">
+                        🔄 Retry
+                    </button>
+                </div>
+            `;
             console.error('Failed to load stations:', error);
         }
     }

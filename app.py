@@ -2118,7 +2118,7 @@ def get_radio_stations():
         
         # All servers failed
         print(f"All Radio Browser API servers failed. Last error: {last_error}")
-        return jsonify([])
+        return jsonify({'error': 'API servers unavailable', 'message': last_error}), 503
             
     except Exception as e:
         print(f"Radio station fetch error: {e}")
