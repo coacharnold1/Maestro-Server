@@ -518,6 +518,14 @@ def get_mpd_status_for_display():
                     if station_name:
                         current_album = station_name
                     print(f"[Stream] Parsed from title field: {current_artist} - {current_title} (Station: {current_album})")
+            
+            # Final fallback: if stream has NO metadata at all, use cached station name
+            if (current_artist == 'N/A' and current_title == 'N/A' and 
+                song_file_path in stream_name_cache):
+                station_name = stream_name_cache[song_file_path]
+                current_title = f"🔴 LIVE: {station_name}"
+                current_album = station_name
+                print(f"[Stream] No metadata - using cached station name: {station_name}")
 
         # Update last known artist/genre for auto-fill
         if current_artist != 'N/A':
@@ -2128,6 +2136,8 @@ def get_radio_stations():
 
 # Cache for stream favicons (stream_url -> favicon_url)
 stream_favicon_cache = {}
+# Cache for stream station names (stream_url -> station_name)
+stream_name_cache = {}
 
 @app.route('/api/radio/play', methods=['POST'])
 def play_radio_station():
@@ -2145,10 +2155,14 @@ def play_radio_station():
         if not url.startswith(('http://', 'https://')):
             return jsonify({'status': 'error', 'message': 'Invalid URL'}), 400
         
-        # Store favicon for this stream in cache
+        # Store favicon and name for this stream in cache
         if favicon and favicon.startswith('http'):
             stream_favicon_cache[url] = favicon
             print(f"Cached favicon for {url}: {favicon}")
+        
+        if name:
+            stream_name_cache[url] = name
+            print(f"Cached station name for {url}: {name}")
         
         # Connect to MPD
         client = connect_mpd_client()
