@@ -1,56 +1,108 @@
-{% extends "base_layout.html" %}
+<!DOCTYPE html>
+<html>
 
-{% block title %}Radio - Maestro MPD Control{% endblock %}
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radio - Maestro MPD Control</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #1a1a1a;
+            color: #ecf0f1;
+            min-height: 100vh;
+        }
 
-{% block extra_css %}
-<style>
-    /* Override base_layout narrow container */
-    .container {
-        max-width: 1000px !important;
-        padding: 20px !important;
-    }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #2c3e50;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 18px rgba(0, 0, 0, 0.4);
+        }
 
-    h1, h2 {
-        font-size: 1.8em !important;
-    }
+        h1, h2 {
+            color: #ecf0f1;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
 
-    h2 {
-        font-size: 1.3em !important;
-    }
+        h2 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+        }
 
-    /* Logo styling */
-    .logo-container {
-        text-align: center;
-        margin-bottom: 20px;
-    }
+        /* Logo styling */
+        .logo-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
 
-    .logo-container img {
-        max-width: 600px;
-        width: 100%;
-        height: auto;
-        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
-    }
+        .logo-container img {
+            max-width: 600px;
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
 
-    /* Playback controls */
-    .playback-controls {
-        text-align: center;
-        margin: 20px 0;
-        padding: 15px;
-        background-color: #34495e;
-        border-radius: 8px;
-    }
+        .nav-links {
+            text-align: center;
+            margin-bottom: 20px;
+        }
 
-    .playback-controls h2 {
-        margin-bottom: 15px;
-        font-size: 1.2em !important;
-    }
+        .nav-links a {
+            color: #3498db;
+            text-decoration: none;
+            margin: 0 15px;
+            padding: 8px 16px;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            transition: all 0.3s;
+            display: inline-block;
+            font-size: 14px;
+        }
 
-    .playback-controls button {
-        padding: 10px 15px;
-        margin: 4px;
-        min-width: 90px;
-        font-size: 0.9em;
-    }
+        .nav-links a:hover {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .nav-links .current-page {
+            background-color: #e67e22;
+            color: white;
+            border-color: #e67e22;
+            font-weight: bold;
+        }
+
+        /* Playback controls */
+        .playback-controls {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #34495e;
+            border-radius: 8px;
+        }
+
+        .playback-controls h2 {
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .playback-controls button {
+            padding: 10px 15px;
+            margin: 4px;
+            min-width: 90px;
+            font-size: 0.9em;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-weight: bold;
+            color: white;
+        }
 
     .radio-tabs {
         display: flex;
@@ -288,24 +340,153 @@
             justify-content: center;
         }
     }
-</style>
-{% endblock %}
 
-{% block content %}
-<!-- Logo -->
-<div class="logo-container">
-    <img src="{{ url_for('static', filename='logo.svg') }}" alt="Maestro MPD Control">
-</div>
+    /* Minimal theme overrides to honor Settings theme */
+    body.light {
+        background-color: #f5f5f7;
+        color: #1a1a1a;
+    }
+    body.light .container {
+        background-color: #ffffff;
+        color: #1a1a1a;
+    }
+    body.light .playback-controls,
+    body.light .location-selector,
+    body.light .station-card,
+    body.light .manual-add {
+        background-color: #f0f3f6;
+        border-color: #d0d7de;
+    }
+    body.high-contrast {
+        background-color: #000000;
+        color: #ffff00;
+    }
+    body.high-contrast .container {
+        background-color: #000000;
+        color: #ffff00;
+        border: 2px solid #ffff00;
+    }
+    body.high-contrast .playback-controls,
+    body.high-contrast .location-selector,
+    body.high-contrast .station-card,
+    body.high-contrast .manual-add {
+        background-color: #000000;
+        border: 2px solid #ffff00;
+    }
 
-<div class="nav-links">
-    <a href="/" data-i18n="main">🏠 Main</a>
-    <a href="/playlist" data-i18n="playlist">🎵 Playlist</a>
-    <a href="/add_music" data-i18n="add_music">🎲 Add Music</a>
-    <a href="/search" data-i18n="search">🔍 Search</a>
-    <a href="/recent" data-i18n="recent">📀 Recent</a>
-    <a href="/browse" data-i18n="browse">🗂️ Browse</a>
-    <a href="/radio" class="current-page" data-i18n="radio">📻 Radio</a>
-</div>
+    /* Desert theme */
+    body.desert {
+        background-color: #2c1810;
+        color: #f4e4bc;
+    }
+    body.desert .container {
+        background-color: #3d2f20;
+        color: #f4e4bc;
+        border-color: #8b4513;
+    }
+    body.desert .playback-controls,
+    body.desert .location-selector,
+    body.desert .station-card,
+    body.desert .manual-add {
+        background-color: #4a3b2a;
+        border-color: #cd853f;
+    }
+
+    /* Terminal theme */
+    body.terminal {
+        background-color: #000000;
+        color: #00ff00;
+    }
+    body.terminal .container {
+        background-color: #0a0a0a;
+        color: #00ff00;
+        border-color: #00cc00;
+    }
+    body.terminal .playback-controls,
+    body.terminal .location-selector,
+    body.terminal .station-card,
+    body.terminal .manual-add {
+        background-color: #1a1a1a;
+        border-color: #00cc00;
+    }
+
+    /* Sunset theme */
+    body.sunset {
+        background-color: #1a0f1f;
+        color: #ffe4b5;
+    }
+    body.sunset .container {
+        background-color: #2d1b2e;
+        color: #ffe4b5;
+        border-color: #ff6b35;
+    }
+    body.sunset .playback-controls,
+    body.sunset .location-selector,
+    body.sunset .station-card,
+    body.sunset .manual-add {
+        background-color: #3d2534;
+        border-color: #ff6b35;
+    }
+
+    /* Forest theme */
+    body.forest {
+        background-color: #0d1b0d;
+        color: #c9e4c5;
+    }
+    body.forest .container {
+        background-color: #1a2e1a;
+        color: #c9e4c5;
+        border-color: #4a7c4e;
+    }
+    body.forest .playback-controls,
+    body.forest .location-selector,
+    body.forest .station-card,
+    body.forest .manual-add {
+        background-color: #233d23;
+        border-color: #4a7c4e;
+    }
+
+    /* Midnight theme */
+    body.midnight {
+        background-color: #0f0a1e;
+        color: #e0d4f7;
+    }
+    body.midnight .container {
+        background-color: #1e1435;
+        color: #e0d4f7;
+        border-color: #6a4c93;
+    }
+    body.midnight .playback-controls,
+    body.midnight .location-selector,
+    body.midnight .station-card,
+    body.midnight .manual-add {
+        background-color: #2a1f4a;
+        border-color: #6a4c93;
+    }
+    </style>
+    <!-- Include Socket.IO client library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
+    <!-- Include i18n translation handler -->
+    <script src="{{ url_for('static', filename='i18n.js') }}"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="{{ app_theme }}">
+    <div class="container">
+        <!-- Logo -->
+        <div class="logo-container">
+            <img src="{{ url_for('static', filename='logo.svg') }}" alt="Maestro MPD Control">
+        </div>
+
+        <div class="nav-links">
+            <a href="/" data-i18n="main">🏠 Main</a>
+            <a href="/playlist" data-i18n="playlist">🎵 Playlist</a>
+            <a href="/add_music" data-i18n="add_music">🎲 Add Music</a>
+            <a href="/search" data-i18n="search">🔍 Search</a>
+            <a href="/recent" data-i18n="recent">📀 Recent</a>
+            <a href="/browse" data-i18n="browse">🗂️ Browse</a>
+            <a href="/radio" class="current-page" data-i18n="radio">📻 Radio</a>
+        </div>
 
 <!-- Playback Controls -->
 <div class="playback-controls">
@@ -623,9 +804,49 @@
         // Use existing message system from base
         if (typeof window.showServerMessage === 'function') {
             window.showServerMessage(text, type);
+        } else if (typeof displayMessage === 'function') {
+            displayMessage(type, text);
         } else {
-            alert(text);
+            console.log(`[${type}] ${text}`);
         }
     }
+
+    // Playback control functions
+    function playMusic() {
+        fetch('/play?ajax=1', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => showMessage(data.message || 'Play command sent', 'info'))
+            .catch(error => showMessage('Error playing music', 'error'));
+    }
+
+    function pauseMusic() {
+        fetch('/pause?ajax=1', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => showMessage(data.message || 'Pause command sent', 'info'))
+            .catch(error => showMessage('Error pausing music', 'error'));
+    }
+
+    function stopMusic() {
+        fetch('/stop?ajax=1', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => showMessage(data.message || 'Stop command sent', 'info'))
+            .catch(error => showMessage('Error stopping music', 'error'));
+    }
+
+    function nextTrack() {
+        fetch('/next?ajax=1', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => showMessage(data.message || 'Next track', 'info'))
+            .catch(error => showMessage('Error skipping track', 'error'));
+    }
+
+    function previousTrack() {
+        fetch('/previous?ajax=1', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => showMessage(data.message || 'Previous track', 'info'))
+            .catch(error => showMessage('Error going back', 'error'));
+    }
 </script>
-{% endblock %}
+    </div>
+</body>
+</html>
