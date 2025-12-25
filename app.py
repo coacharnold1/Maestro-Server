@@ -309,6 +309,7 @@ def parse_stream_metadata(title_field, name_field=None):
     Parse streaming radio metadata that often comes in various formats:
     - 'Artist - Title' format
     - 'Title by Artist' format
+    - 'Title by Artist - Station' format (complex)
     - 'Artist - Station' format (when second part has station indicators)
     Returns tuple: (artist, title, station_name)
     """
@@ -319,12 +320,29 @@ def parse_stream_metadata(title_field, name_field=None):
     title = None
     station_name = name_field if name_field and name_field != 'N/A' else None
     
-    # Try 'Title by Artist' format first (common in radio streams)
+    # Try 'Title by Artist - Station' format first (most specific)
     if ' by ' in title_field:
         parts = title_field.split(' by ', 1)
         if len(parts) == 2:
             title = parts[0].strip()
-            artist = parts[1].strip()
+            rest = parts[1].strip()  # This is "Artist - Station" or just "Artist"
+            
+            # Check if rest contains " - " which would indicate station info
+            for sep in [' - ', ' – ', ' — ']:
+                if sep in rest:
+                    artist_station = rest.split(sep, 1)
+                    if len(artist_station) == 2:
+                        artist = artist_station[0].strip()
+                        station_part = artist_station[1].strip()
+                        # Check if second part looks like a station
+                        if has_station_indicators(station_part):
+                            station_name = station_part
+                            if title and artist:
+                                return artist, title, station_name
+                    break
+            
+            # No station found, just "Title by Artist"
+            artist = rest
             if title and artist:
                 return artist, title, station_name
     
