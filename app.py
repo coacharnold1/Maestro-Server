@@ -2023,6 +2023,7 @@ def get_radio_countries():
         {'code': 'DE', 'name': 'Germany', 'flag': '🇩🇪'},
         {'code': 'FR', 'name': 'France', 'flag': '🇫🇷'},
         {'code': 'ES', 'name': 'Spain', 'flag': '🇪🇸'},
+        {'code': 'PT', 'name': 'Portugal', 'flag': '🇵🇹'},
         {'code': 'CA', 'name': 'Canada', 'flag': '🇨🇦'},
         {'code': 'AU', 'name': 'Australia', 'flag': '🇦🇺'},
         {'code': 'NL', 'name': 'Netherlands', 'flag': '🇳🇱'},
