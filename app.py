@@ -2043,7 +2043,7 @@ def get_radio_countries():
 
 @app.route('/api/radio/stations', methods=['GET'])
 def get_radio_stations():
-    """Get radio stations from Radio Browser API."""
+    """Get radio stations from Radio Browser API with retry logic."""
     try:
         country = request.args.get('country', 'US')
         limit = request.args.get('limit', '50')
@@ -2051,17 +2051,23 @@ def get_radio_stations():
         
         # Radio Browser API endpoint (uses public servers)
         # Documentation: https://api.radio-browser.info/
+        # Try multiple API servers for redundancy
+        api_servers = [
+            'https://de1.api.radio-browser.info',
+            'https://nl1.api.radio-browser.info',
+            'https://at1.api.radio-browser.info'
+        ]
         
         # If searching by name, use the search endpoint
         if name_search:
-            api_url = 'https://de1.api.radio-browser.info/json/stations/byname/' + requests.utils.quote(name_search)
+            endpoint = f'/json/stations/byname/{requests.utils.quote(name_search)}'
             params = {
                 'limit': limit,
                 'hidebroken': 'true'
             }
         else:
             # Otherwise get by country
-            api_url = 'https://de1.api.radio-browser.info/json/stations/bycountrycodeexact/' + country
+            endpoint = f'/json/stations/bycountrycodeexact/{country}'
             params = {
                 'limit': limit,
                 'order': 'votes',  # Most popular first
@@ -2069,30 +2075,54 @@ def get_radio_stations():
                 'hidebroken': 'true'  # Only working stations
             }
         
-        response = requests.get(api_url, params=params, timeout=10)
+        # Try each API server until one works
+        last_error = None
+        for api_server in api_servers:
+            try:
+                api_url = api_server + endpoint
+                print(f"Trying Radio Browser API: {api_url}")
+                response = requests.get(api_url, params=params, timeout=15)
+                
+                if response.status_code == 200:
+                    stations = response.json()
+                    print(f"Successfully fetched {len(stations)} stations from {api_server}")
+                    
+                    # Format for our UI
+                    formatted = []
+                    for s in stations:
+                        formatted.append({
+                            'name': s.get('name', 'Unknown Station'),
+                            'url': s.get('url_resolved') or s.get('url', ''),
+                            'favicon': s.get('favicon', ''),
+                            'country': s.get('country', ''),
+                            'tags': s.get('tags', ''),
+                            'genre': s.get('tags', '').split(',')[0] if s.get('tags') else '',
+                            'bitrate': s.get('bitrate', 0),
+                            'codec': s.get('codec', ''),
+                            'homepage': s.get('homepage', '')
+                        })
+                    return jsonify(formatted)
+                else:
+                    print(f"API server {api_server} returned status {response.status_code}")
+                    last_error = f"HTTP {response.status_code}"
+                    
+            except requests.exceptions.Timeout:
+                print(f"Timeout connecting to {api_server}")
+                last_error = "Timeout"
+                continue
+            except requests.exceptions.RequestException as e:
+                print(f"Error with {api_server}: {e}")
+                last_error = str(e)
+                continue
         
-        if response.status_code == 200:
-            stations = response.json()
-            # Format for our UI
-            formatted = []
-            for s in stations:
-                formatted.append({
-                    'name': s.get('name', 'Unknown Station'),
-                    'url': s.get('url_resolved') or s.get('url', ''),
-                    'favicon': s.get('favicon', ''),
-                    'country': s.get('country', ''),
-                    'tags': s.get('tags', ''),
-                    'genre': s.get('tags', '').split(',')[0] if s.get('tags') else '',
-                    'bitrate': s.get('bitrate', 0),
-                    'codec': s.get('codec', ''),
-                    'homepage': s.get('homepage', '')
-                })
-            return jsonify(formatted)
-        else:
-            return jsonify([])
+        # All servers failed
+        print(f"All Radio Browser API servers failed. Last error: {last_error}")
+        return jsonify([])
             
     except Exception as e:
         print(f"Radio station fetch error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify([])
 
 # Cache for stream favicons (stream_url -> favicon_url)
