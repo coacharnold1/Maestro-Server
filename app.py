@@ -1917,6 +1917,144 @@ def test_streaming_radio():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+# --- Radio Browser API Integration ---
+@app.route('/api/radio/detect-country', methods=['GET'])
+def detect_radio_country():
+    """Detect user's country from IP address for radio station defaults."""
+    try:
+        # Try to get country from IP
+        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        if ip:
+            # Use ipapi.co for geolocation (free, no API key needed)
+            response = requests.get(f'https://ipapi.co/{ip}/country/', timeout=3)
+            if response.status_code == 200:
+                country_code = response.text.strip()
+                return jsonify({'country': country_code})
+        
+        # Default to US if detection fails
+        return jsonify({'country': 'US'})
+    except Exception as e:
+        print(f"Country detection error: {e}")
+        return jsonify({'country': 'US'})
+
+@app.route('/api/radio/countries', methods=['GET'])
+def get_radio_countries():
+    """Get list of countries with radio stations."""
+    # Comprehensive list of countries with flags
+    countries = [
+        {'code': 'US', 'name': 'United States', 'flag': '🇺🇸'},
+        {'code': 'GB', 'name': 'United Kingdom', 'flag': '🇬🇧'},
+        {'code': 'IT', 'name': 'Italy', 'flag': '🇮🇹'},
+        {'code': 'DE', 'name': 'Germany', 'flag': '🇩🇪'},
+        {'code': 'FR', 'name': 'France', 'flag': '🇫🇷'},
+        {'code': 'ES', 'name': 'Spain', 'flag': '🇪🇸'},
+        {'code': 'CA', 'name': 'Canada', 'flag': '🇨🇦'},
+        {'code': 'AU', 'name': 'Australia', 'flag': '🇦🇺'},
+        {'code': 'NL', 'name': 'Netherlands', 'flag': '🇳🇱'},
+        {'code': 'BR', 'name': 'Brazil', 'flag': '🇧🇷'},
+        {'code': 'MX', 'name': 'Mexico', 'flag': '🇲🇽'},
+        {'code': 'JP', 'name': 'Japan', 'flag': '🇯🇵'},
+        {'code': 'KR', 'name': 'South Korea', 'flag': '🇰🇷'},
+        {'code': 'SE', 'name': 'Sweden', 'flag': '🇸🇪'},
+        {'code': 'NO', 'name': 'Norway', 'flag': '🇳🇴'},
+        {'code': 'DK', 'name': 'Denmark', 'flag': '🇩🇰'},
+        {'code': 'FI', 'name': 'Finland', 'flag': '🇫🇮'},
+        {'code': 'PL', 'name': 'Poland', 'flag': '🇵🇱'},
+        {'code': 'RU', 'name': 'Russia', 'flag': '🇷🇺'},
+        {'code': 'IN', 'name': 'India', 'flag': '🇮🇳'},
+        {'code': 'CN', 'name': 'China', 'flag': '🇨🇳'},
+    ]
+    return jsonify(countries)
+
+@app.route('/api/radio/stations', methods=['GET'])
+def get_radio_stations():
+    """Get radio stations from Radio Browser API."""
+    try:
+        country = request.args.get('country', 'US')
+        limit = request.args.get('limit', '50')
+        
+        # Radio Browser API endpoint (uses public servers)
+        # Documentation: https://api.radio-browser.info/
+        api_url = 'https://de1.api.radio-browser.info/json/stations/bycountrycodeexact/' + country
+        
+        params = {
+            'limit': limit,
+            'order': 'votes',  # Most popular first
+            'reverse': 'true',
+            'hidebroken': 'true'  # Only working stations
+        }
+        
+        response = requests.get(api_url, params=params, timeout=10)
+        
+        if response.status_code == 200:
+            stations = response.json()
+            # Format for our UI
+            formatted = []
+            for s in stations:
+                formatted.append({
+                    'name': s.get('name', 'Unknown Station'),
+                    'url': s.get('url_resolved') or s.get('url', ''),
+                    'favicon': s.get('favicon', ''),
+                    'country': s.get('country', ''),
+                    'tags': s.get('tags', ''),
+                    'genre': s.get('tags', '').split(',')[0] if s.get('tags') else '',
+                    'bitrate': s.get('bitrate', 0),
+                    'codec': s.get('codec', ''),
+                    'homepage': s.get('homepage', '')
+                })
+            return jsonify(formatted)
+        else:
+            return jsonify([])
+            
+    except Exception as e:
+        print(f"Radio station fetch error: {e}")
+        return jsonify([])
+
+@app.route('/api/radio/play', methods=['POST'])
+def play_radio_station():
+    """Play a radio station by clearing queue and adding stream."""
+    try:
+        data = request.get_json()
+        url = data.get('url', '').strip()
+        name = data.get('name', 'Radio Station')
+        
+        if not url:
+            return jsonify({'status': 'error', 'message': 'URL required'}), 400
+        
+        # Validate URL
+        if not url.startswith(('http://', 'https://')):
+            return jsonify({'status': 'error', 'message': 'Invalid URL'}), 400
+        
+        # Connect to MPD
+        client = connect_mpd_client()
+        if not client:
+            return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
+        
+        try:
+            # Clear and play stream
+            client.clear()
+            client.add(url)
+            client.play(0)
+            client.disconnect()
+            
+            # Emit success message
+            socketio.emit('server_message', {
+                'type': 'success',
+                'text': f'📻 Now playing: {name}'
+            })
+            
+            # Update status
+            socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))
+            
+            return jsonify({'status': 'success', 'message': f'Playing {name}'})
+            
+        except Exception as e:
+            client.disconnect()
+            return jsonify({'status': 'error', 'message': f'MPD error: {str(e)}'}), 500
+            
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 # --- Safer actions for Last.fm artist items (Charts page) ---
 @app.route('/add_top_albums_by_artist', methods=['POST'])
 def add_top_albums_by_artist():
@@ -2728,6 +2866,11 @@ def playlist_page():
     """Renders the playlist HTML page."""
     playlist = get_mpd_playlist()
     return render_template('playlist.html', playlist=playlist)
+
+@app.route('/radio')
+def radio_page():
+    """Renders the internet radio page."""
+    return render_template('radio.html')
 
 # Album Art Routes
 @app.route('/clear_art_cache', methods=['POST'])

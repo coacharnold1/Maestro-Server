@@ -1,0 +1,568 @@
+{% extends "base_layout.html" %}
+
+{% block title %}Radio - Maestro MPD Control{% endblock %}
+
+{% block extra_css %}
+<style>
+    .radio-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .radio-tab {
+        padding: 10px 20px;
+        background-color: #34495e;
+        border: none;
+        border-radius: 8px;
+        color: #ecf0f1;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .radio-tab:hover {
+        background-color: #2c3e50;
+    }
+
+    .radio-tab.active {
+        background-color: #3498db;
+        font-weight: bold;
+    }
+
+    .radio-content {
+        display: none;
+    }
+
+    .radio-content.active {
+        display: block;
+    }
+
+    .location-selector {
+        text-align: center;
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #34495e;
+        border-radius: 8px;
+    }
+
+    .location-selector select {
+        padding: 8px 15px;
+        border-radius: 5px;
+        border: 1px solid #2c3e50;
+        background-color: #2c3e50;
+        color: #ecf0f1;
+        font-size: 1em;
+        cursor: pointer;
+    }
+
+    .search-box {
+        margin-bottom: 20px;
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #34495e;
+        background-color: #2c3e50;
+        color: #ecf0f1;
+        font-size: 1em;
+        box-sizing: border-box;
+    }
+
+    .station-list {
+        display: grid;
+        gap: 15px;
+    }
+
+    .station-card {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        background-color: #34495e;
+        border-radius: 8px;
+        transition: all 0.3s;
+    }
+
+    .station-card:hover {
+        background-color: #2c3e50;
+        transform: translateY(-2px);
+    }
+
+    .station-logo {
+        width: 60px;
+        height: 60px;
+        border-radius: 8px;
+        margin-right: 15px;
+        object-fit: cover;
+        background-color: #2c3e50;
+    }
+
+    .station-info {
+        flex: 1;
+    }
+
+    .station-name {
+        font-weight: bold;
+        font-size: 1.1em;
+        margin-bottom: 5px;
+        color: #3498db;
+    }
+
+    .station-details {
+        font-size: 0.9em;
+        color: #95a5a6;
+    }
+
+    .station-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .station-actions button {
+        padding: 8px 15px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 0.9em;
+    }
+
+    .btn-play {
+        background-color: #27ae60;
+        color: white;
+    }
+
+    .btn-play:hover {
+        background-color: #229954;
+    }
+
+    .btn-favorite {
+        background-color: #e67e22;
+        color: white;
+    }
+
+    .btn-favorite:hover {
+        background-color: #d35400;
+    }
+
+    .btn-favorite.active {
+        background-color: #e74c3c;
+    }
+
+    .manual-add {
+        background-color: #34495e;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    .manual-add input {
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 10px;
+        border-radius: 5px;
+        border: 1px solid #2c3e50;
+        background-color: #2c3e50;
+        color: #ecf0f1;
+        box-sizing: border-box;
+    }
+
+    .manual-add button {
+        width: 100%;
+        padding: 12px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1em;
+    }
+
+    .manual-add button:hover {
+        background-color: #2980b9;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 40px;
+        font-size: 1.2em;
+        color: #95a5a6;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #95a5a6;
+    }
+
+    .genre-filter {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .genre-tag {
+        padding: 6px 12px;
+        background-color: #34495e;
+        border-radius: 15px;
+        font-size: 0.85em;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .genre-tag:hover {
+        background-color: #3498db;
+    }
+
+    .genre-tag.active {
+        background-color: #3498db;
+        font-weight: bold;
+    }
+
+    @media (max-width: 768px) {
+        .station-card {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .station-logo {
+            margin-right: 0;
+            margin-bottom: 10px;
+        }
+
+        .station-actions {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="nav-links">
+    <a href="/" data-i18n="main">🏠 Main</a>
+    <a href="/playlist" data-i18n="playlist">🎵 Playlist</a>
+    <a href="/add_music" data-i18n="add_music">🎲 Add Music</a>
+    <a href="/search" data-i18n="search">🔍 Search</a>
+    <a href="/recent" data-i18n="recent">📀 Recent</a>
+    <a href="/browse" data-i18n="browse">🗂️ Browse</a>
+    <a href="/radio" class="current-page" data-i18n="radio">📻 Radio</a>
+</div>
+
+<h2>📻 Internet Radio</h2>
+
+<!-- Location Selector -->
+<div class="location-selector">
+    <span>🌍 <span data-i18n="your_region">Your Region</span>:</span>
+    <select id="country-selector">
+        <option value="">Loading...</option>
+    </select>
+</div>
+
+<!-- Tabs -->
+<div class="radio-tabs">
+    <button class="radio-tab active" data-tab="discover" data-i18n="discover">🔍 Discover</button>
+    <button class="radio-tab" data-tab="favorites" data-i18n="favorites">⭐ Favorites</button>
+    <button class="radio-tab" data-tab="manual" data-i18n="manual">📝 Manual</button>
+</div>
+
+<!-- Discover Tab -->
+<div class="radio-content active" id="discover-content">
+    <div class="search-box">
+        <input type="text" id="station-search" placeholder="Search stations..." data-i18n-placeholder="search_stations">
+    </div>
+
+    <div class="genre-filter" id="genre-filter">
+        <!-- Populated by JS -->
+    </div>
+
+    <div id="station-list" class="station-list">
+        <div class="loading">🔄 <span data-i18n="loading_stations">Loading stations</span>...</div>
+    </div>
+</div>
+
+<!-- Favorites Tab -->
+<div class="radio-content" id="favorites-content">
+    <div id="favorites-list" class="station-list">
+        <div class="empty-state">
+            ⭐ <span data-i18n="no_favorites">No favorite stations yet</span><br>
+            <small data-i18n="add_favorites_hint">Click the ⭐ button on any station to save it</small>
+        </div>
+    </div>
+</div>
+
+<!-- Manual Tab -->
+<div class="radio-content" id="manual-content">
+    <div class="manual-add">
+        <h3 data-i18n="add_custom_stream">Add Custom Stream</h3>
+        <input type="text" id="manual-name" placeholder="Station Name" data-i18n-placeholder="station_name">
+        <input type="text" id="manual-url" placeholder="Stream URL (http://...)" data-i18n-placeholder="stream_url">
+        <button onclick="playManualStream()" data-i18n="play_stream">▶️ Play Stream</button>
+    </div>
+
+    <div class="manual-add" style="margin-top: 15px;">
+        <h4 data-i18n="example_streams">Example Streams:</h4>
+        <div style="text-align: left; color: #95a5a6; font-size: 0.9em;">
+            <p><strong>SomaFM Groove Salad:</strong><br>
+            <code style="background: #2c3e50; padding: 4px 8px; border-radius: 3px;">https://ice1.somafm.com/groovesalad-128-mp3</code></p>
+            <p><strong>KEXP 90.3 FM Seattle:</strong><br>
+            <code style="background: #2c3e50; padding: 4px 8px; border-radius: 3px;">https://kexp-mp3-128.streamguys1.com/kexp128.mp3</code></p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentCountry = 'US'; // Default
+    let allStations = [];
+    let favorites = [];
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        loadFavorites();
+        detectLocation();
+        setupTabs();
+        setupSearch();
+    });
+
+    // Tab switching
+    function setupTabs() {
+        document.querySelectorAll('.radio-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const targetTab = this.dataset.tab;
+                
+                // Update active tab
+                document.querySelectorAll('.radio-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Update content
+                document.querySelectorAll('.radio-content').forEach(c => c.classList.remove('active'));
+                document.getElementById(targetTab + '-content').classList.add('active');
+                
+                // Load content if needed
+                if (targetTab === 'favorites') {
+                    renderFavorites();
+                }
+            });
+        });
+    }
+
+    // Location detection
+    async function detectLocation() {
+        // Try to load saved preference
+        const saved = localStorage.getItem('maestro_radio_country');
+        if (saved) {
+            currentCountry = saved;
+        } else {
+            // Auto-detect from IP
+            try {
+                const response = await fetch('/api/radio/detect-country');
+                const data = await response.json();
+                if (data.country) {
+                    currentCountry = data.country;
+                }
+            } catch (error) {
+                console.error('Could not detect country:', error);
+            }
+        }
+        
+        await loadCountries();
+        loadStations();
+    }
+
+    // Load countries list
+    async function loadCountries() {
+        try {
+            const response = await fetch('/api/radio/countries');
+            const countries = await response.json();
+            
+            const selector = document.getElementById('country-selector');
+            selector.innerHTML = countries.map(c => 
+                `<option value="${c.code}" ${c.code === currentCountry ? 'selected' : ''}>${c.flag} ${c.name}</option>`
+            ).join('');
+            
+            selector.addEventListener('change', function() {
+                currentCountry = this.value;
+                localStorage.setItem('maestro_radio_country', currentCountry);
+                loadStations();
+            });
+        } catch (error) {
+            console.error('Failed to load countries:', error);
+        }
+    }
+
+    // Load stations for current country
+    async function loadStations() {
+        const container = document.getElementById('station-list');
+        container.innerHTML = '<div class="loading">🔄 <span data-i18n="loading_stations">Loading stations</span>...</div>';
+        
+        try {
+            const response = await fetch(`/api/radio/stations?country=${currentCountry}&limit=50`);
+            allStations = await response.json();
+            renderStations(allStations);
+        } catch (error) {
+            container.innerHTML = '<div class="empty-state">❌ Failed to load stations</div>';
+            console.error('Failed to load stations:', error);
+        }
+    }
+
+    // Render stations
+    function renderStations(stations) {
+        const container = document.getElementById('station-list');
+        
+        if (stations.length === 0) {
+            container.innerHTML = '<div class="empty-state">No stations found</div>';
+            return;
+        }
+        
+        container.innerHTML = stations.map(station => `
+            <div class="station-card">
+                <img class="station-logo" src="${station.favicon || '/static/placeholder-radio.png'}" 
+                     onerror="this.src='/static/placeholder-radio.png'" alt="${station.name}">
+                <div class="station-info">
+                    <div class="station-name">${station.name}</div>
+                    <div class="station-details">
+                        ${station.tags || station.genre || 'Radio'}
+                        ${station.bitrate ? ` • ${station.bitrate}kbps` : ''}
+                    </div>
+                </div>
+                <div class="station-actions">
+                    <button class="btn-play" onclick="playStation('${escapeHtml(station.url)}', '${escapeHtml(station.name)}')">
+                        ▶️ Play
+                    </button>
+                    <button class="btn-favorite ${isFavorite(station.url) ? 'active' : ''}" 
+                            onclick="toggleFavorite('${escapeHtml(JSON.stringify(station))}')">
+                        ⭐
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Search stations
+    function setupSearch() {
+        const searchBox = document.getElementById('station-search');
+        searchBox.addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            const filtered = allStations.filter(s => 
+                s.name.toLowerCase().includes(query) ||
+                (s.tags && s.tags.toLowerCase().includes(query))
+            );
+            renderStations(filtered);
+        });
+    }
+
+    // Play station
+    async function playStation(url, name) {
+        try {
+            const response = await fetch('/api/radio/play', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: url, name: name })
+            });
+            
+            if (response.ok) {
+                showMessage(`📻 Now playing: ${name}`, 'success');
+            } else {
+                showMessage('Failed to play station', 'error');
+            }
+        } catch (error) {
+            showMessage('Error playing station', 'error');
+        }
+    }
+
+    // Manual stream
+    function playManualStream() {
+        const name = document.getElementById('manual-name').value || 'Custom Stream';
+        const url = document.getElementById('manual-url').value;
+        
+        if (!url) {
+            showMessage('Please enter a stream URL', 'warning');
+            return;
+        }
+        
+        playStation(url, name);
+    }
+
+    // Favorites management
+    function loadFavorites() {
+        const saved = localStorage.getItem('maestro_radio_favorites');
+        favorites = saved ? JSON.parse(saved) : [];
+    }
+
+    function saveFavorites() {
+        localStorage.setItem('maestro_radio_favorites', JSON.stringify(favorites));
+    }
+
+    function isFavorite(url) {
+        return favorites.some(f => f.url === url);
+    }
+
+    function toggleFavorite(stationJson) {
+        const station = JSON.parse(stationJson);
+        const index = favorites.findIndex(f => f.url === station.url);
+        
+        if (index >= 0) {
+            favorites.splice(index, 1);
+            showMessage('Removed from favorites', 'info');
+        } else {
+            favorites.push(station);
+            showMessage('Added to favorites', 'success');
+        }
+        
+        saveFavorites();
+        renderStations(allStations); // Refresh to update star icons
+        
+        // Refresh favorites tab if it's active
+        if (document.querySelector('.radio-tab[data-tab="favorites"]').classList.contains('active')) {
+            renderFavorites();
+        }
+    }
+
+    function renderFavorites() {
+        const container = document.getElementById('favorites-list');
+        
+        if (favorites.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    ⭐ <span data-i18n="no_favorites">No favorite stations yet</span><br>
+                    <small data-i18n="add_favorites_hint">Click the ⭐ button on any station to save it</small>
+                </div>
+            `;
+            return;
+        }
+        
+        renderStations(favorites);
+        container.innerHTML = document.getElementById('station-list').innerHTML;
+    }
+
+    // Utility functions
+    function escapeHtml(unsafe) {
+        if (typeof unsafe === 'object') {
+            unsafe = JSON.stringify(unsafe);
+        }
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function showMessage(text, type) {
+        // Use existing message system from base
+        if (typeof window.showServerMessage === 'function') {
+            window.showServerMessage(text, type);
+        } else {
+            alert(text);
+        }
+    }
+</script>
+{% endblock %}

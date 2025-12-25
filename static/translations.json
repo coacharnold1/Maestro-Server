@@ -6,6 +6,7 @@
     "search": "Search",
     "recent": "Recent",
     "browse": "Browse",
+    "radio": "Radio",
     "settings": "Settings",
     "admin": "Admin",
     "mpd_status": "MPD Status",
@@ -42,7 +43,20 @@
     "paused": "Paused",
     "stopped": "Stopped",
     "version": "Version",
-    "language": "Language"
+    "language": "Language",
+    "your_region": "Your Region",
+    "discover": "Discover",
+    "favorites": "Favorites",
+    "manual": "Manual",
+    "search_stations": "Search stations...",
+    "loading_stations": "Loading stations",
+    "no_favorites": "No favorite stations yet",
+    "add_favorites_hint": "Click the ⭐ button on any station to save it",
+    "add_custom_stream": "Add Custom Stream",
+    "station_name": "Station Name",
+    "stream_url": "Stream URL",
+    "play_stream": "Play Stream",
+    "example_streams": "Example Streams"
   },
   "it": {
     "main": "Principale",
@@ -51,6 +65,7 @@
     "search": "Cerca",
     "recent": "Recenti",
     "browse": "Sfoglia",
+    "radio": "Radio",
     "settings": "Impostazioni",
     "admin": "Amministrazione",
     "mpd_status": "Stato MPD",
@@ -87,6 +102,19 @@
     "paused": "In Pausa",
     "stopped": "Fermato",
     "version": "Versione",
-    "language": "Lingua"
+    "language": "Lingua",
+    "your_region": "La Tua Regione",
+    "discover": "Scopri",
+    "favorites": "Preferiti",
+    "manual": "Manuale",
+    "search_stations": "Cerca stazioni...",
+    "loading_stations": "Caricamento stazioni",
+    "no_favorites": "Nessuna stazione preferita ancora",
+    "add_favorites_hint": "Clicca il pulsante ⭐ su qualsiasi stazione per salvarla",
+    "add_custom_stream": "Aggiungi Stream Personalizzato",
+    "station_name": "Nome Stazione",
+    "stream_url": "URL Stream",
+    "play_stream": "Riproduci Stream",
+    "example_streams": "Stream di Esempio"
   }
 }
