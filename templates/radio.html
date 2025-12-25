@@ -463,6 +463,51 @@
         background-color: #2a1f4a;
         border-color: #6a4c93;
     }
+
+    /* Toast notification styles */
+    #toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        max-width: 350px;
+    }
+    .toast {
+        background-color: #333;
+        color: #fff;
+        padding: 16px 20px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        animation: slideIn 0.3s ease-out;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        opacity: 0.95;
+    }
+    .toast.success { background-color: #2ecc71; color: #fff; }
+    .toast.error { background-color: #e74c3c; color: #fff; }
+    .toast.warning { background-color: #f39c12; color: #fff; }
+    .toast.info { background-color: #3498db; color: #fff; }
+    
+    @keyframes slideIn {
+        from { transform: translateX(400px); opacity: 0; }
+        to { transform: translateX(0); opacity: 0.95; }
+    }
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 0.95; }
+        to { transform: translateX(400px); opacity: 0; }
+    }
+    .toast.removing {
+        animation: slideOut 0.3s ease-in forwards;
+    }
+    
+    /* Theme overrides for toasts */
+    body.light .toast { background-color: #555; }
+    body.light .toast.success { background-color: #27ae60; }
+    body.light .toast.error { background-color: #c0392b; }
+    body.light .toast.warning { background-color: #d68910; }
+    body.light .toast.info { background-color: #2980b9; }
     </style>
     <!-- Include Socket.IO client library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
@@ -560,10 +605,14 @@
     </div>
 </div>
 
+<!-- Toast notification container -->
+<div id="toast-container"></div>
+
 <script>
     let currentCountry = 'US'; // Default
     let allStations = [];
     let favorites = [];
+    let socket = null;
 
     // Initialize
     document.addEventListener('DOMContentLoaded', function() {
@@ -571,7 +620,48 @@
         detectLocation();
         setupTabs();
         setupSearch();
+        initializeSocket();
     });
+
+    // Initialize SocketIO connection
+    function initializeSocket() {
+        socket = io();
+        
+        socket.on('connect', function() {
+            console.log('Connected to server via SocketIO');
+        });
+        
+        socket.on('disconnect', function() {
+            console.log('Disconnected from server');
+        });
+        
+        // Listen for MPD status updates
+        socket.on('mpd_status_update', function(data) {
+            console.log('MPD status update:', data);
+        });
+    }
+
+    // Toast notification system
+    function showToast(message, type = 'info', duration = 3000) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        const icons = {
+            success: '✓',
+            error: '✕',
+            warning: '⚠',
+            info: 'ℹ'
+        };
+        
+        toast.innerHTML = `<span style="font-size: 1.2em;">${icons[type] || 'ℹ'}</span><span>${message}</span>`;
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.classList.add('removing');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    }
 
     // Tab switching
     function setupTabs() {
@@ -710,12 +800,12 @@
             });
             
             if (response.ok) {
-                showMessage(`📻 Now playing: ${name}`, 'success');
+                showToast(`📻 Now playing: ${name}`, 'success');
             } else {
-                showMessage('Failed to play station', 'error');
+                showToast('Failed to play station', 'error');
             }
         } catch (error) {
-            showMessage('Error playing station', 'error');
+            showToast('Error playing station', 'error');
         }
     }
 
@@ -725,7 +815,7 @@
         const url = document.getElementById('manual-url').value;
         
         if (!url) {
-            showMessage('Please enter a stream URL', 'warning');
+            showToast('Please enter a stream URL', 'warning');
             return;
         }
         
@@ -752,10 +842,10 @@
         
         if (index >= 0) {
             favorites.splice(index, 1);
-            showMessage('Removed from favorites', 'info');
+            showToast('Removed from favorites', 'info');
         } else {
             favorites.push(station);
-            showMessage('Added to favorites', 'success');
+            showToast('Added to favorites ⭐', 'success');
         }
         
         saveFavorites();
@@ -797,51 +887,40 @@
             .replace(/'/g, "&#039;");
     }
 
-    function showMessage(text, type) {
-        // Use existing message system from base
-        if (typeof window.showServerMessage === 'function') {
-            window.showServerMessage(text, type);
-        } else if (typeof displayMessage === 'function') {
-            displayMessage(type, text);
-        } else {
-            console.log(`[${type}] ${text}`);
-        }
-    }
-
     // Playback control functions
     function playMusic() {
         fetch('/play?ajax=1', { method: 'POST' })
             .then(response => response.json())
-            .then(data => showMessage(data.message || 'Play command sent', 'info'))
-            .catch(error => showMessage('Error playing music', 'error'));
+            .then(data => showToast(data.message || 'Play', 'success', 2000))
+            .catch(error => showToast('Error playing music', 'error'));
     }
 
     function pauseMusic() {
         fetch('/pause?ajax=1', { method: 'POST' })
             .then(response => response.json())
-            .then(data => showMessage(data.message || 'Pause command sent', 'info'))
-            .catch(error => showMessage('Error pausing music', 'error'));
+            .then(data => showToast(data.message || 'Paused', 'info', 2000))
+            .catch(error => showToast('Error pausing music', 'error'));
     }
 
     function stopMusic() {
         fetch('/stop?ajax=1', { method: 'POST' })
             .then(response => response.json())
-            .then(data => showMessage(data.message || 'Stop command sent', 'info'))
-            .catch(error => showMessage('Error stopping music', 'error'));
+            .then(data => showToast(data.message || 'Stopped', 'info', 2000))
+            .catch(error => showToast('Error stopping music', 'error'));
     }
 
     function nextTrack() {
         fetch('/next?ajax=1', { method: 'POST' })
             .then(response => response.json())
-            .then(data => showMessage(data.message || 'Next track', 'info'))
-            .catch(error => showMessage('Error skipping track', 'error'));
+            .then(data => showToast('Next track ⏭', 'success', 2000))
+            .catch(error => showToast('Error skipping track', 'error'));
     }
 
     function previousTrack() {
         fetch('/previous?ajax=1', { method: 'POST' })
             .then(response => response.json())
-            .then(data => showMessage(data.message || 'Previous track', 'info'))
-            .catch(error => showMessage('Error going back', 'error'));
+            .then(data => showToast('Previous track ⏮', 'success', 2000))
+            .catch(error => showToast('Error going back', 'error'));
     }
 </script>
     </div>
