@@ -778,15 +778,44 @@
     }
 
     // Search stations
+    let searchTimeout = null;
     function setupSearch() {
         const searchBox = document.getElementById('station-search');
         searchBox.addEventListener('input', function() {
-            const query = this.value.toLowerCase();
-            const filtered = allStations.filter(s => 
-                s.name.toLowerCase().includes(query) ||
-                (s.tags && s.tags.toLowerCase().includes(query))
-            );
-            renderStations(filtered);
+            const query = this.value.trim();
+            
+            // Clear previous timeout
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+            
+            // If empty, reload default stations
+            if (!query) {
+                loadStations();
+                return;
+            }
+            
+            // Debounce search - wait 500ms after user stops typing
+            searchTimeout = setTimeout(async () => {
+                const container = document.getElementById('station-list');
+                container.innerHTML = '<div class="loading">🔍 <span data-i18n="searching">Searching</span>...</div>';
+                
+                try {
+                    // Search API by name
+                    const response = await fetch(`/api/radio/stations?country=${currentCountry}&name=${encodeURIComponent(query)}&limit=50`);
+                    const stations = await response.json();
+                    allStations = stations;
+                    
+                    if (stations.length === 0) {
+                        container.innerHTML = '<div class="empty-state">❌ No stations found for "' + query + '"</div>';
+                    } else {
+                        renderStations(stations);
+                    }
+                } catch (error) {
+                    container.innerHTML = '<div class="empty-state">❌ Search failed</div>';
+                    console.error('Search failed:', error);
+                }
+            }, 500);
         });
     }
 

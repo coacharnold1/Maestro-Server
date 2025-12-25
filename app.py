@@ -2047,17 +2047,27 @@ def get_radio_stations():
     try:
         country = request.args.get('country', 'US')
         limit = request.args.get('limit', '50')
+        name_search = request.args.get('name', '')
         
         # Radio Browser API endpoint (uses public servers)
         # Documentation: https://api.radio-browser.info/
-        api_url = 'https://de1.api.radio-browser.info/json/stations/bycountrycodeexact/' + country
         
-        params = {
-            'limit': limit,
-            'order': 'votes',  # Most popular first
-            'reverse': 'true',
-            'hidebroken': 'true'  # Only working stations
-        }
+        # If searching by name, use the search endpoint
+        if name_search:
+            api_url = 'https://de1.api.radio-browser.info/json/stations/byname/' + requests.utils.quote(name_search)
+            params = {
+                'limit': limit,
+                'hidebroken': 'true'
+            }
+        else:
+            # Otherwise get by country
+            api_url = 'https://de1.api.radio-browser.info/json/stations/bycountrycodeexact/' + country
+            params = {
+                'limit': limit,
+                'order': 'votes',  # Most popular first
+                'reverse': 'true',
+                'hidebroken': 'true'  # Only working stations
+            }
         
         response = requests.get(api_url, params=params, timeout=10)
         
