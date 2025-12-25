@@ -296,11 +296,20 @@ def get_auto_fill_status():
 # Simple in-memory cache for Last.fm album art data
 album_art_cache = {}
 
+def has_station_indicators(text):
+    """Check if text contains common radio station indicators"""
+    if not text:
+        return False
+    text_lower = text.lower()
+    indicators = ['radio', '.com', '.fm', '.net', 'station', 'broadcasting', 'fm', 'am']
+    return any(ind in text_lower for ind in indicators)
+
 def parse_stream_metadata(title_field, name_field=None):
     """
     Parse streaming radio metadata that often comes in various formats:
     - 'Artist - Title' format
     - 'Title by Artist' format
+    - 'Artist - Station' format (when second part has station indicators)
     Returns tuple: (artist, title, station_name)
     """
     if not title_field or title_field == 'N/A':
@@ -458,8 +467,23 @@ def get_mpd_status_for_display():
         
         # Try to parse stream metadata for better display
         if is_stream:
-            # Try parsing artist field first (handles "Title by Artist" pattern)
-            if current_artist != 'N/A' and ' by ' in current_artist:
+            # Check if artist field contains "Artist - Station" pattern
+            if current_artist != 'N/A' and (' - ' in current_artist or ' – ' in current_artist):
+                # Split on dash and check if second part looks like a station name
+                for sep in [' - ', ' – ', ' — ']:
+                    if sep in current_artist:
+                        parts = current_artist.split(sep, 1)
+                        if len(parts) == 2:
+                            first_part = parts[0].strip()
+                            second_part = parts[1].strip()
+                            # If second part has station indicators, it's "Artist - Station" format
+                            if has_station_indicators(second_part):
+                                current_artist = first_part
+                                current_album = second_part
+                                print(f"[Stream] Extracted artist from field: {current_artist} (Station: {current_album})")
+                                break
+            # Try parsing artist field for "Title by Artist" pattern
+            elif current_artist != 'N/A' and ' by ' in current_artist:
                 parsed_artist, parsed_title, station_name = parse_stream_metadata(current_artist, current_title)
                 if parsed_artist and parsed_title:
                     current_title = parsed_title
