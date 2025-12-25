@@ -254,6 +254,16 @@
     <a href="/radio" class="current-page" data-i18n="radio">📻 Radio</a>
 </div>
 
+<!-- Playback Controls -->
+<div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #34495e; border-radius: 8px;">
+    <h2 style="margin-bottom: 15px; font-size: 1.2em;" data-i18n="playback_controls">Playback Controls</h2>
+    <button onclick="previousTrack()" style="background-color: #9b59b6; color: white; border: none; padding: 10px 15px; margin: 4px; border-radius: 6px; cursor: pointer; font-size: 0.9em; min-width: 80px; font-weight: bold;" data-i18n="previous">⏮️ Previous</button>
+    <button onclick="playMusic()" style="background-color: #27ae60; color: white; border: none; padding: 10px 15px; margin: 4px; border-radius: 6px; cursor: pointer; font-size: 0.9em; min-width: 80px; font-weight: bold;" data-i18n="play">▶️ Play</button>
+    <button onclick="stopMusic()" style="background-color: #f39c12; color: white; border: none; padding: 10px 15px; margin: 4px; border-radius: 6px; cursor: pointer; font-size: 0.9em; min-width: 80px; font-weight: bold;" data-i18n="stop">⏹️ Stop</button>
+    <button onclick="pauseMusic()" style="background-color: #e74c3c; color: white; border: none; padding: 10px 15px; margin: 4px; border-radius: 6px; cursor: pointer; font-size: 0.9em; min-width: 80px; font-weight: bold;" data-i18n="pause">⏸️ Pause</button>
+    <button onclick="nextTrack()" style="background-color: #3498db; color: white; border: none; padding: 10px 15px; margin: 4px; border-radius: 6px; cursor: pointer; font-size: 0.9em; min-width: 80px; font-weight: bold;" data-i18n="next">⏭️ Next</button>
+</div>
+
 <h2>📻 Internet Radio</h2>
 
 <!-- Location Selector -->
@@ -560,9 +570,47 @@
         // Use existing message system from base
         if (typeof window.showServerMessage === 'function') {
             window.showServerMessage(text, type);
+        } else if (typeof displayMessage === 'function') {
+            displayMessage(type, text);
         } else {
             alert(text);
         }
+    }
+
+    // Playback control functions
+    function playMusic() {
+        fetch('/play?ajax=1', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => showMessage(data.message || 'Play command sent', 'info'))
+            .catch(error => showMessage('Error playing music', 'error'));
+    }
+
+    function pauseMusic() {
+        fetch('/pause?ajax=1', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => showMessage(data.message || 'Pause command sent', 'info'))
+            .catch(error => showMessage('Error pausing music', 'error'));
+    }
+
+    function stopMusic() {
+        fetch('/stop?ajax=1', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => showMessage(data.message || 'Stop command sent', 'info'))
+            .catch(error => showMessage('Error stopping music', 'error'));
+    }
+
+    function nextTrack() {
+        fetch('/next?ajax=1', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => showMessage(data.message || 'Next track', 'info'))
+            .catch(error => showMessage('Error skipping track', 'error'));
+    }
+
+    function previousTrack() {
+        fetch('/previous?ajax=1', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => showMessage(data.message || 'Previous track', 'info'))
+            .catch(error => showMessage('Error going back', 'error'));
     }
 </script>
 {% endblock %}
