@@ -792,6 +792,24 @@
 
     // Play station
     async function playStation(url, name) {
+        // Check if something is currently playing
+        try {
+            const statusResponse = await fetch('/get_mpd_status');
+            const statusData = await statusResponse.json();
+            
+            // If there's an active playlist/song playing, ask for confirmation
+            if (statusData.state === 'play' && statusData.queue_length > 0) {
+                const confirmed = confirm(`This will clear your current playlist and play the radio station "${name}".\n\nAre you sure you want to continue?`);
+                if (!confirmed) {
+                    return; // User cancelled
+                }
+            }
+        } catch (error) {
+            console.error('Could not check MPD status:', error);
+            // Continue anyway if status check fails
+        }
+        
+        // Proceed with playing the station
         try {
             const response = await fetch('/api/radio/play', {
                 method: 'POST',
