@@ -776,7 +776,7 @@
                     </div>
                 </div>
                 <div class="station-actions">
-                    <button class="btn-play" onclick="playStation('${escapeHtml(station.url)}', '${escapeHtml(station.name)}')">
+                    <button class="btn-play" onclick="playStation('${escapeHtml(station.url)}', '${escapeHtml(station.name)}', '${escapeHtml(station.favicon || '')}')">
                         ▶️ Play
                     </button>
                     <button class="btn-favorite ${isFavorite(station.url) ? 'active' : ''}" 
@@ -832,7 +832,7 @@
     }
 
     // Play station
-    async function playStation(url, name) {
+    async function playStation(url, name, favicon = '') {
         // Check if something is currently playing
         try {
             const statusResponse = await fetch('/get_mpd_status');
@@ -855,7 +855,7 @@
             const response = await fetch('/api/radio/play', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: url, name: name })
+                body: JSON.stringify({ url: url, name: name, favicon: favicon })
             });
             
             if (response.ok) {

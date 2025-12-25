@@ -2095,6 +2095,9 @@ def get_radio_stations():
         print(f"Radio station fetch error: {e}")
         return jsonify([])
 
+# Cache for stream favicons (stream_url -> favicon_url)
+stream_favicon_cache = {}
+
 @app.route('/api/radio/play', methods=['POST'])
 def play_radio_station():
     """Play a radio station by clearing queue and adding stream."""
@@ -2102,6 +2105,7 @@ def play_radio_station():
         data = request.get_json()
         url = data.get('url', '').strip()
         name = data.get('name', 'Radio Station')
+        favicon = data.get('favicon', '').strip()  # Get favicon URL
         
         if not url:
             return jsonify({'status': 'error', 'message': 'URL required'}), 400
@@ -2109,6 +2113,11 @@ def play_radio_station():
         # Validate URL
         if not url.startswith(('http://', 'https://')):
             return jsonify({'status': 'error', 'message': 'Invalid URL'}), 400
+        
+        # Store favicon for this stream in cache
+        if favicon and favicon.startswith('http'):
+            stream_favicon_cache[url] = favicon
+            print(f"Cached favicon for {url}: {favicon}")
         
         # Connect to MPD
         client = connect_mpd_client()
@@ -3186,7 +3195,50 @@ def get_album_art():
         except Exception as e:
             print(f"An unexpected error occurred during Last.fm art fetch: {e}")
 
-    # 3. If no local or Last.fm art, redirect to the placeholder art
+    # 4. For streams with no Last.fm art, try to use cached favicon
+    if is_stream and song_file in stream_favicon_cache:
+        favicon_url = stream_favicon_cache[song_file]
+        cache_key = f"favicon-{song_file}" if size == 'full' else f"thumb-favicon-{song_file}"
+        
+        # Check cache first
+        cached_favicon = album_art_cache.get(cache_key)
+        if cached_favicon:
+            print(f"Serving cached favicon for stream: {song_file}")
+            return Response(cached_favicon['data'], mimetype=cached_favicon['mimetype'])
+        
+        try:
+            print(f"Fetching favicon for stream: {favicon_url}")
+            favicon_response = requests.get(favicon_url, timeout=5)
+            favicon_response.raise_for_status()
+            favicon_data = favicon_response.content
+            mimetype = favicon_response.headers.get('Content-Type', 'image/png')
+            
+            # Generate thumbnail if requested
+            if size == 'thumb':
+                try:
+                    from PIL import Image
+                    import io
+                    
+                    with Image.open(io.BytesIO(favicon_data)) as img:
+                        img.thumbnail((64, 64), Image.Resampling.LANCZOS)
+                        img_io = io.BytesIO()
+                        img.save(img_io, 'PNG', optimize=True)
+                        thumb_data = img_io.getvalue()
+                        
+                        album_art_cache[cache_key] = {'data': thumb_data, 'mimetype': 'image/png'}
+                        return Response(thumb_data, mimetype='image/png')
+                except Exception as e:
+                    print(f"Error generating favicon thumbnail: {e}")
+            
+            # Cache and return full favicon
+            full_cache_key = f"favicon-{song_file}"
+            album_art_cache[full_cache_key] = {'data': favicon_data, 'mimetype': mimetype}
+            return Response(favicon_data, mimetype=mimetype)
+            
+        except Exception as e:
+            print(f"Error fetching favicon: {e}")
+
+    # 5. If no local or Last.fm art or favicon, redirect to the placeholder art
     return redirect(url_for('static_placeholder_art'))
 
 @app.route('/static_placeholder_art')
