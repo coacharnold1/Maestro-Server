@@ -12,7 +12,8 @@
             background-color: #1a1a1a;
             color: #ecf0f1;
             display: flex;
-            flex-direction: column; /* Stack elements vertically to avoid side-by-side columns */
+            flex-direction: column;
+            /* Stack elements vertically to avoid side-by-side columns */
             justify-content: flex-start;
             align-items: center;
             min-height: 100vh;
@@ -413,10 +414,12 @@
             background-color: #f5f5f7;
             color: #1a1a1a;
         }
+
         body.light .container {
             background-color: #ffffff;
             color: #1a1a1a;
         }
+
         body.light .controls,
         body.light .nav-links,
         body.light .search-form,
@@ -427,6 +430,7 @@
             background-color: #f0f3f6 !important;
             border-color: #d0d7de;
         }
+
         /* Light theme: form fields and selects */
         body.light .form-group input[type="text"],
         body.light .form-group input[type="number"],
@@ -435,20 +439,24 @@
             color: #1a1a1a !important;
             border-color: #d0d7de !important;
         }
+
         body.light #genre-select {
             background-color: #ffffff !important;
             color: #1a1a1a !important;
             border-color: #d0d7de !important;
         }
+
         body.high-contrast {
             background-color: #000000;
             color: #ffff00;
         }
+
         body.high-contrast .container {
             background-color: #000000;
             color: #ffff00;
             border: 2px solid #ffff00;
         }
+
         body.high-contrast .controls,
         body.high-contrast .nav-links,
         body.high-contrast .search-form,
@@ -459,6 +467,7 @@
             background-color: #000000 !important;
             border: 2px solid #ffff00;
         }
+
         /* High-contrast: form fields and selects */
         body.high-contrast .form-group input[type="text"],
         body.high-contrast .form-group input[type="number"],
@@ -474,11 +483,13 @@
             background-color: #2c1810;
             color: #f4e4bc;
         }
+
         body.desert .container {
             background-color: #3d2f20;
             color: #f4e4bc;
             border-color: #8b4513;
         }
+
         body.desert .controls,
         body.desert .nav-links,
         body.desert .search-form,
@@ -489,6 +500,7 @@
             background-color: #4a3b2a !important;
             border-color: #cd853f;
         }
+
         body.desert .form-group input[type="text"],
         body.desert .form-group input[type="number"],
         body.desert select,
@@ -497,17 +509,19 @@
             color: #f4e4bc !important;
             border-color: #cd853f !important;
         }
-        
+
         /* Terminal theme */
         body.terminal {
             background-color: #000000;
             color: #00ff00;
         }
+
         body.terminal .container {
             background-color: #0a0a0a;
             color: #00ff00;
             border-color: #00cc00;
         }
+
         body.terminal .controls,
         body.terminal .nav-links,
         body.terminal .search-form,
@@ -518,6 +532,7 @@
             background-color: #1a1a1a;
             border-color: #00cc00;
         }
+
         body.terminal .form-group input[type="text"],
         body.terminal .form-group input[type="number"],
         body.terminal select,
@@ -526,17 +541,19 @@
             color: #00ff00 !important;
             border-color: #00cc00 !important;
         }
-        
+
         /* Sunset theme */
         body.sunset {
             background-color: #1a0f1f;
             color: #ffe4b5;
         }
+
         body.sunset .container {
             background-color: #2d1b2e;
             color: #ffe4b5;
             border-color: #ff6b35;
         }
+
         body.sunset .controls,
         body.sunset .nav-links,
         body.sunset .search-form,
@@ -547,6 +564,7 @@
             background-color: #3d2534;
             border-color: #ff6b35;
         }
+
         body.sunset .form-group input[type="text"],
         body.sunset .form-group input[type="number"],
         body.sunset select,
@@ -555,17 +573,19 @@
             color: #ffe4b5 !important;
             border-color: #ff6b35 !important;
         }
-        
+
         /* Forest theme */
         body.forest {
             background-color: #0d1b0d;
             color: #c9e4c5;
         }
+
         body.forest .container {
             background-color: #1a2e1a;
             color: #c9e4c5;
             border-color: #4a7c4e;
         }
+
         body.forest .controls,
         body.forest .nav-links,
         body.forest .search-form,
@@ -576,6 +596,7 @@
             background-color: #233d23;
             border-color: #4a7c4e;
         }
+
         body.forest .form-group input[type="text"],
         body.forest .form-group input[type="number"],
         body.forest select,
@@ -584,17 +605,19 @@
             color: #c9e4c5 !important;
             border-color: #4a7c4e !important;
         }
-        
+
         /* Midnight theme */
         body.midnight {
             background-color: #0f0a1e;
             color: #e0d4f7;
         }
+
         body.midnight .container {
             background-color: #1e1435;
             color: #e0d4f7;
             border-color: #6a4c93;
         }
+
         body.midnight .controls,
         body.midnight .nav-links,
         body.midnight .search-form,
@@ -605,6 +628,7 @@
             background-color: #2a1f4a;
             border-color: #6a4c93;
         }
+
         body.midnight .form-group input[type="text"],
         body.midnight .form-group input[type="number"],
         body.midnight select,
@@ -648,35 +672,6 @@
             <button onclick="playbackAction('next')" style="background-color: #3498db; color: white;">⏭️ Next</button>
         </div>
 
-        {# EXPERIMENTAL: Internet Radio Test #}
-        <div class="controls auto-fill-buttons" style="border: 3px solid #e67e22; background: rgba(230, 126, 34, 0.1);">
-            <div style="background: #e67e22; color: white; padding: 10px; margin: -15px -15px 15px -15px; text-align: center; font-weight: bold; border-radius: 5px 5px 0 0;">
-                🚧 EXPERIMENTAL FEATURE - Internet Radio Streaming
-            </div>
-            <h2>📻 Test Internet Radio</h2>
-            <p style="text-align: center; margin-bottom: 15px; color: #e67e22; font-weight: bold;">
-                ⚠️ This is a test feature. Paste a stream URL to test MPD streaming capability.
-            </p>
-
-            <div class="form-group">
-                <label for="stream-url-input">Stream URL:</label>
-                <input type="text" id="stream-url-input" placeholder="https://stream.example.com/live.mp3"
-                    style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #34495e; box-sizing: border-box; font-family: monospace;">
-            </div>
-
-            <div style="margin-bottom: 10px;">
-                <button id="play-stream-btn" style="width: 100%; background: linear-gradient(135deg, #e74c3c, #c0392b); padding: 12px;">
-                    🔴 Play Stream (Clears Playlist)
-                </button>
-            </div>
-
-            <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px; font-size: 0.9em; color: #bdc3c7;">
-                <strong>Test URLs:</strong><br>
-                • SomaFM Groove Salad: <code style="color: #3498db;">https://ice1.somafm.com/groovesalad-128-mp3</code><br>
-                • Jazz24: <code style="color: #3498db;">https://live.wostreaming.net/direct/ppm-jazz24aac-ibc1</code>
-            </div>
-        </div>
-
         {# Genre Stations Section - Moved to top #}
         <div class="controls auto-fill-buttons">
             <h2>🎛️ Genre Stations</h2>
@@ -696,7 +691,8 @@
             </div>
 
             <div class="form-group" style="text-align: center;">
-                <label for="stations-select" style="display: block; text-align: center; margin-bottom: 8px;">Load Saved Station:</label>
+                <label for="stations-select" style="display: block; text-align: center; margin-bottom: 8px;">Load Saved
+                    Station:</label>
                 <div style="display: inline-flex; gap: 8px; align-items: center; justify-content: center;">
                     <select id="stations-select"
                         style="width: 300px; padding: 8px; border-radius: 5px; border: 1px solid #34495e;">
@@ -790,18 +786,21 @@
     </div>
 
     <!-- App Info + Settings (inline, always visible) -->
-    <div style="text-align: center; margin: 18px auto; padding-top: 8px; border-top: 1px solid #34495e; max-width: 1000px;" class="footer-links">
+    <div style="text-align: center; margin: 18px auto; padding-top: 8px; border-top: 1px solid #34495e; max-width: 1000px;"
+        class="footer-links">
         <span id="version-info">Loading version info...</span>
-        <a href="/settings" style="color:#bdc3c7; text-decoration: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px;">Settings</a>
-        <a href="/charts" style="color:#bdc3c7; text-decoration: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px;">Charts</a>
+        <a href="/settings"
+            style="color:#bdc3c7; text-decoration: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px;">Settings</a>
+        <a href="/charts"
+            style="color:#bdc3c7; text-decoration: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px;">Charts</a>
     </div>
 
     <script>
-        (function(){
+        (function () {
             fetch('/api/version')
-                .then(r=>r.json())
-                .then(d=>{var el=document.getElementById('version-info'); if(el) el.textContent = d.app_name+' v'+d.version+' ('+d.build_date+')';})
-                .catch(()=>{var el=document.getElementById('version-info'); if(el) el.textContent='MPD Web Control';});
+                .then(r => r.json())
+                .then(d => { var el = document.getElementById('version-info'); if (el) el.textContent = d.app_name + ' v' + d.version + ' (' + d.build_date + ')'; })
+                .catch(() => { var el = document.getElementById('version-info'); if (el) el.textContent = 'MPD Web Control'; });
         })();
     </script>
 
@@ -1249,7 +1248,7 @@
                                                 .then(response => response.json())
                                                 .then(modeData => {
                                                     console.log('Radio station mode set:', modeData);
-                                                    
+
                                                     // Auto-enable auto-fill when genre station is loaded
                                                     if (!autoFillToggle.checked) {
                                                         fetch('/toggle_auto_fill', {
@@ -1257,16 +1256,16 @@
                                                             headers: { 'Content-Type': 'application/json' },
                                                             body: JSON.stringify({ active: true })
                                                         })
-                                                        .then(response => response.json())
-                                                        .then(autoFillData => {
-                                                            console.log('Auto-fill enabled for genre station:', autoFillData);
-                                                            autoFillToggle.checked = true;
-                                                        })
-                                                        .catch(error => {
-                                                            console.error('Error enabling auto-fill:', error);
-                                                        });
+                                                            .then(response => response.json())
+                                                            .then(autoFillData => {
+                                                                console.log('Auto-fill enabled for genre station:', autoFillData);
+                                                                autoFillToggle.checked = true;
+                                                            })
+                                                            .catch(error => {
+                                                                console.error('Error enabling auto-fill:', error);
+                                                            });
                                                     }
-                                                    
+
                                                     // Trigger auto-fill status update to reflect genre station mode
                                                     fetch('/get_auto_fill_status')
                                                         .then(response => response.json())
@@ -1381,13 +1380,13 @@
             // Only setup mood playlist generator if the elements exist on this page
             if (moodPlaylistSizeInput && moodSizeDisplay && moodHighConfidenceCheckbox && generateMoodPlaylistBtn) {
                 // Update size display when slider moves
-                moodPlaylistSizeInput.addEventListener('input', function() {
+                moodPlaylistSizeInput.addEventListener('input', function () {
                     moodSizeDisplay.textContent = this.value;
                 });
 
                 // Mood button selection
                 moodButtons.forEach(btn => {
-                    btn.addEventListener('click', function() {
+                    btn.addEventListener('click', function () {
                         // Remove selection from all buttons
                         moodButtons.forEach(b => b.style.opacity = '0.6');
                         // Highlight selected button
@@ -1397,7 +1396,7 @@
                 });
 
                 // Generate mood playlist
-                generateMoodPlaylistBtn.addEventListener('click', function() {
+                generateMoodPlaylistBtn.addEventListener('click', function () {
                     if (!selectedMood) {
                         displayMessage('error', 'Please select a mood first');
                         return;
@@ -1409,69 +1408,69 @@
                     displayMessage('info', `Generating ${selectedMood} playlist with ${playlistSize} tracks...`);
                     generateMoodPlaylistBtn.disabled = true;
 
-                const params = new URLSearchParams({
-                    size: playlistSize,
-                    high_confidence: highConfidenceOnly ? 'true' : 'false'
+                    const params = new URLSearchParams({
+                        size: playlistSize,
+                        high_confidence: highConfidenceOnly ? 'true' : 'false'
+                    });
+
+                    fetch(`/api/playlist/mood/${selectedMood}?${params}`, {
+                        method: 'GET'
+                    })
+                        .then(response => {
+                            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.status === 'success') {
+                                const playlist = data.data || data.playlist || data;
+                                currentMoodPlaylist = playlist.tracks || [];
+                                displayMoodPlaylist(playlist);
+                                displayMessage('success', `Generated ${currentMoodPlaylist.length} ${selectedMood} tracks`);
+                            } else {
+                                displayMessage('error', data.message || 'Failed to generate playlist');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error generating mood playlist:', error);
+                            displayMessage('error', `Error: ${error.message}`);
+                        })
+                        .finally(() => {
+                            generateMoodPlaylistBtn.disabled = false;
+                        });
                 });
 
-                fetch(`/api/playlist/mood/${selectedMood}?${params}`, {
-                    method: 'GET'
-                })
-                    .then(response => {
-                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.status === 'success') {
-                            const playlist = data.data || data.playlist || data;
-                            currentMoodPlaylist = playlist.tracks || [];
-                            displayMoodPlaylist(playlist);
-                            displayMessage('success', `Generated ${currentMoodPlaylist.length} ${selectedMood} tracks`);
-                        } else {
-                            displayMessage('error', data.message || 'Failed to generate playlist');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error generating mood playlist:', error);
-                        displayMessage('error', `Error: ${error.message}`);
-                    })
-                    .finally(() => {
-                        generateMoodPlaylistBtn.disabled = false;
-                    });
-            });
+                function displayMoodPlaylist(playlist) {
+                    moodPlaylistList.innerHTML = '';
+                    const tracks = playlist.tracks || [];
 
-            function displayMoodPlaylist(playlist) {
-                moodPlaylistList.innerHTML = '';
-                const tracks = playlist.tracks || [];
+                    if (tracks.length === 0) {
+                        moodPlaylistList.innerHTML = '<p style="color: #bdc3c7; text-align: center;">No tracks found for this mood</p>';
+                        moodPlaylistResults.style.display = 'block';
+                        return;
+                    }
 
-                if (tracks.length === 0) {
-                    moodPlaylistList.innerHTML = '<p style="color: #bdc3c7; text-align: center;">No tracks found for this mood</p>';
-                    moodPlaylistResults.style.display = 'block';
-                    return;
-                }
-
-                tracks.forEach((track, index) => {
-                    const trackDiv = document.createElement('div');
-                    trackDiv.style.cssText = 'padding: 8px; margin: 4px 0; background-color: #2c3e50; border-radius: 5px; border-left: 3px solid #16a085;';
-                    const mood = track.primary_mood || 'unknown';
-                    const confidence = track.confidence ? (track.confidence * 100).toFixed(0) : '?';
-                    const score = track.mood_score ? (track.mood_score * 100).toFixed(0) : '?';
-                    trackDiv.innerHTML = `
+                    tracks.forEach((track, index) => {
+                        const trackDiv = document.createElement('div');
+                        trackDiv.style.cssText = 'padding: 8px; margin: 4px 0; background-color: #2c3e50; border-radius: 5px; border-left: 3px solid #16a085;';
+                        const mood = track.primary_mood || 'unknown';
+                        const confidence = track.confidence ? (track.confidence * 100).toFixed(0) : '?';
+                        const score = track.mood_score ? (track.mood_score * 100).toFixed(0) : '?';
+                        trackDiv.innerHTML = `
                         <div style="font-weight: bold; color: #ecf0f1;">${index + 1}. ${track.title}</div>
                         <div style="font-size: 0.9em; color: #bdc3c7;">
                             ${track.artist || 'Unknown Artist'} | 
                             🎭 ${mood} (Match: ${score}%, Confidence: ${confidence}%)
                         </div>
                     `;
-                    moodPlaylistList.appendChild(trackDiv);
-                });
+                        moodPlaylistList.appendChild(trackDiv);
+                    });
 
-                moodPlaylistResults.style.display = 'block';
-            }
+                    moodPlaylistResults.style.display = 'block';
+                }
 
                 // Mood playlist actions
                 if (moodPlayBtn) {
-                    moodPlayBtn.addEventListener('click', function() {
+                    moodPlayBtn.addEventListener('click', function () {
                         if (currentMoodPlaylist.length === 0) {
                             displayMessage('error', 'No playlist to play');
                             return;
@@ -1506,7 +1505,7 @@
                 }
 
                 if (moodAddToQueueBtn) {
-                    moodAddToQueueBtn.addEventListener('click', function() {
+                    moodAddToQueueBtn.addEventListener('click', function () {
                         if (currentMoodPlaylist.length === 0) {
                             displayMessage('error', 'No playlist to add');
                             return;
@@ -1539,7 +1538,7 @@
                 }
 
                 if (moodReplaceBtn) {
-                    moodReplaceBtn.addEventListener('click', function() {
+                    moodReplaceBtn.addEventListener('click', function () {
                         if (currentMoodPlaylist.length === 0) {
                             displayMessage('error', 'No playlist to replace with');
                             return;
@@ -1574,56 +1573,6 @@
                             });
                     });
                 }
-            }
-
-            // --- EXPERIMENTAL: Internet Radio Test ---
-            
-            const streamUrlInput = document.getElementById('stream-url-input');
-            const playStreamBtn = document.getElementById('play-stream-btn');
-
-            if (playStreamBtn) {
-                playStreamBtn.addEventListener('click', function() {
-                    const streamUrl = streamUrlInput.value.trim();
-                    
-                    if (!streamUrl) {
-                        displayMessage('error', 'Please enter a stream URL');
-                        return;
-                    }
-
-                    if (!streamUrl.startsWith('http://') && !streamUrl.startsWith('https://')) {
-                        displayMessage('error', 'URL must start with http:// or https://');
-                        return;
-                    }
-
-                    if (!confirm('⚠️ This will clear your current playlist and play the stream.\n\nContinue?')) {
-                        return;
-                    }
-
-                    displayMessage('info', '🔴 Tuning in...');
-
-                    fetch('/api/streaming_radio/test', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            url: streamUrl
-                        })
-                    })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.status === 'success') {
-                                displayMessage('success', '🔴 LIVE: Stream playing! Check Now Playing page for metadata.');
-                                streamUrlInput.value = ''; // Clear input
-                            } else {
-                                displayMessage('error', `Failed: ${data.message}`);
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error playing stream:', error);
-                            displayMessage('error', `Error: ${error.message}`);
-                        });
-                });
             }
 
             // --- Genre Station Event Listeners ---
