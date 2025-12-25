@@ -12,6 +12,7 @@ import psutil
 import socket
 import os
 import json
+import threading
 from pathlib import Path
 
 app = Flask(__name__)
@@ -1267,6 +1268,9 @@ rip_status = {
     'error': None
 }
 
+# Thread lock to prevent race conditions when multiple rip requests arrive
+rip_lock = threading.Lock()
+
 def load_cd_settings():
     """Helper function to load CD settings"""
     settings_file = Path.home() / 'maestro' / 'settings.json'
@@ -1751,8 +1755,13 @@ def rip_cd():
     """Start CD ripping process"""
     global rip_status
     
-    if rip_status['active']:
-        return jsonify({'success': False, 'error': 'Ripping already in progress'}), 400
+    # Use lock to prevent race conditions from multiple simultaneous requests
+    with rip_lock:
+        if rip_status['active']:
+            return jsonify({'success': False, 'error': 'Ripping already in progress'}), 400
+        
+        # Immediately mark as active to block other requests
+        rip_status['active'] = True
     
     try:
         data = request.get_json() or {}
@@ -1784,12 +1793,17 @@ def rip_cd():
         # Start ripping in background thread
         def rip_thread():
             global rip_status, cd_edited_metadata, cd_metadata_cache
-            rip_status['active'] = True
             rip_status['status'] = 'Starting rip...'
             rip_status['progress'] = 0
             rip_status['error'] = None
             
             try:
+                # Safety check: kill any stuck abcde/cdparanoia processes
+                try:
+                    subprocess.run(['pkill', '-9', 'abcde'], check=False, timeout=2)
+                    subprocess.run(['pkill', '-9', 'cdparanoia'], check=False, timeout=2)
+                except:
+                    pass
                 # Pre-download album art if enabled
                 # (Cache should already be populated by UI calling /api/cd/info before rip)
                 save_art_file = album_art_opts.get('save_file', True)

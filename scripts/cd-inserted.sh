@@ -6,6 +6,7 @@
 
 SETTINGS_FILE="$HOME/maestro/web/settings.json"
 LOG_FILE="$HOME/maestro/logs/cd-autorip.log"
+LOCK_FILE="/tmp/maestro-cd-autorip.lock"
 ADMIN_API="http://localhost:5004"
 
 # Create log directory if needed
@@ -17,6 +18,22 @@ log() {
 }
 
 log "CD insertion detected"
+
+# Check for lock file to prevent multiple simultaneous runs
+if [ -f "$LOCK_FILE" ]; then
+    LOCK_AGE=$(($(date +%s) - $(stat -c %Y "$LOCK_FILE" 2>/dev/null || echo 0)))
+    if [ $LOCK_AGE -lt 300 ]; then
+        log "Lock file exists (age: ${LOCK_AGE}s), another instance is running. Exiting."
+        exit 0
+    else
+        log "Stale lock file detected (age: ${LOCK_AGE}s), removing and continuing"
+        rm -f "$LOCK_FILE"
+    fi
+fi
+
+# Create lock file
+touch "$LOCK_FILE"
+trap "rm -f $LOCK_FILE" EXIT
 
 # Wait a moment for CD to settle
 sleep 3
