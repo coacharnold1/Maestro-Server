@@ -296,28 +296,42 @@ def get_auto_fill_status():
 # Simple in-memory cache for Last.fm album art data
 album_art_cache = {}
 
-def parse_stream_metadata(title_field):
+def parse_stream_metadata(title_field, name_field=None):
     """
-    Parse streaming radio metadata that often comes as 'Artist - Title' in a single field.
-    Returns tuple: (artist, title)
+    Parse streaming radio metadata that often comes in various formats:
+    - 'Artist - Title' format
+    - 'Title by Artist' format
+    Returns tuple: (artist, title, station_name)
     """
     if not title_field or title_field == 'N/A':
-        return None, None
+        return None, None, None
     
-    # Common separators: ' - ', ' – ', ' — '
+    artist = None
+    title = None
+    station_name = name_field if name_field and name_field != 'N/A' else None
+    
+    # Try 'Title by Artist' format first (common in radio streams)
+    if ' by ' in title_field:
+        parts = title_field.split(' by ', 1)
+        if len(parts) == 2:
+            title = parts[0].strip()
+            artist = parts[1].strip()
+            if title and artist:
+                return artist, title, station_name
+    
+    # Try 'Artist - Title' format (common separators)
     separators = [' - ', ' – ', ' — ', ' – ']
-    
     for sep in separators:
         if sep in title_field:
-            parts = title_field.split(sep, 1)  # Split only on first occurrence
+            parts = title_field.split(sep, 1)
             if len(parts) == 2:
                 artist = parts[0].strip()
                 title = parts[1].strip()
-                if artist and title:  # Make sure neither is empty
-                    return artist, title
+                if artist and title:
+                    return artist, title, station_name
     
-    # If no separator found, return None (will use title as-is)
-    return None, None
+    # If no pattern matched, return None (will use original values)
+    return None, None, station_name
 
 def connect_mpd_client():
     """Helper function to connect to MPD and return the client object."""
@@ -431,18 +445,37 @@ def get_mpd_status_for_display():
 
         current_artist = current_song.get('artist', 'N/A')
         current_title = current_song.get('title', 'N/A')
+        current_album = current_song.get('album', 'N/A')
         current_genre = current_song.get('genre', 'N/A')
+        current_name = current_song.get('name', 'N/A')
         
         # Detect if this is a stream (URL instead of file path)
         is_stream = song_file_path and (song_file_path.startswith('http://') or song_file_path.startswith('https://'))
         
-        # If streaming and artist is N/A, try to parse from title field
-        if is_stream and current_artist == 'N/A' and current_title != 'N/A':
-            parsed_artist, parsed_title = parse_stream_metadata(current_title)
-            if parsed_artist and parsed_title:
-                current_artist = parsed_artist
-                current_title = parsed_title
-                print(f"[Stream] Parsed metadata: {current_artist} - {current_title}")
+        # For streams with no duration, show "LIVE" instead of 00:00
+        if is_stream and total_time_float == 0:
+            formatted_total = "LIVE"
+        
+        # Try to parse stream metadata for better display
+        if is_stream:
+            # Try parsing artist field first (handles "Title by Artist" pattern)
+            if current_artist != 'N/A' and ' by ' in current_artist:
+                parsed_artist, parsed_title, station_name = parse_stream_metadata(current_artist, current_title)
+                if parsed_artist and parsed_title:
+                    current_title = parsed_title
+                    current_artist = parsed_artist
+                    if station_name:
+                        current_album = station_name
+                    print(f"[Stream] Parsed from artist field: {current_artist} - {current_title} (Station: {current_album})")
+            # Fallback: try parsing title field if artist is N/A
+            elif current_artist == 'N/A' and current_title != 'N/A':
+                parsed_artist, parsed_title, station_name = parse_stream_metadata(current_title, current_name)
+                if parsed_artist and parsed_title:
+                    current_artist = parsed_artist
+                    current_title = parsed_title
+                    if station_name:
+                        current_album = station_name
+                    print(f"[Stream] Parsed from title field: {current_artist} - {current_title} (Station: {current_album})")
 
         # Update last known artist/genre for auto-fill
         if current_artist != 'N/A':
@@ -454,7 +487,7 @@ def get_mpd_status_for_display():
             'state': status.get('state', 'unknown'),
             'song_title': current_title,
             'artist': current_artist,
-            'album': current_song.get('album', 'N/A'),
+            'album': current_album,
             'genre': current_genre,
             'file_format': file_format,
             'bit_depth': bit_depth_val,
