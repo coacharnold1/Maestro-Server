@@ -1534,26 +1534,22 @@ def random_albums():
         try:
             # Get all unique albums efficiently
             all_albums_raw = client.list('album')
-            client.disconnect()
             
             # Filter out empty album names
             valid_albums = [album for album in all_albums_raw if album and str(album).strip()]
+            print(f"[DEBUG] Total albums in library: {len(valid_albums)}", flush=True)
             
             # Get 25 random albums
             import random
             num_to_select = min(25, len(valid_albums))
             random_album_names = random.sample(valid_albums, num_to_select)
-            
-            # Now get details for each random album
-            client = connect_mpd_client()
-            if not client:
-                return render_template('search.html', error="Could not connect to MPD")
+            print(f"[DEBUG] Selected {num_to_select} random albums", flush=True)
             
             albums_list = []
             for album_name in random_album_names:
                 try:
-                    # Search for this album to get artist and track info
-                    songs = client.search('album', album_name)
+                    # Use find for exact match instead of search
+                    songs = client.find('album', album_name)
                     if songs:
                         # Get the first song's info
                         first_song = songs[0]
@@ -1567,12 +1563,16 @@ def random_albums():
                             'track_count': len(songs),
                             'sample_file': song_file
                         })
+                        print(f"[DEBUG] Added album: {album_name} by {artist_name} ({len(songs)} tracks)", flush=True)
+                    else:
+                        print(f"[DEBUG] No songs found for album: {album_name}", flush=True)
                 except Exception as e:
-                    print(f"Error getting info for album '{album_name}': {e}")
+                    print(f"[DEBUG] Error getting info for album '{album_name}': {e}", flush=True)
                     continue
             
             client.disconnect()
             
+            print(f"[DEBUG] Returning {len(albums_list)} albums", flush=True)
             return render_template('search_results.html', 
                                  results=albums_list, 
                                  query='Random Selection', 
