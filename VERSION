@@ -1,10 +1,15 @@
-Maestro MPD Server v2.4
-Release Date: Wed Dec 25 00:00:00 UTC 2025
-Version: 2.4.0
+Maestro MPD Server v2.4.1
+Release Date: Thu Dec 26 00:00:00 UTC 2025
+Version: 2.4.1
 
 📻 INTERNET RADIO RELEASE - Streaming Radio with Radio Browser Integration 📻
 
-Latest Features (Dec 25, 2025 - v2.4):
+Latest Features (Dec 26, 2025 - v2.4.1):
+🐛 FIXED: Search Results - Album drill-down buttons now work correctly with special characters
+✅ IMPROVED: Event Handling - Replaced inline onclick with safe event delegation
+✅ IMPROVED: Error Handling - Better debugging and user feedback in search interface
+
+Previous Release (Dec 25, 2025 - v2.4):
 ✅ NEW: Internet Radio - Full streaming radio with Radio Browser API integration (22 countries)
 ✅ NEW: Smart Metadata Parsing - Handles "Title by Artist - Station" and complex patterns
 ✅ NEW: Toast Notifications - Real-time feedback with SocketIO integration
