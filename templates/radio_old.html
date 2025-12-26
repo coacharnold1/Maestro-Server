@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radio - Maestro MPD Control</title>
+    <style>
+        .local-search-btn {
+            background-color: #27ae60 !important;
+            /* Green */
+            color: #fff !important;
+        }
+
+        .local-search-btn:hover {
+            background-color: #145a32 !important;
+            /* Darker green */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 5px;
+            /* Reduced body padding */
+            background-color: #1a1a1a;
+            /* Dark background */
+            color: #ecf0f1;
+            /* Light text */
+            display: flex;
+            flex-direction: column; /* Ensure footer stacks below container */
+            align-items: center; /* Center children horizontally */
+            justify-content: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            /* Expanded from 400px for desktop */
+            background-color: #2c3e50;
+            padding: 20px;
+            /* Increased padding for desktop */
+            border-radius: 15px;
+            box-shadow: 0 5px 18px rgba(0, 0, 0, 0.4);
+            box-sizing: border-box;
+        }
+
+        h1,
+        h2 {
+            color: #ecf0f1;
+            text-align: center;
+            margin-bottom: 15px;
+            /* Increased for desktop */
+            font-size: 2em;
+            /* Increased H1 size for desktop */
+        }
+
+        h1 {
+            background: linear-gradient(135deg, #3498db, #e74c3c, #f39c12);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 3s ease-in-out infinite;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            letter-spacing: 1px;
+            font-size: 2.2em;
+        }
+
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        /* Logo styling */
+        .logo-container {
+            margin-bottom: 20px;
+        }
+
+        .logo-container img {
+            max-width: 600px;
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
+
+        h2 {
+            font-size: 1.3em;
+            margin-bottom: 12px;
+            /* Increased H2 size */
+        }
+
+        .status-box {
+            border: 1px solid #34495e;
+            padding: 15px;
+            /* Increased padding */
+            border-radius: 8px;
+            background-color: #34495e;
+            margin-bottom: 15px;
+            /* Increased margin */
+        }
+
+        .status-item {
+            margin-bottom: 5px;
+            /* Increased margin */
+            font-size: 1em;
+            /* Normal font size */
+            line-height: 1.4;
+        }
+
+        .status-item span {
+            font-weight: bold;
+            color: #bdc3c7;
+        }
+
+        .disconnected {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .connected {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 15px;
+            /* Increased margin */
+            padding-top: 15px;
+            border-top: 1px solid #34495e;
+        }
+
+        .controls:first-of-type {
+            border-top: none;
+            padding-top: 0;
+        }
+
+        .controls button {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            border: none;
+            padding: 10px 15px;
+            margin: 4px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            min-width: 80px;
+            font-weight: bold;
+        }
+
+        .controls button:hover {
+            background-color: #bdc3c7;
+            transform: translateY(-1px);
+        }
+
+        .controls button:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .controls button:disabled {
+            background-color: #6c7a89;
+            color: #aeb6bf;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .album-art {
+            text-align: center;
+            margin: 15px auto;
+            /* Added auto margins for centering */
+        }
+
+        .album-art img {
+            max-width: 500px;
+            /* Increased from 400px */
+            max-height: 500px;
+            /* Increased from 400px */
+            min-width: 300px;
+            /* Ensure minimum size */
+            min-height: 300px;
+            /* Ensure minimum size */
+            width: auto;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+            border: 2px solid #34495e;
+            object-fit: contain;
+            display: block;
+            /* Ensure proper display */
+            margin: 0 auto;
+            /* Center the image itself */
+        }
+
+        /* Simple, compact volume controls */
+        .volume-controls-simple {
+            text-align: center;
+            margin-top: 15px;
+            padding: 15px;
+            border-top: 1px solid #34495e;
+        }
+
+        .volume-controls-simple h2 {
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .volume-controls-simple .volume-value {
+            color: #1abc9c;
+            font-weight: bold;
+        }
+
+        .volume-buttons-row {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* Desktop order: low to high (left to right) */
+        .volume-btn-small:nth-child(1) {
+            order: 4;
+        }
+
+        /* +5 goes to position 4 */
+        .volume-btn-small:nth-child(2) {
+            order: 3;
+        }
+
+        /* +2 goes to position 3 */
+        .volume-btn-mute {
+            order: 2;
+        }
+
+        /* mute stays in center */
+        .volume-btn-small:nth-child(4) {
+            order: 1;
+        }
+
+        /* -2 goes to position 1 */
+        .volume-btn-small:nth-child(5) {
+            order: 0;
+        }
+
+        /* -5 goes to position 0 */
+
+        /* Mobile: override order for vertical layout */
+        @media (max-width: 450px) {
+            .volume-buttons-row {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            /* Mobile order: high to low (top to bottom) */
+            .volume-btn-small:nth-child(1) {
+                order: 0;
+            }
+
+            /* +5 on top */
+            .volume-btn-small:nth-child(2) {
+                order: 1;
+            }
+
+            /* +2 next */
+            .volume-btn-mute {
+                order: 2;
+            }
+
+            /* mute in center */
+            .volume-btn-small:nth-child(4) {
+                order: 3;
+            }
+
+            /* -2 next */
+            .volume-btn-small:nth-child(5) {
+                order: 4;
+            }
+
+            /* -5 on bottom */
+        }
+
+        .volume-btn-small {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: background-color 0.3s ease;
+            min-width: 40px;
+        }
+
+        .volume-btn-small:hover {
+            background-color: #2980b9;
+        }
+
+        .volume-btn-mute {
+            background-color: #95a5a6;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: background-color 0.3s ease;
+            min-width: 40px;
+        }
+
+        .volume-btn-mute:hover {
+            background-color: #7f8c8d;
+        }
+
+        .volume-btn-mute.muted {
+            background-color: #e74c3c;
+        }
+
+        /* Styles for the progress bar */
+        .progress-container {
+            width: 100%;
+            background-color: #555;
+            border-radius: 5px;
+            margin-top: 12px;
+            height: 10px;
+            /* Slightly thicker progress bar */
+            overflow: hidden;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .progress-container:hover {
+            background-color: #666;
+        }
+
+        .progress-container:active {
+            background-color: #777;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: #2ecc71;
+            border-radius: 5px;
+            transition: width 0.5s ease-out;
+            pointer-events: none;
+        }
+
+        .progress-container:hover .progress-bar {
+            background-color: #27ae60;
+        }
+
+        /* Styles for small MPD action buttons at bottom */
+        .mpd-actions-small {
+            margin-top: 20px;
+            padding: 8px;
+            opacity: 0.7;
+            /* Make it less prominent */
+            border-top: 1px solid #555;
+            /* Subtle separator */
+        }
+
+        .mpd-actions-small h3 {
+            font-size: 14px;
+            color: #bdc3c7;
+            margin-bottom: 8px;
+        }
+
+        .small-actions {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .small-btn {
+            font-size: 11px !important;
+            padding: 4px 8px !important;
+            background-color: #95a5a6 !important;
+            /* Muted gray */
+            color: #fff !important;
+            border-radius: 4px !important;
+            min-width: auto !important;
+        }
+
+        .small-btn:hover {
+            background-color: #7f8c8d !important;
+        }
+
+        /* Enhanced Styles for the message display area */
+        #message-area {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            min-width: 280px;
+            max-width: 400px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        #message-area.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        #message-area.info {
+            background: linear-gradient(135deg, rgba(46, 204, 113, 0.95) 0%, rgba(39, 174, 96, 0.95) 100%);
+            color: #ffffff;
+            border-left: 4px solid #27ae60;
+        }
+
+        #message-area.success {
+            background: linear-gradient(135deg, rgba(46, 204, 113, 0.95) 0%, rgba(39, 174, 96, 0.95) 100%);
+            color: #ffffff;
+            border-left: 4px solid #27ae60;
+        }
+
+        #message-area.error {
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.95) 0%, rgba(192, 57, 43, 0.95) 100%);
+            color: #ffffff;
+            border-left: 4px solid #c0392b;
+        }
+
+        #message-area.warning {
+            background: linear-gradient(135deg, rgba(241, 196, 15, 0.95) 0%, rgba(243, 156, 18, 0.95) 100%);
+            color: #2c3e50;
+            border-left: 4px solid #f39c12;
+            font-weight: 700;
+        }
+
+        /* New style for MPD Options section (e.g., Consume Mode) */
+        .mpd-options-controls {
+            text-align: center;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #34495e;
+        }
+
+        .mpd-options-controls .form-group {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 5px;
+        }
+
+        .mpd-options-controls .form-group label {
+            margin-left: 8px;
+            /* Space between checkbox and label */
+            font-weight: normal;
+        }
+
+        /* Navigation Links */
+        .nav-links {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px 0;
+            border-top: 1px solid #34495e;
+            border-bottom: 1px solid #34495e;
+        }
+
+        .nav-links a,
+        .nav-links button {
+            color: #3498db;
+            text-decoration: none;
+            margin: 0 8px;
+            padding: 8px 16px;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            transition: all 0.3s;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            display: inline-block;
+        }
+
+        .nav-links a:hover,
+        .nav-links button:hover {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .nav-links .current-page {
+            background-color: #e67e22 !important;
+            color: white !important;
+            border-color: #e67e22 !important;
+            font-weight: bold;
+        }
+
+        .nav-links .current-page:hover {
+            background-color: #d35400 !important;
+        }
+
+        /* Radio-specific styles */
+        .radio-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .radio-tab {
+            padding: 10px 20px;
+            background-color: #34495e;
+            border: none;
+            border-radius: 8px;
+            color: #ecf0f1;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .radio-tab:hover {
+            background-color: #2c3e50;
+        }
+
+        .radio-tab.active {
+            background-color: #3498db;
+            font-weight: bold;
+        }
+
+        .radio-content {
+            display: none;
+        }
+
+        .radio-content.active {
+            display: block;
+        }
+
+        .location-selector {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #34495e;
+            border-radius: 8px;
+        }
+
+        .location-selector select {
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: 1px solid #2c3e50;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            font-size: 1em;
+            cursor: pointer;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #34495e;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+
+        .station-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .station-card {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background-color: #34495e;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .station-card:hover {
+            background-color: #2c3e50;
+            transform: translateY(-2px);
+        }
+
+        .station-logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            margin-right: 15px;
+            object-fit: cover;
+            background-color: #2c3e50;
+        }
+
+        .station-info {
+            flex: 1;
+        }
+
+        .station-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+            color: #3498db;
+        }
+
+        .station-details {
+            font-size: 0.9em;
+            color: #95a5a6;
+        }
+
+        .station-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .station-actions button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9em;
+        }
+
+        .btn-play {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .btn-play:hover {
+            background-color: #229954;
+        }
+
+        .btn-favorite {
+            background-color: #e67e22;
+            color: white;
+        }
+
+        .btn-favorite:hover {
+            background-color: #d35400;
+        }
+
+        .btn-favorite.active {
+            background-color: #e74c3c;
+        }
+
+        .manual-add {
+            background-color: #34495e;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .manual-add input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #2c3e50;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            box-sizing: border-box;
+        }
+
+        .manual-add button {
+            width: 100%;
+            padding: 12px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+
+        .manual-add button:hover {
+            background-color: #2980b9;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+            color: #95a5a6;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #95a5a6;
+        }
+
+        .genre-filter {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .genre-tag {
+            padding: 6px 12px;
+            background-color: #34495e;
+            border-radius: 15px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .genre-tag:hover {
+            background-color: #3498db;
+        }
+
+        .genre-tag.active {
+            background-color: #3498db;
+            font-weight: bold;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+            }
+
+            .container {
+                padding: 15px;
+                max-width: 100%;
+            }
+
+            h1 {
+                font-size: 1.5em;
+                margin-bottom: 10px;
+            }
+
+            h2 {
+                font-size: 1.1em;
+                margin-bottom: 8px;
+            }
+
+            .status-item {
+                font-size: 0.9em;
+            }
+
+            .status-box {
+                padding: 12px;
+                margin-bottom: 12px;
+            }
+
+            .controls {
+                margin-top: 12px;
+                padding-top: 12px;
+            }
+
+            .controls button {
+                padding: 8px 12px;
+                font-size: 0.85em;
+                min-width: 75px;
+            }
+
+            .album-art img {
+                max-width: 350px;
+                max-height: 350px;
+            }
+
+            .album-art {
+                margin-top: 12px;
+                margin-bottom: 12px;
+            }
+
+            .volume-controls-simple {
+                padding: 10px;
+            }
+
+            .volume-buttons-row {
+                gap: 6px;
+            }
+
+            .volume-btn-small,
+            .volume-btn-mute {
+                padding: 5px 8px;
+                font-size: 0.8em;
+                min-width: 35px;
+            }
+
+            .progress-container {
+                height: 8px;
+                margin-top: 10px;
+            }
+
+            .nav-links {
+                margin: 15px 0;
+                padding: 10px 0;
+            }
+
+            .nav-links a,
+            .nav-links button {
+                margin: 2px 4px;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+
+            .station-card {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .station-logo {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+
+            .station-actions {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 450px) {
+            .container {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 1.3em;
+                margin-bottom: 8px;
+            }
+
+            h2 {
+                font-size: 1em;
+                margin-bottom: 6px;
+            }
+
+            .status-item {
+                font-size: 0.85em;
+            }
+
+            /* Mobile logo sizing */
+            .logo-container {
+                margin-bottom: 15px;
+            }
+
+            .logo-container img {
+                max-width: 400px;
+            }
+
+            .nav-links {
+                margin: 10px 0;
+                padding: 8px 0;
+            }
+
+            .nav-links a,
+            .nav-links button {
+                margin: 1px 2px;
+                padding: 4px 8px;
+                font-size: 11px;
+                display: inline-block;
+            }
+
+            .controls button {
+                display: block;
+                width: 90%;
+                margin: 5px auto;
+                padding: 12px;
+            }
+
+            .controls {
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+
+            .album-art img {
+                max-width: min(260px, calc(100vw - 30px));
+                max-height: min(260px, calc(100vw - 30px));
+                width: auto;
+                height: auto;
+                display: block;
+                margin: 0 auto;
+            }
+
+            .album-art {
+                margin: 12px 0;
+                text-align: center;
+                width: 100%;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            /* Fix MPD Options layout on mobile - stack vertically */
+            .mpd-options-controls .form-group {
+                display: grid !important;
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+            }
+
+            /* Fix small MPD action buttons on mobile */
+            .small-actions {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .small-btn {
+                font-size: 12px !important;
+                padding: 8px 12px !important;
+                width: 100% !important;
+                text-align: center !important;
+                display: block !important;
+            }
+
+            /* Mobile footer styling */
+            .mpd-actions-small:last-child {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                gap: 8px !important;
+                text-align: center !important;
+                padding: 15px 0 !important;
+                margin: 15px 0 !important;
+            }
+
+            .mpd-actions-small:last-child span {
+                margin-bottom: 8px !important;
+            }
+
+            .mpd-actions-small:last-child a {
+                display: block !important;
+                margin: 0 !important;
+                width: 120px !important;
+            }
+        }
+
+        /* Minimal theme overrides to honor Settings theme */
+        body.light {
+            background-color: #f5f5f7;
+            color: #1a1a1a;
+        }
+        body.light .container {
+            background-color: #ffffff;
+            color: #1a1a1a;
+        }
+        body.light .status-box {
+            background-color: #f0f3f6;
+            border-color: #d0d7de;
+        }
+        body.high-contrast {
+            background-color: #000000;
+            color: #ffff00;
+        }
+        body.high-contrast .container {
+            background-color: #000000;
+            color: #ffff00;
+            border: 2px solid #ffff00;
+        }
+        body.high-contrast .status-box {
+            background-color: #000000;
+            border: 2px solid #ffff00;
+        }
+    </style>
+    <!-- Include Socket.IO client library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
+    <!-- Include i18n translation handler -->
+    <script src="{{ url_for('static', filename='i18n.js') }}"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="{{ app_theme }}">
+    <div class="container">
+        <!-- Animated SVG Logo -->
+        <div class="logo-container" style="text-align: center; margin-bottom: 20px;">
+            <img src="{{ url_for('static', filename='logo.svg') }}" alt="Maestro MPD Control"
+                style="max-width: 600px; width: 100%; height: auto;">
+        </div>
+
+        <div class="nav-links">
+            <a href="/" data-i18n="main">🏠 Main</a>
+            <a href="/playlist" data-i18n="playlist">🎵 Playlist</a>
+            <a href="/add_music" data-i18n="add_music">🎲 Add Music</a>
+            <a href="/search" data-i18n="search">🔍 Search</a>
+            <a href="/recent" data-i18n="recent">📀 Recent</a>
+            <a href="/browse" data-i18n="browse">🗂️ Browse</a>
+            <a href="/radio" class="current-page" data-i18n="radio">📻 Radio</a>
+        </div>
+
+        <div class="status-box">
+            <h2>MPD Status: <span id="mpd-state"
+                    class="{{ 'connected' if mpd_info.state != 'disconnected' else 'disconnected' }}">{{ mpd_info.state
+                    }}</span></h2>
+            <p class="status-item"><span>Message:</span> <span id="mpd-message">{{ mpd_info.message }}</span></p>
+            {% if mpd_info.state != 'disconnected' and mpd_info.state != 'error' %}
+            <p class="status-item"><span>Artist:</span> <span id="current-artist"><a href="/search?query={{ mpd_info.artist|strip_location|urlencode }}&type=artist" style="color:#27ae60; text-decoration:underline;">{{ mpd_info.artist }}</a></span></p>
+            <p class="status-item"><span>Title:</span> <span id="current-title">{{ mpd_info.song_title }}</span></p>
+            <p class="status-item"><span>Album:</span> <span id="current-album">{{ mpd_info.album }}</span></p>
+            <p class="status-item"><span>Genre:</span> <span id="current-genre">{{ mpd_info.get('genre') if mpd_info.get('genre') else 'N/A' }}</span></p>
+            <p class="status-item"><span>Format:</span> <span id="current-format">{% if mpd_info.get('file_format') or mpd_info.get('sample_rate') or mpd_info.get('bit_depth') %}{% if mpd_info.get('file_format') %}{{ mpd_info.get('file_format') }}{% endif %}{% if mpd_info.get('sample_rate') %}{% if mpd_info.get('file_format') %} • {% endif %}{{ (mpd_info.get('sample_rate') / 1000.0)|float|round(1, 'common') }} kHz{% endif %}{% if mpd_info.get('bit_depth') %}{% if mpd_info.get('file_format') or mpd_info.get('sample_rate') %} • {% endif %}{{ mpd_info.get('bit_depth') }}-bit{% endif %}{% else %}N/A{% endif %}</span></p>
+            <p class="status-item"><span>Playback:</span> <span id="playback-summary">Vol {{ mpd_info.volume }}% • {{ mpd_info.elapsed_time }} / {{ mpd_info.total_time }}</span></p>
+            <p class="status-item"><span>Up Next:</span> <em><span id="up-next-artist"><a href="/search?query={{ mpd_info.next_song_artist|strip_location|urlencode }}&type=artist" style="color:#27ae60; text-decoration:underline;">{{ mpd_info.next_song_artist }}</a></span> - <span id="up-next-title">{{ mpd_info.next_song_title }}</span></em></p>
+            <div class="progress-container">
+                <div class="progress-bar" id="song-progress-bar"
+                     data-initial-elapsed="{{ mpd_info.raw_elapsed_time | default(0) }}"
+                     data-initial-total="{{ mpd_info.raw_total_time | default(0) }}">
+                </div>
+            </div>
+            {% else %}
+            <p class="status-item"><span>Artist:</span> N/A</p>
+            <p class="status-item"><span>Title:</span> N/A</p>
+            <p class="status-item"><span>Album:</span> N/A</p>
+            <p class="status-item"><span>Genre:</span> N/A</p>
+            <p class="status-item"><span>Format:</span> N/A</p>
+            <p class="status-item"><span>Playback:</span> Vol 0% • 00:00 / 00:00</p>
+            <p class="status-item"><span>Up Next:</span> <em>N/A</em></p>
+            <div class="progress-container">
+                <div class="progress-bar" id="song-progress-bar" data-initial-elapsed="0" data-initial-total="0"></div>
+            </div>
+            {% endif %}
+        </div>
+
+        {# Album Art Display #}
+        <div class="album-art" id="album-art-container">
+            <img id="album-art-img" src="{{ album_art_url }}" alt="Album Art">
+        </div>
+
+        <div class="controls">
+            <h2 data-i18n="playback_controls">Playback Controls</h2>
+            <button onclick="previousTrack()" style="background-color: #9b59b6; color: white;" data-i18n="previous">⏮️ Previous</button>
+            <button onclick="playMusic()" style="background-color: #27ae60; color: white;" data-i18n="play">▶️ Play</button>
+            <button onclick="stopMusic()" style="background-color: #f39c12; color: white;" data-i18n="stop">⏹️ Stop</button>
+            <button onclick="pauseMusic()" style="background-color: #e74c3c; color: white;" data-i18n="pause">⏸️ Pause</button>
+            <button onclick="nextTrack()" style="background-color: #3498db; color: white;" data-i18n="next">⏭️ Next</button>
+        </div>
+
+        {# VOLUME CONTROLS #}
+        <div class="controls volume-controls-simple">
+            <h2><span data-i18n="volume">Volume</span>: <span class="volume-value" id="volume-percentage-display">{{ mpd_info.volume | default(0) }}%</span></h2>
+            <div class="volume-buttons-row">
+                <button class="volume-btn-small" onclick="adjustVolume(5)">+5</button>
+                <button class="volume-btn-small" onclick="adjustVolume(2)">+2</button>
+                <button class="volume-btn-mute" onclick="toggleMute()" id="mute-btn">🔇</button>
+                <button class="volume-btn-small" onclick="adjustVolume(-2)">-2</button>
+                <button class="volume-btn-small" onclick="adjustVolume(-5)">-5</button>
+            </div>
+        </div>
+
+        {# MPD Options #}
+        <div class="controls mpd-options-controls">
+            <h2 data-i18n="mpd_options">MPD Options</h2>
+            <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; max-width: 800px; margin: 0 auto; justify-items: center;">
+                <span style="display: flex; flex-direction: column; align-items: flex-start;">
+                    <span style="display: flex; align-items: center;">
+                        <input type="checkbox" id="consume-mode-checkbox" {{ 'checked' if mpd_info.consume_mode else '' }}>
+                        <label for="consume-mode-checkbox" style="margin-left: 8px;" data-i18n="consume_mode">Consume Mode</label>
+                    </span>
+                    <small style="color: #95a5a6; font-size: 0.8em; margin-left: 20px;" data-i18n="consume_mode_desc">Remove played tracks</small>
+                </span>
+                <span style="display: flex; flex-direction: column; align-items: flex-start;">
+                    <span style="display: flex; align-items: center;">
+                        <input type="checkbox" id="shuffle-mode-checkbox" {{ 'checked' if mpd_info.shuffle_mode else '' }}>
+                        <label for="shuffle-mode-checkbox" style="margin-left: 8px;" data-i18n="shuffle_mode">Shuffle Mode</label>
+                    </span>
+                    <small style="color: #95a5a6; font-size: 0.8em; margin-left: 20px;" data-i18n="shuffle_mode_desc">Random play order</small>
+                </span>
+                <span style="display: flex; flex-direction: column; align-items: flex-start;">
+                    <span style="display: flex; align-items: center;">
+                        <input type="checkbox" id="crossfade-checkbox" {{ 'checked' if mpd_info.crossfade_enabled else '' }}>
+                        <label for="crossfade-checkbox" style="margin-left: 8px;">Crossfade</label>
+                    </span>
+                    <small style="color: #95a5a6; font-size: 0.8em; margin-left: 20px;">5s between tracks</small>
+                </span>
+                <span style="display: flex; flex-direction: column; align-items: flex-start;">
+                    <span style="display: flex; align-items: center;">
+                        <input type="checkbox" id="auto-fill-toggle-radio">
+                        <label for="auto-fill-toggle-radio" style="margin-left: 8px;">Auto-Fill</label>
+                    </span>
+                    <span id="auto-fill-status-radio" style="font-size: 0.8em; color: #95a5a6; margin-left: 20px;">Loading...</span>
+                </span>
+            </div>
+        </div>
+
+        {# Radio Station Browser Section #}
+        <div class="controls" style="border-top: 2px solid #34495e; margin-top: 20px; padding-top: 20px;">
+            <h2>📻 Internet Radio</h2>
+
+<!-- Location Selector -->
+<div class="location-selector">
+    <span>🌍 <span data-i18n="your_region">Your Region</span>:</span>
+    <select id="country-selector">
+        <option value="">Loading...</option>
+    </select>
+</div>
+
+<!-- Tabs -->
+<div class="radio-tabs">
+    <button class="radio-tab active" data-tab="discover" data-i18n="discover">🔍 Discover</button>
+    <button class="radio-tab" data-tab="favorites" data-i18n="favorites">⭐ Favorites</button>
+    <button class="radio-tab" data-tab="manual" data-i18n="manual">📝 Manual</button>
+</div>
+
+<!-- Discover Tab -->
+<div class="radio-content active" id="discover-content">
+    <div class="search-box">
+        <input type="text" id="station-search" placeholder="Search stations..." data-i18n-placeholder="search_stations">
+    </div>
+
+    <div class="genre-filter" id="genre-filter">
+        <!-- Populated by JS -->
+    </div>
+
+    <div id="station-list" class="station-list">
+        <div class="loading">🔄 <span data-i18n="loading_stations">Loading stations</span>...</div>
+    </div>
+</div>
+
+<!-- Favorites Tab -->
+<div class="radio-content" id="favorites-content">
+    <div id="favorites-list" class="station-list">
+        <div class="empty-state">
+            ⭐ <span data-i18n="no_favorites">No favorite stations yet</span><br>
+            <small data-i18n="add_favorites_hint">Click the ⭐ button on any station to save it</small>
+        </div>
+    </div>
+</div>
+
+<!-- Manual Tab -->
+<div class="radio-content" id="manual-content">
+    <div class="manual-add">
+        <h3 data-i18n="add_custom_stream">Add Custom Stream</h3>
+        <input type="text" id="manual-name" placeholder="Station Name" data-i18n-placeholder="station_name">
+        <input type="text" id="manual-url" placeholder="Stream URL (http://...)" data-i18n-placeholder="stream_url">
+        <button onclick="playManualStream()" data-i18n="play_stream">▶️ Play Stream</button>
+    </div>
+
+    <div class="manual-add" style="margin-top: 15px;">
+        <h4 data-i18n="example_streams">Example Streams:</h4>
+        <div style="text-align: left; color: #95a5a6; font-size: 0.9em;">
+            <p><strong>SomaFM Groove Salad:</strong><br>
+            <code style="background: #2c3e50; padding: 4px 8px; border-radius: 3px;">https://ice1.somafm.com/groovesalad-128-mp3</code></p>
+            <p><strong>KEXP 90.3 FM Seattle:</strong><br>
+            <code style="background: #2c3e50; padding: 4px 8px; border-radius: 3px;">https://kexp-mp3-128.streamguys1.com/kexp128.mp3</code></p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentCountry = 'US'; // Default
+    let allStations = [];
+    let favorites = [];
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        loadFavorites();
+        detectLocation();
+        setupTabs();
+        setupSearch();
+    });
+
+    // Tab switching
+    function setupTabs() {
+        document.querySelectorAll('.radio-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const targetTab = this.dataset.tab;
+                
+                // Update active tab
+                document.querySelectorAll('.radio-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Update content
+                document.querySelectorAll('.radio-content').forEach(c => c.classList.remove('active'));
+                document.getElementById(targetTab + '-content').classList.add('active');
+                
+                // Load content if needed
+                if (targetTab === 'favorites') {
+                    renderFavorites();
+                }
+            });
+        });
+    }
+
+    // Location detection
+    async function detectLocation() {
+        // Try to load saved preference
+        const saved = localStorage.getItem('maestro_radio_country');
+        if (saved) {
+            currentCountry = saved;
+        } else {
+            // Auto-detect from IP
+            try {
+                const response = await fetch('/api/radio/detect-country');
+                const data = await response.json();
+                if (data.country) {
+                    currentCountry = data.country;
+                }
+            } catch (error) {
+                console.error('Could not detect country:', error);
+            }
+        }
+        
+        await loadCountries();
+        loadStations();
+    }
+
+    // Load countries list
+    async function loadCountries() {
+        try {
+            const response = await fetch('/api/radio/countries');
+            const countries = await response.json();
+            
+            const selector = document.getElementById('country-selector');
+            selector.innerHTML = countries.map(c => 
+                `<option value="${c.code}" ${c.code === currentCountry ? 'selected' : ''}>${c.flag} ${c.name}</option>`
+            ).join('');
+            
+            selector.addEventListener('change', function() {
+                currentCountry = this.value;
+                localStorage.setItem('maestro_radio_country', currentCountry);
+                loadStations();
+            });
+        } catch (error) {
+            console.error('Failed to load countries:', error);
+        }
+    }
+
+    // Load stations for current country
+    async function loadStations() {
+        const container = document.getElementById('station-list');
+        container.innerHTML = '<div class="loading">🔄 <span data-i18n="loading_stations">Loading stations</span>...</div>';
+        
+        try {
+            const response = await fetch(`/api/radio/stations?country=${currentCountry}&limit=50`);
+            allStations = await response.json();
+            renderStations(allStations);
+        } catch (error) {
+            container.innerHTML = '<div class="empty-state">❌ Failed to load stations</div>';
+            console.error('Failed to load stations:', error);
+        }
+    }
+
+    // Render stations
+    function renderStations(stations) {
+        const container = document.getElementById('station-list');
+        
+        if (stations.length === 0) {
+            container.innerHTML = '<div class="empty-state">No stations found</div>';
+            return;
+        }
+        
+        container.innerHTML = stations.map(station => `
+            <div class="station-card">
+                <img class="station-logo" src="${station.favicon || '/static/placeholder-radio.png'}" 
+                     onerror="this.src='/static/placeholder-radio.png'" alt="${station.name}">
+                <div class="station-info">
+                    <div class="station-name">${station.name}</div>
+                    <div class="station-details">
+                        ${station.tags || station.genre || 'Radio'}
+                        ${station.bitrate ? ` • ${station.bitrate}kbps` : ''}
+                    </div>
+                </div>
+                <div class="station-actions">
+                    <button class="btn-play" onclick="playStation('${escapeHtml(station.url)}', '${escapeHtml(station.name)}')">
+                        ▶️ Play
+                    </button>
+                    <button class="btn-favorite ${isFavorite(station.url) ? 'active' : ''}" 
+                            onclick="toggleFavorite('${escapeHtml(JSON.stringify(station))}')">
+                        ⭐
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Search stations
+    function setupSearch() {
+        const searchBox = document.getElementById('station-search');
+        searchBox.addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            const filtered = allStations.filter(s => 
+                s.name.toLowerCase().includes(query) ||
+                (s.tags && s.tags.toLowerCase().includes(query))
+            );
+            renderStations(filtered);
+        });
+    }
+
+    // Play station
+    async function playStation(url, name) {
+        try {
+            const response = await fetch('/api/radio/play', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: url, name: name })
+            });
+            
+            if (response.ok) {
+                showMessage(`📻 Now playing: ${name}`, 'success');
+            } else {
+                showMessage('Failed to play station', 'error');
+            }
+        } catch (error) {
+            showMessage('Error playing station', 'error');
+        }
+    }
+
+    // Manual stream
+    function playManualStream() {
+        const name = document.getElementById('manual-name').value || 'Custom Stream';
+        const url = document.getElementById('manual-url').value;
+        
+        if (!url) {
+            showMessage('Please enter a stream URL', 'warning');
+            return;
+        }
+        
+        playStation(url, name);
+    }
+
+    // Favorites management
+    function loadFavorites() {
+        const saved = localStorage.getItem('maestro_radio_favorites');
+        favorites = saved ? JSON.parse(saved) : [];
+    }
+
+    function saveFavorites() {
+        localStorage.setItem('maestro_radio_favorites', JSON.stringify(favorites));
+    }
+
+    function isFavorite(url) {
+        return favorites.some(f => f.url === url);
+    }
+
+    function toggleFavorite(stationJson) {
+        const station = JSON.parse(stationJson);
+        const index = favorites.findIndex(f => f.url === station.url);
+        
+        if (index >= 0) {
+            favorites.splice(index, 1);
+            showMessage('Removed from favorites', 'info');
+        } else {
+            favorites.push(station);
+            showMessage('Added to favorites', 'success');
+        }
+        
+        saveFavorites();
+        renderStations(allStations); // Refresh to update star icons
+        
+        // Refresh favorites tab if it's active
+        if (document.querySelector('.radio-tab[data-tab="favorites"]').classList.contains('active')) {
+            renderFavorites();
+        }
+    }
+
+    function renderFavorites() {
+        const container = document.getElementById('favorites-list');
+        
+        if (favorites.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    ⭐ <span data-i18n="no_favorites">No favorite stations yet</span><br>
+                    <small data-i18n="add_favorites_hint">Click the ⭐ button on any station to save it</small>
+                </div>
+            `;
+            return;
+        }
+        
+        renderStations(favorites);
+        container.innerHTML = document.getElementById('station-list').innerHTML;
+    }
+
+    // Utility functions
+    function escapeHtml(unsafe) {
+        if (typeof unsafe === 'object') {
+            unsafe = JSON.stringify(unsafe);
+        }
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function showMessage(text, type) {
+        // Use existing message system from base
+        if (typeof window.showServerMessage === 'function') {
+            window.showServerMessage(text, type);
+        } else {
+            alert(text);
+        }
+    }
+</script>
+{% endblock %}
