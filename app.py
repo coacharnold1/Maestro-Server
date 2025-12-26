@@ -1535,8 +1535,16 @@ def random_albums():
             # Get all unique albums efficiently
             all_albums_raw = client.list('album')
             
-            # Filter out empty album names
-            valid_albums = [album for album in all_albums_raw if album and str(album).strip()]
+            # Filter out empty album names and normalize (handle both strings and dicts)
+            valid_albums = []
+            for album_item in all_albums_raw:
+                if isinstance(album_item, dict):
+                    album_name = album_item.get('album', '')
+                else:
+                    album_name = album_item
+                if album_name and str(album_name).strip():
+                    valid_albums.append(album_name)
+            
             print(f"[DEBUG] Total albums in library: {len(valid_albums)}", flush=True)
             
             # Get 25 random albums
