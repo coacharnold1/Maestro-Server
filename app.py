@@ -1523,6 +1523,60 @@ def search():
     
     return render_template('search.html')
 
+@app.route('/random_albums', methods=['GET'])
+def random_albums():
+    """Return 25 random albums from the library."""
+    try:
+        client = connect_mpd_client()
+        if not client:
+            return render_template('search.html', error="Could not connect to MPD")
+        
+        try:
+            # Get all songs from the library
+            all_songs = client.listallinfo('/')
+            client.disconnect()
+            
+            # Group by albums
+            albums_dict = {}
+            for item in all_songs:
+                if 'file' not in item:
+                    continue
+                song_file = item.get('file', '')
+                album_name = item.get('album', 'Unknown Album')
+                artist_name = item.get('artist', 'Unknown Artist')
+                album_dir = os.path.dirname(song_file) if song_file else ''
+                album_key = f"{artist_name}|||{album_name}|||{album_dir}"
+                
+                if album_key not in albums_dict:
+                    albums_dict[album_key] = {
+                        'item_type': 'album',
+                        'artist': artist_name,
+                        'album': album_name,
+                        'track_count': 0,
+                        'sample_file': song_file
+                    }
+                albums_dict[album_key]['track_count'] += 1
+            
+            # Get 25 random albums
+            import random
+            all_albums = list(albums_dict.values())
+            random_selection = random.sample(all_albums, min(25, len(all_albums)))
+            
+            return render_template('search_results.html', 
+                                 results=random_selection, 
+                                 query='Random Selection', 
+                                 search_tag='album')
+        except Exception as e:
+            if client:
+                client.disconnect()
+            import traceback
+            traceback.print_exc()
+            return render_template('search.html', error=f"Random albums failed: {e}")
+            
+    except Exception as e:
+        print(f"Error getting random albums: {e}")
+        return render_template('search.html', error="An error occurred while getting random albums")
+
 @app.route('/play', methods=['GET', 'POST'])
 def play():
     try:
