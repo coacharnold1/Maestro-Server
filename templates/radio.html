@@ -846,40 +846,37 @@
     function setupSearch() {
         const searchBox = document.getElementById('station-search');
         searchBox.addEventListener('input', function() {
-            const query = this.value.trim();
+            const query = this.value.trim().toLowerCase();
             
             // Clear previous timeout
             if (searchTimeout) {
                 clearTimeout(searchTimeout);
             }
             
-            // If empty, reload default stations
+            // If empty, show all stations
             if (!query) {
-                loadStations();
+                renderStations(allStations);
                 return;
             }
             
-            // Debounce search - wait 500ms after user stops typing
-            searchTimeout = setTimeout(async () => {
-                const container = document.getElementById('station-list');
-                container.innerHTML = '<div class="loading">🔍 <span data-i18n="searching">Searching</span>...</div>';
+            // Debounce search - wait 300ms after user stops typing
+            searchTimeout = setTimeout(() => {
+                // Filter already-loaded stations locally (instant)
+                const filtered = allStations.filter(station => {
+                    const name = (station.name || '').toLowerCase();
+                    const tags = (station.tags || '').toLowerCase();
+                    const country = (station.country || '').toLowerCase();
+                    return name.includes(query) || tags.includes(query) || country.includes(query);
+                });
                 
-                try {
-                    // Search API by name
-                    const response = await fetch(`/api/radio/stations?country=${currentCountry}&name=${encodeURIComponent(query)}&limit=50`);
-                    const stations = await response.json();
-                    allStations = stations;
-                    
-                    if (stations.length === 0) {
-                        container.innerHTML = '<div class="empty-state">❌ No stations found for "' + query + '"</div>';
-                    } else {
-                        renderStations(stations);
-                    }
-                } catch (error) {
-                    container.innerHTML = '<div class="empty-state">❌ Search failed</div>';
-                    console.error('Search failed:', error);
+                if (filtered.length === 0) {
+                    const container = document.getElementById('station-list');
+                    container.innerHTML = `<div class="empty-state">❌ No stations found for "${this.value}"<br><small>Try a different search or change country</small></div>`;
+                } else {
+                    renderStations(filtered);
                 }
-            }, 500);
+            }, 300);
+        });
         });
     }
 
