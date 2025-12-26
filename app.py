@@ -1532,38 +1532,49 @@ def random_albums():
             return render_template('search.html', error="Could not connect to MPD")
         
         try:
-            # Get all songs from the library
-            all_songs = client.listallinfo('/')
+            # Get all unique albums efficiently
+            all_albums_raw = client.list('album')
             client.disconnect()
             
-            # Group by albums
-            albums_dict = {}
-            for item in all_songs:
-                if 'file' not in item:
-                    continue
-                song_file = item.get('file', '')
-                album_name = item.get('album', 'Unknown Album')
-                artist_name = item.get('artist', 'Unknown Artist')
-                album_dir = os.path.dirname(song_file) if song_file else ''
-                album_key = f"{artist_name}|||{album_name}|||{album_dir}"
-                
-                if album_key not in albums_dict:
-                    albums_dict[album_key] = {
-                        'item_type': 'album',
-                        'artist': artist_name,
-                        'album': album_name,
-                        'track_count': 0,
-                        'sample_file': song_file
-                    }
-                albums_dict[album_key]['track_count'] += 1
+            # Filter out empty album names
+            valid_albums = [album for album in all_albums_raw if album and str(album).strip()]
             
             # Get 25 random albums
             import random
-            all_albums = list(albums_dict.values())
-            random_selection = random.sample(all_albums, min(25, len(all_albums)))
+            num_to_select = min(25, len(valid_albums))
+            random_album_names = random.sample(valid_albums, num_to_select)
+            
+            # Now get details for each random album
+            client = connect_mpd_client()
+            if not client:
+                return render_template('search.html', error="Could not connect to MPD")
+            
+            albums_list = []
+            for album_name in random_album_names:
+                try:
+                    # Search for this album to get artist and track info
+                    songs = client.search('album', album_name)
+                    if songs:
+                        # Get the first song's info
+                        first_song = songs[0]
+                        artist_name = first_song.get('artist', 'Unknown Artist')
+                        song_file = first_song.get('file', '')
+                        
+                        albums_list.append({
+                            'item_type': 'album',
+                            'artist': artist_name,
+                            'album': album_name,
+                            'track_count': len(songs),
+                            'sample_file': song_file
+                        })
+                except Exception as e:
+                    print(f"Error getting info for album '{album_name}': {e}")
+                    continue
+            
+            client.disconnect()
             
             return render_template('search_results.html', 
-                                 results=random_selection, 
+                                 results=albums_list, 
                                  query='Random Selection', 
                                  search_tag='album')
         except Exception as e:
