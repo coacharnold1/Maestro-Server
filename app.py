@@ -2123,10 +2123,30 @@ def get_radio_countries():
     ]
     return jsonify(countries)
 
+# Simple cache for radio stations (country/search -> stations, timestamp)
+radio_stations_cache = {}
+CACHE_DURATION = 600  # Cache for 10 minutes
+
 @app.route('/api/radio/stations', methods=['GET'])
 def get_radio_stations():
-    """Get radio stations from Radio Browser API with retry logic."""
+    """Get radio stations from Radio Browser API with retry logic and caching."""
     try:
+        country = request.args.get('country', 'US')
+        limit = request.args.get('limit', '50')
+        name_search = request.args.get('name', '')
+        
+        # Create cache key
+        cache_key = f"{country}:{name_search}:{limit}"
+        
+        # Check cache first
+        import time
+        current_time = time.time()
+        if cache_key in radio_stations_cache:
+            cached_data, cache_time = radio_stations_cache[cache_key]
+            if current_time - cache_time < CACHE_DURATION:
+                print(f"Returning cached radio stations for {cache_key}")
+                return jsonify(cached_data)
+        
         country = request.args.get('country', 'US')
         limit = request.args.get('limit', '50')
         name_search = request.args.get('name', '')
@@ -2134,11 +2154,14 @@ def get_radio_stations():
         # Radio Browser API endpoint (uses public servers)
         # Documentation: https://api.radio-browser.info/
         # Try multiple API servers for redundancy
+        import random
         api_servers = [
             'https://de1.api.radio-browser.info',
             'https://nl1.api.radio-browser.info',
             'https://at1.api.radio-browser.info'
         ]
+        # Shuffle to distribute load and avoid always hitting same slow server
+        random.shuffle(api_servers)
         
         # If searching by name, use the search endpoint
         if name_search:
@@ -2163,7 +2186,8 @@ def get_radio_stations():
             try:
                 api_url = api_server + endpoint
                 print(f"Trying Radio Browser API: {api_url}")
-                response = requests.get(api_url, params=params, timeout=15)
+                # Reduced timeout to 7 seconds - fail fast and try next server
+                response = requests.get(api_url, params=params, timeout=7)
                 
                 if response.status_code == 200:
                     stations = response.json()
@@ -2183,6 +2207,11 @@ def get_radio_stations():
                             'codec': s.get('codec', ''),
                             'homepage': s.get('homepage', '')
                         })
+                    
+                    # Cache the results
+                    import time
+                    radio_stations_cache[cache_key] = (formatted, time.time())
+                    
                     return jsonify(formatted)
                 else:
                     print(f"API server {api_server} returned status {response.status_code}")
