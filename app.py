@@ -2781,11 +2781,26 @@ def add_album_to_playlist():
                         added_count += 1
                     except CommandError as e:
                         print(f"Error adding {file_path}: {e}")
+            
+            # Check if MPD is playing, if not auto-play
+            status = client.status()
+            mpd_state = status.get('state', 'stop')
+            should_auto_play = mpd_state in ['stop', 'pause']
+            
+            if should_auto_play and added_count > 0:
+                try:
+                    client.play()
+                    print(f"[DEBUG] Auto-started playback after adding album", flush=True)
+                except Exception as e:
+                    print(f"[DEBUG] Error auto-playing: {e}", flush=True)
                 
             client.disconnect()
             
             if added_count > 0:
-                success_message = f'Added {added_count} songs from "{album}" by {artist} to playlist.'
+                if should_auto_play:
+                    success_message = f'Added {added_count} songs from "{album}" by {artist} and started playing.'
+                else:
+                    success_message = f'Added {added_count} songs from "{album}" by {artist} to playlist.'
                 socketio.emit('server_message', {'type': 'success', 'text': success_message})
                 # Trigger a status update
                 socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))
