@@ -555,6 +555,9 @@
     <select id="country-selector">
         <option value="">Loading...</option>
     </select>
+    <button onclick="refreshStations()" style="margin-left: 10px; padding: 8px 15px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;" title="Refresh station list from API">
+        🔄 <span data-i18n="refresh">Refresh</span>
+    </button>
 </div>
 
 <!-- Tabs -->
@@ -712,6 +715,12 @@
         loadStations();
     }
 
+    // Refresh stations (bypass cache)
+    function refreshStations() {
+        console.log('Refreshing stations (bypass cache)');
+        loadStations(true);
+    }
+
     // Load countries list
     async function loadCountries() {
         try {
@@ -734,12 +743,14 @@
     }
 
     // Load stations for current country
-    async function loadStations() {
+    async function loadStations(bypassCache = false) {
         const container = document.getElementById('station-list');
         container.innerHTML = '<div class="loading">🔄 <span data-i18n="loading_stations">Loading stations</span>...</div>';
         
         try {
-            const response = await fetch(`/api/radio/stations?country=${currentCountry}&limit=50`);
+            // Add cache-busting parameter if refresh requested
+            const cacheBuster = bypassCache ? `&nocache=${Date.now()}` : '';
+            const response = await fetch(`/api/radio/stations?country=${currentCountry}&limit=50${cacheBuster}`);
             
             // Check if API returned error status
             if (!response.ok) {

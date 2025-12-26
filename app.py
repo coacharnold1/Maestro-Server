@@ -2125,31 +2125,82 @@ def get_radio_countries():
 
 # Simple cache for radio stations (country/search -> stations, timestamp)
 radio_stations_cache = {}
-CACHE_DURATION = 600  # Cache for 10 minutes
+CACHE_DURATION = 600  # In-memory cache for 10 minutes
+PERSISTENT_CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cache', 'radio')
+PERSISTENT_CACHE_DURATION = 7 * 24 * 60 * 60  # File cache for 7 days
+
+# Ensure cache directory exists
+os.makedirs(PERSISTENT_CACHE_DIR, exist_ok=True)
+
+def get_cache_filename(cache_key):
+    """Generate safe filename for cache key."""
+    import hashlib
+    safe_key = hashlib.md5(cache_key.encode()).hexdigest()
+    return os.path.join(PERSISTENT_CACHE_DIR, f"stations_{safe_key}.json")
+
+def load_from_persistent_cache(cache_key):
+    """Load stations from disk cache if available and not stale."""
+    try:
+        cache_file = get_cache_filename(cache_key)
+        if os.path.exists(cache_file):
+            import time
+            file_age = time.time() - os.path.getmtime(cache_file)
+            if file_age < PERSISTENT_CACHE_DURATION:
+                with open(cache_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    print(f"Loaded stations from persistent cache (age: {file_age/3600:.1f} hours)")
+                    return data
+            else:
+                print(f"Persistent cache expired (age: {file_age/86400:.1f} days)")
+    except Exception as e:
+        print(f"Error loading persistent cache: {e}")
+    return None
+
+def save_to_persistent_cache(cache_key, data):
+    """Save stations to disk cache."""
+    try:
+        cache_file = get_cache_filename(cache_key)
+        with open(cache_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f"Saved {len(data)} stations to persistent cache")
+    except Exception as e:
+        print(f"Error saving persistent cache: {e}")
 
 @app.route('/api/radio/stations', methods=['GET'])
 def get_radio_stations():
-    """Get radio stations from Radio Browser API with retry logic and caching."""
+    """Get radio stations from Radio Browser API with retry logic and persistent caching."""
     try:
         country = request.args.get('country', 'US')
         limit = request.args.get('limit', '50')
         name_search = request.args.get('name', '')
+        bypass_cache = request.args.get('nocache', None)  # Check if cache bypass requested
         
         # Create cache key
         cache_key = f"{country}:{name_search}:{limit}"
         
-        # Check cache first
+        # Skip cache if bypass requested
+        if bypass_cache:
+            print(f"Cache bypass requested for {cache_key}")
+        else:
+            # Check in-memory cache first (fast)
+            import time
+            current_time = time.time()
+            if cache_key in radio_stations_cache:
+                cached_data, cache_time = radio_stations_cache[cache_key]
+                if current_time - cache_time < CACHE_DURATION:
+                    print(f"Returning in-memory cached radio stations for {cache_key}")
+                    return jsonify(cached_data)
+            
+            # Check persistent disk cache (slower but survives restarts)
+            persistent_data = load_from_persistent_cache(cache_key)
+            if persistent_data:
+                # Update in-memory cache too
+                radio_stations_cache[cache_key] = (persistent_data, current_time)
+                return jsonify(persistent_data)
+        
+        # Need to fetch from API
         import time
         current_time = time.time()
-        if cache_key in radio_stations_cache:
-            cached_data, cache_time = radio_stations_cache[cache_key]
-            if current_time - cache_time < CACHE_DURATION:
-                print(f"Returning cached radio stations for {cache_key}")
-                return jsonify(cached_data)
-        
-        country = request.args.get('country', 'US')
-        limit = request.args.get('limit', '50')
-        name_search = request.args.get('name', '')
         
         # Radio Browser API endpoint (uses public servers)
         # Documentation: https://api.radio-browser.info/
@@ -2208,9 +2259,10 @@ def get_radio_stations():
                             'homepage': s.get('homepage', '')
                         })
                     
-                    # Cache the results
+                    # Cache the results in memory and on disk
                     import time
                     radio_stations_cache[cache_key] = (formatted, time.time())
+                    save_to_persistent_cache(cache_key, formatted)
                     
                     return jsonify(formatted)
                 else:
