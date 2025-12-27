@@ -1271,7 +1271,11 @@ def load_cd_metadata():
     try:
         if os.path.exists(CD_METADATA_FILE):
             with open(CD_METADATA_FILE, 'r') as f:
-                return json.load(f)
+                data = json.load(f)
+                print(f"DEBUG: Loaded {len(data)} disc(s) from {CD_METADATA_FILE}", flush=True)
+                return data
+        else:
+            print(f"DEBUG: No metadata file found at {CD_METADATA_FILE}", flush=True)
     except Exception as e:
         print(f"Error loading CD metadata: {e}", flush=True)
     return {}
@@ -1915,6 +1919,8 @@ def rip_cd():
                     f.write(f'''OUTPUTFORMAT='${{ARTISTFILE}} - ${{ALBUMFILE}} (${{CDYEAR}})/${{TRACKNUM}} - ${{TRACKFILE}}'\n''')
                     f.write(f'''VAOUTPUTFORMAT='Various Artists - ${{ALBUMFILE}} (${{CDYEAR}})/${{TRACKNUM}} - ${{ARTISTFILE}} - ${{TRACKFILE}}'\n''')
                     # Only use MusicBrainz if no custom metadata exists (check both disc IDs)
+                    print(f"DEBUG: Checking metadata - disc_id={disc_id}, mb_disc_id={mb_disc_id}", flush=True)
+                    print(f"DEBUG: cd_edited_metadata keys: {list(cd_edited_metadata.keys())}", flush=True)
                     has_custom_metadata = (disc_id and disc_id in cd_edited_metadata) or (mb_disc_id and mb_disc_id in cd_edited_metadata)
                     if has_custom_metadata:
                         f.write(f'''CDDBMETHOD=none\n''')
