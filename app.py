@@ -2196,25 +2196,26 @@ def filter_backup_stations(stations, country=None, name_search=None, limit=50):
         filtered = []
         
         for station in stations:
-            # Filter by country if specified
-            if country and station.get('countrycode', '').upper() != country.upper():
+            # Filter by country if specified (backup uses iso_3166_1)
+            station_country = station.get('iso_3166_1', '').upper()
+            if country and station_country != country.upper():
                 continue
             
             # Filter by name search if specified
             if name_search and name_search.lower() not in station.get('name', '').lower():
                 continue
             
-            # Format for our UI
+            # Format for our UI (backup uses different field names)
             formatted = {
                 'name': station.get('name', 'Unknown Station'),
-                'url': station.get('url_resolved') or station.get('url', ''),
-                'favicon': station.get('favicon', ''),
-                'country': station.get('countrycode', ''),
+                'url': station.get('url_stream') or station.get('url_resolved', ''),
+                'favicon': station.get('url_favicon', ''),
+                'country': station.get('iso_3166_1', ''),
                 'tags': station.get('tags', ''),
                 'genre': station.get('tags', '').split(',')[0] if station.get('tags') else '',
                 'bitrate': station.get('bitrate', 0),
                 'codec': station.get('codec', ''),
-                'homepage': station.get('homepage', '')
+                'homepage': station.get('url_homepage', '')
             }
             filtered.append(formatted)
             
@@ -2226,6 +2227,8 @@ def filter_backup_stations(stations, country=None, name_search=None, limit=50):
         return filtered
     except Exception as e:
         print(f"Error filtering backup stations: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 @app.route('/api/radio/backup/download', methods=['POST'])
