@@ -2128,6 +2128,8 @@ radio_stations_cache = {}
 CACHE_DURATION = 600  # In-memory cache for 10 minutes
 PERSISTENT_CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cache', 'radio')
 PERSISTENT_CACHE_DURATION = 7 * 24 * 60 * 60  # File cache for 7 days
+BACKUP_DB_FILE = os.path.join(PERSISTENT_CACHE_DIR, 'radio_backup.json.gz')
+BACKUP_DB_URL = 'https://backups.radio-browser.info/radiobrowser_stations_latest.json.gz'
 
 # Ensure cache directory exists
 os.makedirs(PERSISTENT_CACHE_DIR, exist_ok=True)
@@ -2165,6 +2167,129 @@ def save_to_persistent_cache(cache_key, data):
         print(f"Saved {len(data)} stations to persistent cache")
     except Exception as e:
         print(f"Error saving persistent cache: {e}")
+
+def load_backup_database():
+    """Load stations from the backup database file."""
+    try:
+        if not os.path.exists(BACKUP_DB_FILE):
+            print("No backup database file found")
+            return None
+        
+        import gzip
+        import time
+        
+        # Check file age
+        file_age_days = (time.time() - os.path.getmtime(BACKUP_DB_FILE)) / 86400
+        print(f"Loading backup database (age: {file_age_days:.1f} days)")
+        
+        with gzip.open(BACKUP_DB_FILE, 'rt', encoding='utf-8') as f:
+            stations = json.load(f)
+            print(f"Loaded {len(stations)} stations from backup database")
+            return stations
+    except Exception as e:
+        print(f"Error loading backup database: {e}")
+        return None
+
+def filter_backup_stations(stations, country=None, name_search=None, limit=50):
+    """Filter stations from backup database by country/name."""
+    try:
+        filtered = []
+        
+        for station in stations:
+            # Filter by country if specified
+            if country and station.get('countrycode', '').upper() != country.upper():
+                continue
+            
+            # Filter by name search if specified
+            if name_search and name_search.lower() not in station.get('name', '').lower():
+                continue
+            
+            # Format for our UI
+            formatted = {
+                'name': station.get('name', 'Unknown Station'),
+                'url': station.get('url_resolved') or station.get('url', ''),
+                'favicon': station.get('favicon', ''),
+                'country': station.get('countrycode', ''),
+                'tags': station.get('tags', ''),
+                'genre': station.get('tags', '').split(',')[0] if station.get('tags') else '',
+                'bitrate': station.get('bitrate', 0),
+                'codec': station.get('codec', ''),
+                'homepage': station.get('homepage', '')
+            }
+            filtered.append(formatted)
+            
+            # Limit results
+            if len(filtered) >= int(limit):
+                break
+        
+        print(f"Filtered to {len(filtered)} stations from backup database")
+        return filtered
+    except Exception as e:
+        print(f"Error filtering backup stations: {e}")
+        return []
+
+@app.route('/api/radio/backup/download', methods=['POST'])
+def download_radio_backup():
+    """Download the latest radio browser backup database."""
+    try:
+        print(f"Downloading radio backup database from {BACKUP_DB_URL}")
+        
+        response = requests.get(BACKUP_DB_URL, timeout=60, stream=True)
+        
+        if response.status_code == 200:
+            # Save to file
+            with open(BACKUP_DB_FILE, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            
+            file_size_mb = os.path.getsize(BACKUP_DB_FILE) / (1024 * 1024)
+            print(f"Downloaded backup database: {file_size_mb:.1f} MB")
+            
+            # Test loading it
+            stations = load_backup_database()
+            if stations:
+                return jsonify({
+                    'status': 'success',
+                    'message': f'Downloaded backup with {len(stations)} stations',
+                    'size_mb': round(file_size_mb, 1),
+                    'stations_count': len(stations)
+                })
+            else:
+                return jsonify({'status': 'error', 'message': 'Downloaded but failed to parse'}), 500
+        else:
+            return jsonify({'status': 'error', 'message': f'Download failed: HTTP {response.status_code}'}), 500
+            
+    except Exception as e:
+        print(f"Error downloading backup: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/radio/backup/status', methods=['GET'])
+def get_backup_status():
+    """Check if backup database exists and get its info."""
+    try:
+        if os.path.exists(BACKUP_DB_FILE):
+            import time
+            file_age_days = (time.time() - os.path.getmtime(BACKUP_DB_FILE)) / 86400
+            file_size_mb = os.path.getsize(BACKUP_DB_FILE) / (1024 * 1024)
+            
+            # Try to count stations
+            stations = load_backup_database()
+            station_count = len(stations) if stations else 0
+            
+            return jsonify({
+                'exists': True,
+                'age_days': round(file_age_days, 1),
+                'size_mb': round(file_size_mb, 1),
+                'stations_count': station_count,
+                'file_path': BACKUP_DB_FILE
+            })
+        else:
+            return jsonify({
+                'exists': False,
+                'message': 'No backup database found. Click "Download Backup" to get one.'
+            })
+    except Exception as e:
+        return jsonify({'exists': False, 'error': str(e)}), 500
 
 @app.route('/api/radio/stations', methods=['GET'])
 def get_radio_stations():
@@ -2278,9 +2403,24 @@ def get_radio_stations():
                 last_error = str(e)
                 continue
         
-        # All servers failed
+        # All servers failed - try backup database as last resort
         print(f"All Radio Browser API servers failed. Last error: {last_error}")
-        return jsonify({'error': 'API servers unavailable', 'message': last_error}), 503
+        print("Attempting to use backup database...")
+        
+        backup_stations = load_backup_database()
+        if backup_stations:
+            # Filter the backup data
+            filtered = filter_backup_stations(backup_stations, country, name_search, limit)
+            if filtered:
+                # Cache the results
+                import time
+                radio_stations_cache[cache_key] = (filtered, time.time())
+                save_to_persistent_cache(cache_key, filtered)
+                print(f"Returned {len(filtered)} stations from backup database")
+                return jsonify(filtered)
+        
+        # No backup available either
+        return jsonify({'error': 'API servers unavailable and no backup database found', 'message': last_error}), 503
             
     except Exception as e:
         print(f"Radio station fetch error: {e}")

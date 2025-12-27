@@ -558,7 +558,27 @@
     <button onclick="refreshStations()" style="margin-left: 10px; padding: 8px 15px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;" title="Refresh station list from API">
         🔄 <span data-i18n="refresh">Refresh</span>
     </button>
+    <button onclick="showBackupDialog()" style="margin-left: 10px; padding: 8px 15px; background: #9b59b6; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;" title="Manage backup database">
+        💾 <span data-i18n="backup_db">Backup DB</span>
+    </button>
 </div>
+
+<!-- Backup Database Dialog -->
+<div id="backup-dialog" style="display:none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #34495e; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1001; max-width: 500px; width: 90%;">
+    <h3 style="margin-top:0; color: #ecf0f1;">📦 Radio Database Backup</h3>
+    <div id="backup-status" style="margin: 20px 0; padding: 15px; background: #2c3e50; border-radius: 8px; font-size: 0.9em;">
+        <div style="text-align: center;">🔄 Checking...</div>
+    </div>
+    <div style="text-align: center; margin-top: 20px;">
+        <button onclick="downloadBackup()" style="padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; font-size: 0.95em;">
+            ⬇️ Download Latest Backup
+        </button>
+        <button onclick="closeBackupDialog()" style="padding: 10px 20px; background: #7f8c8d; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; font-size: 0.95em;">
+            Close
+        </button>
+    </div>
+</div>
+<div id="backup-overlay" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000;" onclick="closeBackupDialog()"></div>
 
 <!-- Tabs -->
 <div class="radio-tabs">
@@ -979,6 +999,72 @@
         
         renderStations(favorites);
         container.innerHTML = document.getElementById('station-list').innerHTML;
+    }
+
+    // Backup database management
+    function showBackupDialog() {
+        document.getElementById('backup-dialog').style.display = 'block';
+        document.getElementById('backup-overlay').style.display = 'block';
+        checkBackupStatus();
+    }
+
+    function closeBackupDialog() {
+        document.getElementById('backup-dialog').style.display = 'none';
+        document.getElementById('backup-overlay').style.display = 'none';
+    }
+
+    function checkBackupStatus() {
+        const statusDiv = document.getElementById('backup-status');
+        statusDiv.innerHTML = '<div style="text-align: center;">🔄 Checking...</div>';
+        
+        fetch('/api/radio/backup/status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.exists) {
+                    statusDiv.innerHTML = `
+                        <div style="color: #2ecc71;">✅ Backup database available</div>
+                        <div style="margin-top: 10px; font-size: 0.85em; color: #bdc3c7;">
+                            <div>📊 Stations: ${data.stations_count.toLocaleString()}</div>
+                            <div>💾 Size: ${data.size_mb} MB</div>
+                            <div>📅 Age: ${data.age_days} days old</div>
+                            ${data.age_days > 7 ? '<div style="color: #e67e22; margin-top: 5px;">⚠️ Backup is older than 7 days. Consider updating.</div>' : ''}
+                        </div>
+                    `;
+                } else {
+                    statusDiv.innerHTML = `
+                        <div style="color: #e74c3c;">❌ No backup database found</div>
+                        <div style="margin-top: 10px; font-size: 0.85em; color: #bdc3c7;">
+                            Download a backup to enable offline radio station access when the API is down.
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                statusDiv.innerHTML = '<div style="color: #e74c3c;">❌ Error checking backup status</div>';
+                console.error('Backup status error:', error);
+            });
+    }
+
+    function downloadBackup() {
+        const statusDiv = document.getElementById('backup-status');
+        statusDiv.innerHTML = '<div style="text-align: center;">⏳ Downloading backup (~5.6 MB)...<br><small>This may take a minute</small></div>';
+        
+        fetch('/api/radio/backup/download', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast('✅ Backup downloaded successfully!', 'success', 3000);
+                    checkBackupStatus();
+                } else {
+                    showToast('❌ Download failed: ' + data.message, 'error', 5000);
+                    checkBackupStatus();
+                }
+            })
+            .catch(error => {
+                showToast('❌ Error downloading backup', 'error', 5000);
+                console.error('Download error:', error);
+                checkBackupStatus();
+            });
     }
 
     // Utility functions
