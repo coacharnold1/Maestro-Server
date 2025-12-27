@@ -318,6 +318,13 @@ function checkCDStatus() {
                 document.getElementById('cd-info').style.display = 'block';
                 document.getElementById('rip-options').style.display = 'block';
                 fetchCDInfo();
+                
+                // Stop polling once disc is detected and info is fetched
+                if (checkInterval) {
+                    console.log('Disc detected - stopping status polling');
+                    clearInterval(checkInterval);
+                    checkInterval = null;
+                }
             } else {
                 document.getElementById('disc-status').textContent = 
                     data.message || 'No disc detected';
@@ -346,12 +353,19 @@ function checkCDStatus() {
 }
 
 function fetchCDInfo() {
+    // Only fetch once per disc
+    if (window.cdMetadataLoaded) {
+        console.log('CD metadata already loaded - skipping fetch');
+        return;
+    }
+    
     fetch('/api/cd/info')
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 // Store metadata globally for editing
                 window.cdMetadata = data;
+                window.cdMetadataLoaded = true;  // Mark as loaded
                 
                 // Update display fields
                 document.getElementById('cd-artist-display').textContent = data.artist;

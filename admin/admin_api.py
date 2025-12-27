@@ -38,10 +38,13 @@ def run_command(command, require_sudo=False):
             # Use full path to sudo for systemd services
             command = ['/usr/bin/sudo'] + command if isinstance(command, list) else f'/usr/bin/sudo {command}'
         
-        # Use longer timeout for system updates, shorter for CD operations
+        # Use longer timeout for system updates
         if 'apt upgrade' in str(command) or 'pacman' in str(command):
             timeout = 300
-        elif any(cmd in str(command) for cmd in ['cd-discid', 'cdparanoia', 'abcde']):
+        # cd-discid needs time for drive spin-up (15s), abcde for ripping (no limit)
+        elif 'cd-discid' in str(command):
+            timeout = 15
+        elif 'cdparanoia' in str(command) or 'abcde' in str(command):
             timeout = 10
         else:
             timeout = 30
