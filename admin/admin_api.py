@@ -38,8 +38,13 @@ def run_command(command, require_sudo=False):
             # Use full path to sudo for systemd services
             command = ['/usr/bin/sudo'] + command if isinstance(command, list) else f'/usr/bin/sudo {command}'
         
-        # Use longer timeout for system updates and other long operations
-        timeout = 300 if 'apt upgrade' in str(command) or 'pacman' in str(command) else 30
+        # Use longer timeout for system updates, shorter for CD operations
+        if 'apt upgrade' in str(command) or 'pacman' in str(command):
+            timeout = 300
+        elif any(cmd in str(command) for cmd in ['cd-discid', 'cdparanoia', 'abcde']):
+            timeout = 10
+        else:
+            timeout = 30
         
         result = subprocess.run(
             command,
@@ -1394,11 +1399,24 @@ def get_cd_drives():
 def get_cd_status():
     """Check if CD is inserted and get basic info"""
     try:
-        # Use cdparanoia to detect if disc is present
-        result = run_command(['/usr/bin/cdparanoia', '-Q'])
+        # Use cd-discid which is faster and more reliable than cdparanoia
+        result = run_command(['/usr/bin/cd-discid', '/dev/cdrom'])
         
-        # Check if command executed (may have error key if failed)
-        if 'error' in result:
+        # Check if command executed successfully
+        if result.get('success') and result.get('stdout'):
+            # cd-discid output format: discid tracks offset1 offset2 ... length
+            # Example: 57094d07 7 150 19097 41265 58390 79150 142160 160602 2383
+            parts = result['stdout'].strip().split()
+            track_count = int(parts[1]) if len(parts) > 1 else 0
+            
+            return jsonify({
+                'success': True,
+                'disc_present': True,
+                'track_count': track_count,
+                'message': 'Disc detected'
+            })
+        else:
+            # No disc or error
             return jsonify({
                 'success': True,
                 'disc_present': False,
@@ -1406,26 +1424,6 @@ def get_cd_status():
                 'message': f"No disc in drive: {result.get('error', 'unknown')}"
             })
         
-        # cdparanoia exits with 0 if disc found, non-zero if no disc
-        disc_present = result.get('returncode') == 0
-        
-        # Get track count if disc is present
-        track_count = 0
-        if disc_present and result.get('stderr'):
-            # Parse cdparanoia output for track count
-            for line in result['stderr'].split('\n'):
-                if 'tracks:' in line.lower():
-                    try:
-                        track_count = int(line.split(':')[1].strip().split()[0])
-                    except:
-                        pass
-        
-        return jsonify({
-            'success': True,
-            'disc_present': disc_present,
-            'track_count': track_count,
-            'message': 'Disc detected' if disc_present else 'No disc in drive'
-        })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -1743,8 +1741,9 @@ def get_cd_info():
             'year': '',
             'genre': '',
             'tracks': [{'number': i+1, 'title': f'Track {i+1}'} for i in range(track_count)],
-            'disc_id': disc_id,
-            'message': 'No metadata found'
+            'disc_id': freedb_id,
+            'mb_disc_id': disc_id,
+            'message': 'No metadata found - you can edit the fields manually'
         })
         
     except Exception as e:
