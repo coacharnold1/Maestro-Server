@@ -1760,9 +1760,9 @@ def get_cd_info():
             import traceback
             traceback.print_exc()
         
-        # Final fallback: no metadata found
-        print(f"DEBUG: Using final fallback - no metadata found", flush=True)
-        return jsonify({
+        # Final fallback: Check for saved metadata before returning defaults
+        print(f"DEBUG: Using final fallback - checking for saved metadata", flush=True)
+        metadata = {
             'success': True,
             'artist': 'Unknown Artist',
             'album': 'Unknown Album',
@@ -1772,7 +1772,23 @@ def get_cd_info():
             'disc_id': freedb_id,
             'mb_disc_id': disc_id,
             'message': 'No metadata found - you can edit the fields manually'
-        })
+        }
+        
+        # Apply saved metadata if it exists (check both disc IDs)
+        if disc_id in cd_edited_metadata or freedb_id in cd_edited_metadata:
+            edited = cd_edited_metadata.get(disc_id) or cd_edited_metadata.get(freedb_id)
+            print(f"DEBUG: Found saved metadata: {edited}", flush=True)
+            metadata['artist'] = edited.get('artist', metadata['artist'])
+            metadata['album'] = edited.get('album', metadata['album'])
+            metadata['year'] = edited.get('year', metadata['year'])
+            metadata['genre'] = edited.get('genre', metadata['genre'])
+            if edited.get('tracks'):
+                metadata['tracks'] = edited['tracks']
+            metadata['message'] = 'Using saved metadata'
+        else:
+            print(f"DEBUG: No saved metadata found for IDs: {disc_id}, {freedb_id}", flush=True)
+        
+        return jsonify(metadata)
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
