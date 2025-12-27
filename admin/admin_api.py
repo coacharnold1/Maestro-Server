@@ -2515,6 +2515,101 @@ def update_streaming_config():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ============================================================================
+# STARTUP FUNCTIONS
+# ============================================================================
+
+def is_mounted(mount_point):
+    """Check if a mount point is already mounted."""
+    try:
+        with open('/proc/mounts', 'r') as f:
+            for line in f:
+                parts = line.split()
+                if len(parts) >= 2 and parts[1] == mount_point:
+                    return True
+        return False
+    except Exception as e:
+        print(f"[WARNING] Could not check mount status: {e}")
+        return False
+
+def restore_mounts_on_startup():
+    """Restore configured mounts on startup (only if not already mounted)."""
+    try:
+        if not MOUNTS_CONFIG.exists():
+            print("[INFO] No mount configuration found - skipping mount restoration")
+            return
+        
+        with open(MOUNTS_CONFIG, 'r') as f:
+            mounts = json.load(f)
+        
+        if not mounts:
+            print("[INFO] No mounts configured")
+            return
+        
+        print(f"[INFO] Found {len(mounts)} configured mount(s)")
+        
+        for mount in mounts:
+            mount_point = mount.get('mount_point')
+            name = mount.get('name', 'Unknown')
+            
+            if not mount_point:
+                continue
+            
+            # Check if already mounted (e.g., via /etc/fstab)
+            if is_mounted(mount_point):
+                print(f"[INFO] {name} already mounted at {mount_point} - skipping")
+                continue
+            
+            # Create mount point if it doesn't exist
+            try:
+                os.makedirs(mount_point, exist_ok=True)
+            except Exception as e:
+                print(f"[WARNING] Could not create mount point {mount_point}: {e}")
+                continue
+            
+            # Build mount command
+            mount_type = mount.get('type')
+            if mount_type == 'nfs':
+                server = mount.get('server')
+                share_path = mount.get('share_path')
+                nfs_opts = "auto,x-systemd.automount,x-systemd.requires=network-online.target,_netdev,ro,timeo=30,retrans=2,soft,nofail,intr"
+                cmd = f"/usr/bin/sudo mount -t nfs -o {nfs_opts} {server}:{share_path} {mount_point}"
+            elif mount_type == 'smb':
+                server = mount.get('server')
+                share_path = mount.get('share_path')
+                username = mount.get('username', '')
+                password = mount.get('password', '')
+                smb_opts = "auto,x-systemd.automount,x-systemd.requires=network-online.target,_netdev,nofail"
+                cmd = f"/usr/bin/sudo mount -t cifs //{server}/{share_path} {mount_point}"
+                if username:
+                    cmd += f" -o {smb_opts},username={username},password={password}"
+                else:
+                    cmd += f" -o {smb_opts}"
+            else:
+                print(f"[WARNING] Unknown mount type '{mount_type}' for {name}")
+                continue
+            
+            # Attempt to mount
+            try:
+                result = subprocess.run(
+                    cmd,
+                    shell=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                if result.returncode == 0:
+                    print(f"[SUCCESS] Mounted {name} at {mount_point}")
+                else:
+                    print(f"[WARNING] Failed to mount {name}: {result.stderr.strip()}")
+            except Exception as e:
+                print(f"[WARNING] Error mounting {name}: {e}")
+                
+    except Exception as e:
+        print(f"[ERROR] Mount restoration failed: {e}")
+        import traceback
+        traceback.print_exc()
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -2525,5 +2620,10 @@ if __name__ == '__main__':
     print(f"Running on: http://0.0.0.0:5004")
     print(f"Config directory: {CONFIG_DIR}")
     print("=" * 60)
+    
+    # Restore configured mounts on startup
+    print("\n[STARTUP] Checking for configured mounts...")
+    restore_mounts_on_startup()
+    print()
     
     socketio.run(app, host='0.0.0.0', port=5004, debug=True, allow_unsafe_werkzeug=True)
