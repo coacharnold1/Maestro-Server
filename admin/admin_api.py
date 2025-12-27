@@ -1808,14 +1808,24 @@ def rip_cd():
         
         # Get disc ID to check for edited metadata
         disc_id = None
+        mb_disc_id = None
         try:
-            result = run_command(['/usr/bin/cd-discid', '/dev/cdrom'])
-            if result['returncode'] == 0:
-                disc_info = result['stdout'].strip().split()
-                if len(disc_info) >= 1:
-                    disc_id = disc_info[0]
+            # Get both disc IDs
+            import discid
+            disc = discid.read('/dev/cdrom')
+            disc_id = disc.freedb_id  # FreeDB format (57094d07)
+            mb_disc_id = disc.id      # MusicBrainz format (tWav79XGJ8W8NjW5YUZ1LytISNQ-)
+            print(f"DEBUG: Rip - FreeDB ID: {disc_id}, MB ID: {mb_disc_id}", flush=True)
         except:
-            pass
+            # Fallback to cd-discid if discid library fails
+            try:
+                result = run_command(['/usr/bin/cd-discid', '/dev/cdrom'])
+                if result['returncode'] == 0:
+                    disc_info = result['stdout'].strip().split()
+                    if len(disc_info) >= 1:
+                        disc_id = disc_info[0]
+            except:
+                pass
         
         # Start ripping in background thread
         def rip_thread():
@@ -1888,12 +1898,14 @@ def rip_cd():
                     f.write(f'''OUTPUTTYPE="{output_format}"\n''')
                     f.write(f'''OUTPUTFORMAT='${{ARTISTFILE}} - ${{ALBUMFILE}} (${{CDYEAR}})/${{TRACKNUM}} - ${{TRACKFILE}}'\n''')
                     f.write(f'''VAOUTPUTFORMAT='Various Artists - ${{ALBUMFILE}} (${{CDYEAR}})/${{TRACKNUM}} - ${{ARTISTFILE}} - ${{TRACKFILE}}'\n''')
-                    # Only use MusicBrainz if no custom metadata exists
-                    if disc_id and disc_id in cd_edited_metadata:
+                    # Only use MusicBrainz if no custom metadata exists (check both disc IDs)
+                    has_custom_metadata = (disc_id and disc_id in cd_edited_metadata) or (mb_disc_id and mb_disc_id in cd_edited_metadata)
+                    if has_custom_metadata:
                         f.write(f'''CDDBMETHOD=none\n''')
                         print(f"DEBUG: Using custom metadata - disabled MusicBrainz lookup", flush=True)
                     else:
                         f.write(f'''CDDBMETHOD=musicbrainz\n''')
+                        print(f"DEBUG: No custom metadata found - using MusicBrainz", flush=True)
                     f.write(f'''MAXPROCS={cd_settings.get('max_processes', 4)}\n''')
                     
                     # Build ACTIONS based on album art preferences
