@@ -1263,8 +1263,30 @@ cd_metadata_cache = {
     'timestamp': 0
 }
 
-# Storage for edited metadata
-cd_edited_metadata = {}
+# Storage for edited metadata (persisted to disk)
+CD_METADATA_FILE = '/home/fausto/maestro/admin/cd_metadata.json'
+
+def load_cd_metadata():
+    """Load saved CD metadata from disk"""
+    try:
+        if os.path.exists(CD_METADATA_FILE):
+            with open(CD_METADATA_FILE, 'r') as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"Error loading CD metadata: {e}", flush=True)
+    return {}
+
+def save_cd_metadata(metadata_dict):
+    """Save CD metadata to disk"""
+    try:
+        os.makedirs(os.path.dirname(CD_METADATA_FILE), exist_ok=True)
+        with open(CD_METADATA_FILE, 'w') as f:
+            json.dump(metadata_dict, f, indent=2)
+        print(f"DEBUG: Saved metadata to {CD_METADATA_FILE}", flush=True)
+    except Exception as e:
+        print(f"Error saving CD metadata: {e}", flush=True)
+
+cd_edited_metadata = load_cd_metadata()
 
 # Global rip status
 rip_status = {
@@ -1431,7 +1453,7 @@ def get_cd_status():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/cd/metadata', methods=['POST'])
-def save_cd_metadata():
+def save_cd_metadata_route():
     """Save edited CD metadata"""
     global cd_edited_metadata
     try:
@@ -1451,6 +1473,9 @@ def save_cd_metadata():
         }
         
         print(f"DEBUG: Saved edited metadata for disc {disc_id}: {cd_edited_metadata[disc_id]}", flush=True)
+        
+        # Persist to disk
+        save_cd_metadata(cd_edited_metadata)
         
         return jsonify({'success': True, 'message': 'Metadata saved'})
     except Exception as e:
@@ -1863,7 +1888,12 @@ def rip_cd():
                     f.write(f'''OUTPUTTYPE="{output_format}"\n''')
                     f.write(f'''OUTPUTFORMAT='${{ARTISTFILE}} - ${{ALBUMFILE}} (${{CDYEAR}})/${{TRACKNUM}} - ${{TRACKFILE}}'\n''')
                     f.write(f'''VAOUTPUTFORMAT='Various Artists - ${{ALBUMFILE}} (${{CDYEAR}})/${{TRACKNUM}} - ${{ARTISTFILE}} - ${{TRACKFILE}}'\n''')
-                    f.write(f'''CDDBMETHOD=musicbrainz\n''')
+                    # Only use MusicBrainz if no custom metadata exists
+                    if disc_id and disc_id in cd_edited_metadata:
+                        f.write(f'''CDDBMETHOD=none\n''')
+                        print(f"DEBUG: Using custom metadata - disabled MusicBrainz lookup", flush=True)
+                    else:
+                        f.write(f'''CDDBMETHOD=musicbrainz\n''')
                     f.write(f'''MAXPROCS={cd_settings.get('max_processes', 4)}\n''')
                     
                     # Build ACTIONS based on album art preferences
@@ -1960,17 +1990,18 @@ def rip_cd():
                     all_output.append(line)
                     print(f"ABCDE: {line.rstrip()}", flush=True)
                     
-                    if 'track' in line.lower():
-                        # Try to extract track number
+                    # Look specifically for "Grabbing track X" which indicates ripping progress
+                    if 'grabbing track' in line.lower():
                         import re
-                        match = re.search(r'track[\s:]*?(\d+)', line, re.IGNORECASE)
+                        match = re.search(r'grabbing track[\s:]*?(\d+)', line, re.IGNORECASE)
                         if match:
                             track_num = int(match.group(1))
                             rip_status['current_track'] = track_num
                             rip_status['status'] = f'Ripping track {track_num}...'
-                            # Estimate progress (rough)
+                            # Estimate progress
                             if rip_status['total_tracks'] > 0:
                                 rip_status['progress'] = int((track_num / rip_status['total_tracks']) * 100)
+                            print(f"DEBUG: Progress updated - track {track_num} of {rip_status['total_tracks']}", flush=True)
                 
                 process.wait()
                 
@@ -2044,7 +2075,9 @@ def rip_cd():
             result = run_command(['/usr/bin/cd-discid', '/dev/cdrom'])
             if result['returncode'] == 0:
                 disc_info = result['stdout'].strip().split()
-                rip_status['total_tracks'] = len(disc_info) - 2
+                # cd-discid format: discid tracks offset1 offset2 ... length
+                # So disc_info[1] is the track count
+                rip_status['total_tracks'] = int(disc_info[1]) if len(disc_info) > 1 else 0
         except:
             rip_status['total_tracks'] = 0
         
