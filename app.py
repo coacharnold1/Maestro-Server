@@ -2980,11 +2980,16 @@ def add_album_to_playlist():
                 if disc_structure and disc_num in disc_structure:
                     songs = disc_structure[disc_num]
                     print(f"[DISC] Adding only Disc {disc_num} with {len(songs)} tracks", flush=True)
+                elif not disc_structure:
+                    # No disc structure detected - this shouldn't happen if display shows discs
+                    # but add all songs as fallback
+                    print(f"[DISC] WARNING: No disc structure found when adding Disc {disc_num}, adding all {len(songs)} songs", flush=True)
                 else:
-                    print(f"[DISC] ERROR: Disc {disc_number} not found in album structure", flush=True)
+                    # Disc structure exists but requested disc not in it
+                    print(f"[DISC] ERROR: Disc {disc_number} not found. Available: {sorted(disc_structure.keys())}", flush=True)
                     client.disconnect()
                     if request.is_json:
-                        return jsonify({'status': 'error', 'message': f'Disc {disc_number} not found'}), 404
+                        return jsonify({'status': 'error', 'message': f'Disc {disc_number} not found. Available discs: {sorted(disc_structure.keys())}'}), 404
                     return redirect(url_for('index'))
             else:
                 # No specific disc requested - add all tracks
@@ -3112,10 +3117,15 @@ def clear_and_add_album():
                 if disc_structure and disc_num in disc_structure:
                     songs = disc_structure[disc_num]
                     print(f"[DISC] Clear+Add - Adding only Disc {disc_num} with {len(songs)} tracks", flush=True)
+                elif not disc_structure:
+                    # No disc structure detected - add all songs as fallback
+                    print(f"[DISC] Clear+Add - WARNING: No disc structure found, adding all {len(songs)} songs", flush=True)
                 else:
+                    # Disc structure exists but requested disc not in it
+                    print(f"[DISC] Clear+Add - ERROR: Disc {disc_number} not found. Available: {sorted(disc_structure.keys())}", flush=True)
                     client.disconnect()
                     if request.is_json:
-                        return jsonify({'status': 'error', 'message': f'Disc {disc_number} not found'}), 404
+                        return jsonify({'status': 'error', 'message': f'Disc {disc_number} not found. Available discs: {sorted(disc_structure.keys())}'}), 404
                     return redirect(url_for('index'))
             
             # Add all songs to playlist
