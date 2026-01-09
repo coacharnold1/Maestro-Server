@@ -51,7 +51,11 @@
 
         /* Navigation Links */
         .nav-links {
-            text-align: center;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
             margin-bottom: 20px;
         }
 
@@ -59,7 +63,7 @@
         .nav-links button {
             color: #3498db;
             text-decoration: none;
-            margin: 0 6px 5px 6px;
+            margin: 0;
             padding: 6px 12px;
             border: 1px solid #3498db;
             border-radius: 5px;
@@ -68,6 +72,7 @@
             cursor: pointer;
             font-size: 13px;
             display: inline-block;
+            white-space: nowrap;
         }
 
         .nav-links a:hover,
