@@ -2972,7 +2972,16 @@ def add_album_to_playlist():
             # Note: File paths already include Disc XX/ directories on disk, 
             # so we don't need to adjust paths - just detect for metadata purposes
             # ========================================================================
+            print(f"[DEBUG] Found {len(songs)} total songs before disc detection", flush=True)
+            if songs and len(songs) > 0:
+                # Print first song's disc metadata for debugging
+                print(f"[DEBUG] Sample song: disc={songs[0].get('disc', 'NONE')}, file={songs[0].get('file', 'NONE')}", flush=True)
+            
             disc_structure = organize_album_by_disc(songs)
+            if disc_structure:
+                print(f"[DEBUG] Disc structure found: {list(disc_structure.keys())} with {sum(len(v) for v in disc_structure.values())} total tracks", flush=True)
+            else:
+                print(f"[DEBUG] No disc structure detected (organize_album_by_disc returned None)", flush=True)
                 
             if disc_number:
                 # User requested a specific disc - only add that disc
