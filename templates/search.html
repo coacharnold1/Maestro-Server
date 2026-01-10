@@ -50,6 +50,27 @@
             filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
         }
 
+        /* Now Playing Bar */
+        .now-playing-bar {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            border: 1px solid #4a6279;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin: 15px 0;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+        }
+        .now-playing-bar .label { font-size: 0.8em; color: #95a5a6; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 1px; }
+        .now-playing-bar .info { font-size: 1.1em; color: #ecf0f1; font-weight: 500; }
+        .now-playing-bar .artist { color: #27ae60; }
+        .now-playing-bar .separator { color: #7f8c8d; margin: 0 8px; }
+        .now-playing-bar .track { color: #3498db; }
+        .now-playing-bar .album { color: #e67e22; }
+        @media (max-width: 600px) {
+            .now-playing-bar .info { font-size: 0.9em; }
+            .now-playing-bar .separator { margin: 0 4px; }
+        }
+
         .nav-links {
             text-align: center;
             margin: 20px 0;
@@ -388,6 +409,7 @@
             border-color: #6a4c93 !important;
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 </head>
 
@@ -395,7 +417,19 @@
     <div class="container">
         <!-- Logo -->
         <div class="logo-container">
-            <img src="/static/logo.svg" alt="Maestro MPD Control" onerror="this.style.display='none'">
+            <img id="maestro-logo-search" src="/static/logo.svg" alt="Maestro MPD Control" onerror="this.style.display='none'">
+        </div>
+
+        <!-- Now Playing Bar -->
+        <div class="now-playing-bar" id="now-playing-bar" style="display: none;">
+            <div class="label">♪ Now Playing</div>
+            <div class="info">
+                <span class="artist" id="np-artist">-</span>
+                <span class="separator">•</span>
+                <span class="album" id="np-album">-</span>
+                <span class="separator">•</span>
+                <span class="track" id="np-track">-</span>
+            </div>
         </div>
 
         <!-- Navigation Links -->
@@ -465,6 +499,56 @@
 
         // Auto-populate search form from URL parameters and auto-submit
         document.addEventListener('DOMContentLoaded', function() {
+            // SocketIO setup for now playing bar
+            const socket = io();
+            const nowPlayingBar = document.getElementById('now-playing-bar');
+            const npArtist = document.getElementById('np-artist');
+            const npAlbum = document.getElementById('np-album');
+            const npTrack = document.getElementById('np-track');
+            const maestroLogo = document.getElementById('maestro-logo-search');
+
+            // Update now playing bar with MPD status
+            socket.on('mpd_status', function(data) {
+                if (data.state === 'play' || data.state === 'pause') {
+                    if (data.artist && data.artist !== 'N/A' && data.song_title && data.song_title !== 'N/A') {
+                        nowPlayingBar.style.display = 'block';
+                        npArtist.textContent = data.artist;
+                        npAlbum.textContent = data.album || 'Unknown Album';
+                        npTrack.textContent = data.song_title;
+                    } else {
+                        nowPlayingBar.style.display = 'none';
+                    }
+                    if (maestroLogo) {
+                        maestroLogo.src = data.state === 'play' ? "/static/logo.svg" : "/static/logo-static.svg";
+                    }
+                } else {
+                    nowPlayingBar.style.display = 'none';
+                    if (maestroLogo) maestroLogo.src = "/static/logo-static.svg";
+                }
+            });
+
+            // Fetch initial state to set logo correctly on page load
+            fetch('/api/version')
+                .then(() => fetch('/get_mpd_status'))
+                .then(r => r.json())
+                .then(data => {
+                    if (maestroLogo && data.state === 'play') {
+                        maestroLogo.src = "/static/logo.svg";
+                    } else if (maestroLogo) {
+                        maestroLogo.src = "/static/logo-static.svg";
+                    }
+                    if (data.state === 'play' || data.state === 'pause') {
+                        if (data.artist && data.artist !== 'N/A' && data.song_title && data.song_title !== 'N/A') {
+                            nowPlayingBar.style.display = 'block';
+                            npArtist.textContent = data.artist;
+                            npAlbum.textContent = data.album || 'Unknown Album';
+                            npTrack.textContent = data.song_title;
+                        }
+                    }
+                })
+                .catch(err => console.error('Error fetching initial state:', err));
+
+            // Form auto-populate
             const urlParams = new URLSearchParams(window.location.search);
             const query = urlParams.get('query');
             const type = urlParams.get('type');

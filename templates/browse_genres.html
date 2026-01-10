@@ -42,6 +42,27 @@
             filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
         }
 
+        /* Now Playing Bar */
+        .now-playing-bar {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            border: 1px solid #4a6279;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin: 15px 0;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+        }
+        .now-playing-bar .label { font-size: 0.8em; color: #95a5a6; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 1px; }
+        .now-playing-bar .info { font-size: 1.1em; color: #ecf0f1; font-weight: 500; }
+        .now-playing-bar .artist { color: #27ae60; }
+        .now-playing-bar .separator { color: #7f8c8d; margin: 0 8px; }
+        .now-playing-bar .track { color: #3498db; }
+        .now-playing-bar .album { color: #e67e22; }
+        @media (max-width: 600px) {
+            .now-playing-bar .info { font-size: 0.9em; }
+            .now-playing-bar .separator { margin: 0 4px; }
+        }
+
         /* Navigation Links */
         .nav-links {
             text-align: center;
@@ -462,13 +483,26 @@
             }
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
 </head>
 
 <body class="{{ app_theme }}">
     <div class="container">
         <!-- Animated SVG Logo -->
         <div class="logo-container">
-            <img src="{{ url_for('static', filename='logo.svg') }}" alt="Maestro MPD Control">
+            <img id="maestro-logo-genres" src="{{ url_for('static', filename='logo.svg') }}" alt="Maestro MPD Control">
+        </div>
+
+        <!-- Now Playing Bar -->
+        <div class="now-playing-bar" id="now-playing-bar" style="display: none;">
+            <div class="label">♪ Now Playing</div>
+            <div class="info">
+                <span class="artist" id="np-artist">-</span>
+                <span class="separator">•</span>
+                <span class="album" id="np-album">-</span>
+                <span class="separator">•</span>
+                <span class="track" id="np-track">-</span>
+            </div>
         </div>
 
         <h1>🎵 Browse Music by Genre</h1>
@@ -531,6 +565,55 @@
 
         // Load genres when page loads
         document.addEventListener('DOMContentLoaded', function () {
+            // SocketIO setup for now playing bar
+            const socket = io();
+            const nowPlayingBar = document.getElementById('now-playing-bar');
+            const npArtist = document.getElementById('np-artist');
+            const npAlbum = document.getElementById('np-album');
+            const npTrack = document.getElementById('np-track');
+            const maestroLogo = document.getElementById('maestro-logo-genres');
+
+            // Update now playing bar with MPD status
+            socket.on('mpd_status', function(data) {
+                if (data.state === 'play' || data.state === 'pause') {
+                    if (data.artist && data.artist !== 'N/A' && data.song_title && data.song_title !== 'N/A') {
+                        nowPlayingBar.style.display = 'block';
+                        npArtist.textContent = data.artist;
+                        npAlbum.textContent = data.album || 'Unknown Album';
+                        npTrack.textContent = data.song_title;
+                    } else {
+                        nowPlayingBar.style.display = 'none';
+                    }
+                    if (maestroLogo) {
+                        maestroLogo.src = data.state === 'play' ? "{{ url_for('static', filename='logo.svg') }}" : "{{ url_for('static', filename='logo-static.svg') }}";
+                    }
+                } else {
+                    nowPlayingBar.style.display = 'none';
+                    if (maestroLogo) maestroLogo.src = "{{ url_for('static', filename='logo-static.svg') }}";
+                }
+            });
+
+            // Fetch initial state to set logo correctly on page load
+            fetch('/api/version')
+                .then(() => fetch('/get_mpd_status'))
+                .then(r => r.json())
+                .then(data => {
+                    if (maestroLogo && data.state === 'play') {
+                        maestroLogo.src = "{{ url_for('static', filename='logo.svg') }}";
+                    } else if (maestroLogo) {
+                        maestroLogo.src = "{{ url_for('static', filename='logo-static.svg') }}";
+                    }
+                    if (data.state === 'play' || data.state === 'pause') {
+                        if (data.artist && data.artist !== 'N/A' && data.song_title && data.song_title !== 'N/A') {
+                            nowPlayingBar.style.display = 'block';
+                            npArtist.textContent = data.artist;
+                            npAlbum.textContent = data.album || 'Unknown Album';
+                            npTrack.textContent = data.song_title;
+                        }
+                    }
+                })
+                .catch(err => console.error('Error fetching initial state:', err));
+
             loadGenres();
         });
 

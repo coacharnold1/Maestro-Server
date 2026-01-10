@@ -965,9 +965,9 @@
 
 <body class="{{ app_theme }}">
     <div class="container">
-        <!-- Animated SVG Logo -->
+        <!-- Animated SVG Logo - switches based on playback state -->
         <div class="logo-container" style="text-align: center; margin-bottom: 20px;">
-            <img src="{{ url_for('static', filename='logo.svg') }}" alt="Maestro MPD Control"
+            <img id="maestro-logo" src="{{ url_for('static', filename='logo.svg') }}" alt="Maestro MPD Control"
                 style="max-width: 600px; width: 100%; height: auto;">
         </div>
 
@@ -1183,6 +1183,7 @@
             const albumArtImg = document.getElementById('album-art-img');
             const albumArtContainer = document.getElementById('album-art-container');
             const songProgressBar = document.getElementById('song-progress-bar');
+            const maestroLogo = document.getElementById('maestro-logo');
             messageArea = document.getElementById('message-area'); // Message area element (initialize global variable)
 
             // Initialize progress bar width from data attributes (avoids inline Jinja in style)
@@ -1327,6 +1328,17 @@
 
             // Function to update the UI with new MPD status data
             function updateUI(data) {
+                // Update logo based on playback state
+                if (maestroLogo) {
+                    if (data.state === 'play') {
+                        // Playing - use animated logo
+                        maestroLogo.src = "{{ url_for('static', filename='logo.svg') }}";
+                    } else {
+                        // Stopped, paused, or other - use static logo
+                        maestroLogo.src = "{{ url_for('static', filename='logo-static.svg') }}";
+                    }
+                }
+
                 // Update MPD State
                 mpdState.textContent = data.state;
                 mpdState.className = data.state === 'disconnected' || data.state === 'error' ? 'disconnected' : 'connected';
