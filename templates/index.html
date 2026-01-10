@@ -1485,6 +1485,24 @@
                 displayMessage(data.type, data.text); // Display message on UI
             });
 
+            // Fetch initial state to set logo correctly on page load
+            fetch('/api/version')
+                .then(() => fetch('/get_mpd_status'))
+                .then(r => r.json())
+                .then(data => {
+                    // Set initial logo based on current state
+                    if (maestroLogo) {
+                        if (data.state === 'play') {
+                            maestroLogo.src = "{{ url_for('static', filename='logo.svg') }}";
+                        } else {
+                            maestroLogo.src = "{{ url_for('static', filename='logo-static.svg') }}";
+                        }
+                    }
+                    // Update the full UI with initial state
+                    updateUI(data);
+                })
+                .catch(err => console.error('Error fetching initial state:', err));
+
 
             // Volume slider event listener
             // volumeSlider event listeners removed due to missing element
