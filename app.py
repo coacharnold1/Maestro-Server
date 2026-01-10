@@ -1,8 +1,8 @@
 print("[DEBUG] app.py loaded and running", flush=True)
 
 # Application version information
-APP_VERSION = "2.4.1"
-APP_BUILD_DATE = "2025-12-26" 
+APP_VERSION = "2.5.0"
+APP_BUILD_DATE = "2026-01-10" 
 APP_NAME = "Maestro MPD Server"
 
 # Simple threading mode to avoid eventlet issues
@@ -1484,6 +1484,128 @@ def index():
                          mpd_info=mpd_info, 
                          album_art_url=album_art_url,
                          maestro_config_url=app.config.get('MAESTRO_CONFIG_URL', ''))
+
+@app.route('/album_art_view')
+def album_art_view():
+    """Full-screen album art view page."""
+    mpd_info = get_mpd_status_for_display()
+    if mpd_info is None:
+        mpd_info = last_mpd_status if last_mpd_status else {
+            'state': 'unknown',
+            'artist': 'Unknown Artist',
+            'album': 'Unknown Album',
+            'song_file': ''
+        }
+    
+    album_art_url = url_for('get_album_art', 
+                            song_file=mpd_info.get('song_file', ''),
+                            artist=mpd_info.get('artist', ''),
+                            album=mpd_info.get('album', ''),
+                            prefer_lastfm='true')
+    
+    return render_template('album_art_view.html',
+                         artist=mpd_info.get('artist', 'Unknown Artist'),
+                         album=mpd_info.get('album', 'Unknown Album'),
+                         album_art_url=album_art_url,
+                         lastfm_configured=bool(LASTFM_API_KEY))
+
+@app.route('/api/artist_images')
+def get_artist_images():
+    """Fetch album covers from local database first, then LastFM top albums for collage."""
+    artist = request.args.get('artist', '')
+    
+    if not artist:
+        return jsonify({'albums': []})
+    
+    try:
+        albums = []
+        
+        # First, search local MPD database for albums by this artist
+        client = connect_mpd_client()
+        if client:
+            try:
+                # Search for albums containing the artist name (catches collaborations)
+                all_albums = client.list('album', 'artist', artist)
+                
+                # Also search for albums where artist appears anywhere in the artist field
+                # This catches "Artist1 & Artist2" type collaborations
+                all_songs = client.search('artist', artist)
+                
+                # Collect unique album/artist combinations
+                local_albums = {}
+                
+                # From direct artist match
+                for album in all_albums:
+                    if album:
+                        key = f"{artist}|||{album}"
+                        if key not in local_albums:
+                            local_albums[key] = {
+                                'artist': artist,
+                                'album': album,
+                                'local': True
+                            }
+                
+                # From song search (catches collaborations)
+                for song in all_songs:
+                    song_artist = song.get('artist', '')
+                    song_album = song.get('album', '')
+                    if song_album:
+                        key = f"{song_artist}|||{song_album}"
+                        if key not in local_albums:
+                            local_albums[key] = {
+                                'artist': song_artist,
+                                'album': song_album,
+                                'local': True,
+                                'file': song.get('file', '')
+                            }
+                
+                # Add local albums to results (randomized selection)
+                import random
+                local_albums_list = list(local_albums.values())
+                random.shuffle(local_albums_list)  # Randomize so you see different albums each time
+                albums.extend(local_albums_list[:8])  # Limit to 8
+                print(f"Found {len(local_albums_list)} local albums for {artist}, showing 8 random ones")
+                
+                client.disconnect()
+            except Exception as e:
+                print(f"Error searching MPD for albums: {e}")
+                if client:
+                    client.disconnect()
+        
+        # If we don't have enough images, fill with LastFM top albums
+        if len(albums) < 8 and LASTFM_API_KEY:
+            try:
+                params = {
+                    'method': 'artist.gettopalbums',
+                    'api_key': LASTFM_API_KEY,
+                    'artist': artist,
+                    'limit': 12,
+                    'format': 'json'
+                }
+                response = requests.get(LASTFM_API_URL, params=params, timeout=5)
+                response.raise_for_status()
+                data = response.json()
+                
+                if 'topalbums' in data and 'album' in data['topalbums']:
+                    for album_data in data['topalbums']['album']:
+                        if len(albums) >= 8:
+                            break
+                        album_name = album_data.get('name', '')
+                        if album_name:
+                            albums.append({
+                                'artist': artist,
+                                'album': album_name,
+                                'local': False
+                            })
+                
+                print(f"Added {len(albums)} total albums (including LastFM)")
+            except Exception as e:
+                print(f"Error fetching LastFM albums: {e}")
+        
+        return jsonify({'albums': albums})
+    except Exception as e:
+        print(f"Error in artist_images: {e}")
+        return jsonify({'albums': []})
 
 @app.route('/search', methods=['GET', 'POST'])
 def search():
@@ -3359,14 +3481,64 @@ def get_album_art():
     Prioritizes local files, then fetches from Last.fm if not found.
     For streams, attempts to fetch art via Last.fm track.getInfo.
     Supports 'size=thumb' parameter for 64x64px thumbnails.
+    HIGH-QUALITY MODE: If prefer_lastfm=true, tries LastFM first for best quality.
     """
     song_file = request.args.get('song_file', '') or request.args.get('file', '')
     artist = request.args.get('artist', '')
     album = request.args.get('album', '')
     size = request.args.get('size', 'full')  # 'full' or 'thumb'
+    prefer_lastfm = request.args.get('prefer_lastfm', 'false').lower() == 'true'  # High-quality mode
 
     # Detect if this is a stream
     is_stream = song_file and (song_file.startswith('http://') or song_file.startswith('https://'))
+    
+    # HIGH-QUALITY MODE: Try LastFM first if requested (for full-screen view)
+    if prefer_lastfm and not is_stream and artist and album and LASTFM_API_KEY:
+        print(f"[HIGH-QUALITY MODE] Trying LastFM first for {artist} - {album}")
+        try:
+            # Create cache key for high-quality images
+            cache_key = f"hq-{song_file}-{artist}-{album}" if song_file else f"hq-{artist}-{album}"
+            
+            cached_image_data = album_art_cache.get(cache_key)
+            if cached_image_data:
+                print(f"Serving high-quality album art from cache.")
+                return Response(cached_image_data['data'], mimetype=cached_image_data['mimetype'])
+            
+            params = {
+                'method': 'album.getinfo',
+                'api_key': LASTFM_API_KEY,
+                'artist': artist,
+                'album': album,
+                'format': 'json'
+            }
+            response = requests.get(LASTFM_API_URL, params=params, timeout=5)
+            response.raise_for_status()
+            data = response.json()
+
+            image_url = None
+            if 'album' in data and 'image' in data['album']:
+                for size_preference in ['mega', 'extralarge', 'large']:
+                    for img in data['album']['image']:
+                        if img.get('size') == size_preference and img.get('#text'):
+                            image_url = img['#text']
+                            print(f"[HIGH-QUALITY] Found {size_preference} size image")
+                            break
+                    if image_url:
+                        break
+
+            if image_url:
+                image_response = requests.get(image_url, timeout=5)
+                image_response.raise_for_status()
+                image_data = image_response.content
+                mimetype = image_response.headers.get('Content-Type', 'image/jpeg')
+                
+                album_art_cache[cache_key] = {'data': image_data, 'mimetype': mimetype}
+                print(f"[HIGH-QUALITY] Successfully fetched from LastFM")
+                return Response(image_data, mimetype=mimetype)
+            else:
+                print(f"[HIGH-QUALITY] No LastFM image found, falling back to local")
+        except Exception as e:
+            print(f"[HIGH-QUALITY] LastFM fetch failed: {e}, falling back to local")
 
     # 1. Try local album art first (skip for streams)
     if song_file and not is_stream:
@@ -3445,8 +3617,8 @@ def get_album_art():
 
                 image_url = None
                 if 'track' in data and 'album' in data['track'] and 'image' in data['track']['album']:
-                    # Find the highest quality image
-                    for size_preference in ['extralarge', 'large', 'medium']:
+                    # Find the highest quality image - mega is largest available from Last.fm
+                    for size_preference in ['mega', 'extralarge', 'large', 'medium']:
                         for img in data['track']['album']['image']:
                             if img.get('size') == size_preference and img.get('#text'):
                                 image_url = img['#text']

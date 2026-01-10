@@ -121,32 +121,30 @@
             margin-bottom: 10px;
         }
 
-        /* File path display */
-        .file-path-item {
-            font-size: 0.85em;
-            color: #95a5a6;
-            padding: 8px 10px;
-            background-color: rgba(0, 0, 0, 0.2);
-            border-radius: 4px;
+        /* File path button */
+        .file-path-button {
+            display: inline-block;
             margin: 8px 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
 
-        .file-path-item span:first-child {
-            color: #7f8c8d;
-            font-weight: bold;
-            min-width: 40px;
-            flex-shrink: 0;
+        .file-path-button button {
+            background-color: #34495e;
+            color: #95a5a6;
+            border: 1px solid #4a5f7f;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
-        .file-path-value {
-            flex: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            font-family: monospace;
+        .file-path-button button:hover {
+            background-color: #4a5f7f;
+            color: #ecf0f1;
+        }
+
+        .file-path-button button:active {
+            transform: translateY(1px);
         }
 
         /* Special styling for Up Next */
@@ -286,6 +284,30 @@
             text-align: center;
             margin: 15px auto;
             /* Added auto margins for centering */
+        }
+
+        .album-art a {
+            display: inline-block;
+            cursor: pointer;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+
+        .album-art a:hover {
+            transform: scale(1.02);
+            opacity: 0.9;
+        }
+
+        /* Disable album art link on mobile */
+        @media (max-width: 768px) {
+            .album-art a {
+                pointer-events: none;
+                cursor: default;
+            }
+
+            .album-art a:hover {
+                transform: none;
+                opacity: 1;
+            }
         }
 
         .album-art img {
@@ -1056,9 +1078,8 @@
                 <p class="status-item"><span>Format:</span> <span id="current-format">{% if mpd_info.get('file_format') or mpd_info.get('sample_rate') or mpd_info.get('bit_depth') %}{% if mpd_info.get('file_format') %}{{ mpd_info.get('file_format') }}{% endif %}{% if mpd_info.get('sample_rate') %}{% if mpd_info.get('file_format') %} • {% endif %}{{ (mpd_info.get('sample_rate') / 1000.0)|float|round(1, 'common') }} kHz{% endif %}{% if mpd_info.get('bit_depth') %}{% if mpd_info.get('file_format') or mpd_info.get('sample_rate') %} • {% endif %}{{ mpd_info.get('bit_depth') }}-bit{% endif %}{% else %}N/A{% endif %}</span></p>
                 <p class="status-item"><span>Playback:</span> <span id="playback-summary">Vol {{ mpd_info.volume }}% • {{ mpd_info.elapsed_time }} / {{ mpd_info.total_time }}</span></p>
             </div>
-            <div class="file-path-item">
-                <span>File:</span>
-                <span class="file-path-value" id="current-file-path" title="{{ mpd_info.get('file', 'N/A') }}">{{ mpd_info.get('file', 'N/A') }}</span>
+            <div class="file-path-button">
+                <button onclick="showFilePath()" title="Show file path">📁 Show File Path</button>
             </div>
             <p class="up-next-item"><span>Up Next:</span> <em><span id="up-next-artist"><a href="/search?query={{ mpd_info.next_song_artist|strip_location|urlencode }}&type=artist" style="color:#27ae60; text-decoration:underline;">{{ mpd_info.next_song_artist }}</a></span> - <span id="up-next-title">{{ mpd_info.next_song_title }}</span></em></p>
             {# Progress Bar - initial width moved to JS to avoid inline Jinja in style #}
@@ -1077,9 +1098,8 @@
                 <p class="status-item"><span>Format:</span> N/A</p>
                 <p class="status-item"><span>Playback:</span> Vol 0% • 00:00 / 00:00</p>
             </div>
-            <div class="file-path-item">
-                <span>File:</span>
-                <span class="file-path-value" id="current-file-path" title="N/A">N/A</span>
+            <div class="file-path-button">
+                <button onclick="showFilePath()" title="Show file path">📁 Show File Path</button>
             </div>
             <p class="up-next-item"><span>Up Next:</span> <em>N/A</em></p>
             <div class="progress-container">
@@ -1090,7 +1110,9 @@
 
         {# Album Art Display - now uses album_art_url from Flask context #}
         <div class="album-art" id="album-art-container">
-            <img id="album-art-img" src="{{ album_art_url }}" alt="Album Art">
+            <a href="#" onclick="window.open('/album_art_view', '_blank'); return false;" id="album-art-link" title="Click to view full size">
+                <img id="album-art-img" src="{{ album_art_url }}" alt="Album Art">
+            </a>
         </div>
 
         <div class="controls">
@@ -1216,6 +1238,15 @@
         let messageTimeout = null;
         let currentFilePath = '';
 
+        // Show file path in alert popup
+        function showFilePath() {
+            if (currentFilePath && currentFilePath !== 'N/A') {
+                alert('File Path:\n\n' + currentFilePath);
+            } else {
+                alert('No file path available');
+            }
+        }
+
         function displayMessage(type, text) {
             if (!messageArea) {
                 console.error('displayMessage: messageArea not initialized');
@@ -1251,7 +1282,6 @@
             const currentFormatSpan = document.getElementById('current-format');
             const upNextArtistSpan = document.getElementById('up-next-artist');
             const upNextTitleSpan = document.getElementById('up-next-title');
-            const currentFilePathSpan = document.getElementById('current-file-path');
             const playbackSummarySpan = document.getElementById('playback-summary');
             const volumePercentageDisplay = document.getElementById('volume-percentage-display');
             const muteBtn = document.getElementById('mute-btn');
@@ -1504,11 +1534,9 @@
                     if (upNextTitleSpan && typeof data.next_song_title !== 'undefined') {
                         upNextTitleSpan.textContent = data.next_song_title;
                     }
-                    // Update file path
-                    if (currentFilePathSpan && typeof data.file !== 'undefined') {
+                    // Update file path variable
+                    if (typeof data.file !== 'undefined') {
                         currentFilePath = data.file || 'N/A';
-                        currentFilePathSpan.textContent = currentFilePath;
-                        currentFilePathSpan.title = currentFilePath;
                     }
 
                 } else {
@@ -1536,11 +1564,7 @@
                     crossfadeCheckbox.checked = false;
                     if (upNextArtistSpan) upNextArtistSpan.innerHTML = 'N/A';
                     if (upNextTitleSpan) upNextTitleSpan.textContent = 'N/A';
-                    if (currentFilePathSpan) {
-                        currentFilePath = 'N/A';
-                        currentFilePathSpan.textContent = 'N/A';
-                        currentFilePathSpan.title = 'N/A';
-                    }
+                    currentFilePath = 'N/A';
                 }
             }
 

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ artist }} - {{ album }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #000000;
+            color: #ecf0f1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow: auto;
+        }
+
+        .collage-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 15px;
+            max-width: 95vw;
+            max-height: 85vh;
+            width: 900px;
+            height: 900px;
+        }
+
+        .collage-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            background: #1a1a1a;
+        }
+
+        .collage-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            transition: opacity 0.5s ease-in;
+        }
+
+        .collage-item img.loaded {
+            opacity: 1;
+        }
+
+        /* Center item is the album art - takes up middle space */
+        .album-center {
+            grid-column: 2 / 3;
+            grid-row: 2 / 3;
+            border: 3px solid #3498db;
+            box-shadow: 0 10px 40px rgba(52, 152, 219, 0.5);
+            z-index: 10;
+        }
+
+        .album-center img {
+            object-fit: contain;
+            background: #2c3e50;
+        }
+
+        /* Artist photos in corners and sides */
+        .artist-photo {
+            border: 2px solid #34495e;
+            opacity: 0.85;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .artist-photo:hover {
+            opacity: 1;
+            transform: scale(1.05);
+            border-color: #3498db;
+            z-index: 5;
+        }
+
+        .artist-photo img {
+            filter: brightness(0.7);
+            transition: filter 0.3s ease;
+        }
+
+        .artist-photo:hover img {
+            filter: brightness(1);
+        }
+
+        .album-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px;
+            font-size: 0.75em;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .artist-photo:hover .album-label {
+            opacity: 1;
+        }
+
+        .art-info {
+            text-align: center;
+            background: rgba(44, 62, 80, 0.9);
+            padding: 20px 30px;
+            border-radius: 10px;
+            max-width: 800px;
+            margin-top: 20px;
+        }
+
+        .art-info h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #3498db, #e74c3c, #f39c12);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 3s ease-in-out infinite;
+        }
+
+        .art-info h2 {
+            font-size: 1.5em;
+            color: #95a5a6;
+            font-weight: normal;
+        }
+
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        .close-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(231, 76, 60, 0.9);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-weight: bold;
+            transition: background 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        .close-btn:hover {
+            background: rgba(192, 57, 43, 1);
+            transform: translateY(-1px);
+        }
+
+        .close-btn:active {
+            transform: translateY(0);
+        }
+
+        @media (max-width: 768px) {
+            .collage-container {
+                width: 90vw;
+                height: 90vw;
+                max-height: 90vh;
+            }
+
+            .art-info h1 {
+                font-size: 1.5em;
+            }
+            .art-info h2 {
+                font-size: 1.2em;
+            }
+        }
+    </style>
+    <script>
+        function closeWindow() {
+            window.close();
+            setTimeout(function() {
+                alert('Please close this tab manually (Ctrl+W or click the X)');
+            }, 100);
+        }
+
+        function loadImage(img) {
+            img.onload = function() {
+                img.classList.add('loaded');
+            };
+            if (img.complete) {
+                img.classList.add('loaded');
+            }
+        }
+
+        async function loadArtistPhotos() {
+            try {
+                const response = await fetch('/api/artist_images?artist=' + encodeURIComponent('{{ artist }}'));
+                const data = await response.json();
+                
+                if (data.albums && data.albums.length > 0) {
+                    const photoSlots = document.querySelectorAll('.artist-photo');
+                    
+                    photoSlots.forEach((slot, index) => {
+                        if (index < data.albums.length) {
+                            const album = data.albums[index];
+                            const img = slot.querySelector('img');
+                            
+                            // Get album art URL
+                            const artUrl = '/album_art?artist=' + encodeURIComponent(album.artist) + 
+                                          '&album=' + encodeURIComponent(album.album) +
+                                          (album.file ? '&file=' + encodeURIComponent(album.file) : '');
+                            
+                            img.src = artUrl;
+                            loadImage(img);
+                            
+                            // Add album label
+                            const label = document.createElement('div');
+                            label.className = 'album-label';
+                            label.textContent = album.album;
+                            slot.appendChild(label);
+                            
+                            // Make clickable - opens search for this album
+                            slot.style.cursor = 'pointer';
+                            slot.onclick = function() {
+                                const searchUrl = '/search?query=' + encodeURIComponent(album.album) + '&type=album';
+                                window.opener.location.href = searchUrl;
+                                window.close();  // Close this tab after opening search
+                            };
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading artist photos:', error);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load album art
+            const albumImg = document.querySelector('.album-center img');
+            loadImage(albumImg);
+            
+            // Load artist photos if LastFM is configured
+            loadArtistPhotos();
+        });
+    </script>
+</head>
+<body>
+    <button class="close-btn" onclick="closeWindow()">✕ Close</button>
+    
+    <div class="collage-container">
+        <!-- Top row -->
+        <div class="collage-item artist-photo"><img src="" alt="Artist"></div>
+        <div class="collage-item artist-photo"><img src="" alt="Artist"></div>
+        <div class="collage-item artist-photo"><img src="" alt="Artist"></div>
+        
+        <!-- Middle row -->
+        <div class="collage-item artist-photo"><img src="" alt="Artist"></div>
+        <div class="collage-item album-center"><img src="{{ album_art_url }}" alt="Album Art"></div>
+        <div class="collage-item artist-photo"><img src="" alt="Artist"></div>
+        
+        <!-- Bottom row -->
+        <div class="collage-item artist-photo"><img src="" alt="Artist"></div>
+        <div class="collage-item artist-photo"><img src="" alt="Artist"></div>
+        <div class="collage-item artist-photo"><img src="" alt="Artist"></div>
+    </div>
+    
+    <div class="art-info">
+        <h2>{{ artist }}</h2>
+        <h1>{{ album }}</h1>
+    </div>
+</body>
+</html>
