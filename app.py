@@ -1531,32 +1531,22 @@ def get_artist_images():
                 # This catches "Artist1 & Artist2" type collaborations
                 all_songs = client.search('artist', artist)
                 
-                # Collect unique album/artist combinations
+                # Collect unique album/artist combinations with file paths
                 local_albums = {}
                 
-                # From direct artist match
-                for album in all_albums:
-                    if album:
-                        key = f"{artist}|||{album}"
-                        if key not in local_albums:
-                            local_albums[key] = {
-                                'artist': artist,
-                                'album': album,
-                                'local': True
-                            }
-                
-                # From song search (catches collaborations)
+                # From song search - this gives us file paths
                 for song in all_songs:
                     song_artist = song.get('artist', '')
                     song_album = song.get('album', '')
-                    if song_album:
+                    song_file = song.get('file', '')
+                    if song_album and song_file:
                         key = f"{song_artist}|||{song_album}"
                         if key not in local_albums:
                             local_albums[key] = {
                                 'artist': song_artist,
                                 'album': song_album,
                                 'local': True,
-                                'file': song.get('file', '')
+                                'file': song_file
                             }
                 
                 # Add local albums to results (randomized selection)
