@@ -195,7 +195,9 @@ echo -e "${GREEN}[3/6] Updating main application...${NC}"
 # Copy main app files
 sudo cp -r "$REPO_DIR/templates" "$INSTALL_DIR/"
 sudo cp -r "$REPO_DIR/templates" "$INSTALL_DIR/web/"
-sudo cp -r "$REPO_DIR/static" "$INSTALL_DIR/"
+# Use rsync to properly merge static directory contents
+sudo rsync -av "$REPO_DIR/static/" "$INSTALL_DIR/static/"
+sudo rsync -av "$REPO_DIR/static/" "$INSTALL_DIR/web/static/"
 sudo cp "$REPO_DIR/app.py" "$INSTALL_DIR/"
 sudo cp "$REPO_DIR/app.py" "$INSTALL_DIR/web/"
 sudo cp "$REPO_DIR/requirements.txt" "$INSTALL_DIR/"
