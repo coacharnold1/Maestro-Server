@@ -102,38 +102,64 @@
 
         .status-box {
             border: 1px solid #34495e;
-            padding: 15px;
-            /* Increased padding */
+            padding: 12px;
             border-radius: 8px;
             background-color: #34495e;
-            margin-bottom: 15px;
-            /* Increased margin */
+            margin-bottom: 12px;
+        }
+
+        .status-box h2 {
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        /* Two-column grid for status items on desktop */
+        .status-items-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 20px;
+            margin-bottom: 10px;
+        }
+
+        /* Special styling for Up Next */
+        .up-next-item {
+            text-align: center;
+            padding: 10px;
+            background-color: rgba(52, 152, 219, 0.1);
+            border-radius: 6px;
+            margin: 8px 0;
+            border-left: 3px solid #3498db;
+        }
+
+        .up-next-item span:first-child {
+            color: #3498db;
+            font-weight: bold;
+            margin-right: 8px;
         }
 
         .status-item {
-            margin-bottom: 5px;
-            /* Increased margin */
-            font-size: 1em;
-            /* Normal font size */
-            line-height: 1.4;
+            margin-bottom: 0;
+            font-size: 0.95em;
+            line-height: 1.3;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
             max-width: 100%;
         }
 
-        .status-item span {
+        .status-item span:first-child {
             font-weight: bold;
-            color: #bdc3c7;
+            color: #3498db;
+            margin-right: 8px;
+            min-width: 70px;
+            display: inline-block;
         }
         
         .status-item span:last-child {
-            display: inline-block;
-            max-width: 70%;
+            color: #ecf0f1;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            vertical-align: bottom;
         }
 
         .disconnected {
@@ -717,6 +743,12 @@
                 margin-bottom: 6px;
             }
 
+            /* Stack status items vertically on mobile */
+            .status-items-grid {
+                grid-template-columns: 1fr;
+                gap: 4px;
+            }
+
             .status-item {
                 font-size: 0.85em;
             }
@@ -982,18 +1014,21 @@
         </div>
 
         <div class="status-box">
+            <!-- Updated: Compact 2-column layout -->
             <h2>MPD Status: <span id="mpd-state"
                     class="{{ 'connected' if mpd_info.state != 'disconnected' else 'disconnected' }}">{{ mpd_info.state
                     }}</span></h2>
-            <p class="status-item"><span>Message:</span> <span id="mpd-message">{{ mpd_info.message }}</span></p>
+            <p class="status-item" style="margin-bottom: 8px;"><span>Message:</span> <span id="mpd-message">{{ mpd_info.message }}</span></p>
             {% if mpd_info.state != 'disconnected' and mpd_info.state != 'error' %}
-            <p class="status-item"><span>Artist:</span> <span id="current-artist"><a href="/search?query={{ mpd_info.artist|strip_location|urlencode }}&type=artist" style="color:#27ae60; text-decoration:underline;">{{ mpd_info.artist }}</a></span></p>
-            <p class="status-item"><span>Title:</span> <span id="current-title">{{ mpd_info.song_title }}</span></p>
-            <p class="status-item"><span>Album:</span> <span id="current-album">{{ mpd_info.album }}</span></p>
-            <p class="status-item"><span>Genre:</span> <span id="current-genre">{{ mpd_info.get('genre') if mpd_info.get('genre') else 'N/A' }}</span></p>
-            <p class="status-item"><span>Format:</span> <span id="current-format">{% if mpd_info.get('file_format') or mpd_info.get('sample_rate') or mpd_info.get('bit_depth') %}{% if mpd_info.get('file_format') %}{{ mpd_info.get('file_format') }}{% endif %}{% if mpd_info.get('sample_rate') %}{% if mpd_info.get('file_format') %} • {% endif %}{{ (mpd_info.get('sample_rate') / 1000.0)|float|round(1, 'common') }} kHz{% endif %}{% if mpd_info.get('bit_depth') %}{% if mpd_info.get('file_format') or mpd_info.get('sample_rate') %} • {% endif %}{{ mpd_info.get('bit_depth') }}-bit{% endif %}{% else %}N/A{% endif %}</span></p>
-            <p class="status-item"><span>Playback:</span> <span id="playback-summary">Vol {{ mpd_info.volume }}% • {{ mpd_info.elapsed_time }} / {{ mpd_info.total_time }}</span></p>
-            <p class="status-item"><span>Up Next:</span> <em><span id="up-next-artist"><a href="/search?query={{ mpd_info.next_song_artist|strip_location|urlencode }}&type=artist" style="color:#27ae60; text-decoration:underline;">{{ mpd_info.next_song_artist }}</a></span> - <span id="up-next-title">{{ mpd_info.next_song_title }}</span></em></p>
+            <div class="status-items-grid">
+                <p class="status-item"><span>Artist:</span> <span id="current-artist"><a href="/search?query={{ mpd_info.artist|strip_location|urlencode }}&type=artist" style="color:#27ae60; text-decoration:underline;">{{ mpd_info.artist }}</a></span></p>
+                <p class="status-item"><span>Title:</span> <span id="current-title">{{ mpd_info.song_title }}</span></p>
+                <p class="status-item"><span>Album:</span> <span id="current-album">{{ mpd_info.album }}</span></p>
+                <p class="status-item"><span>Genre:</span> <span id="current-genre">{{ mpd_info.get('genre') if mpd_info.get('genre') else 'N/A' }}</span></p>
+                <p class="status-item"><span>Format:</span> <span id="current-format">{% if mpd_info.get('file_format') or mpd_info.get('sample_rate') or mpd_info.get('bit_depth') %}{% if mpd_info.get('file_format') %}{{ mpd_info.get('file_format') }}{% endif %}{% if mpd_info.get('sample_rate') %}{% if mpd_info.get('file_format') %} • {% endif %}{{ (mpd_info.get('sample_rate') / 1000.0)|float|round(1, 'common') }} kHz{% endif %}{% if mpd_info.get('bit_depth') %}{% if mpd_info.get('file_format') or mpd_info.get('sample_rate') %} • {% endif %}{{ mpd_info.get('bit_depth') }}-bit{% endif %}{% else %}N/A{% endif %}</span></p>
+                <p class="status-item"><span>Playback:</span> <span id="playback-summary">Vol {{ mpd_info.volume }}% • {{ mpd_info.elapsed_time }} / {{ mpd_info.total_time }}</span></p>
+            </div>
+            <p class="up-next-item"><span>Up Next:</span> <em><span id="up-next-artist"><a href="/search?query={{ mpd_info.next_song_artist|strip_location|urlencode }}&type=artist" style="color:#27ae60; text-decoration:underline;">{{ mpd_info.next_song_artist }}</a></span> - <span id="up-next-title">{{ mpd_info.next_song_title }}</span></em></p>
             {# Progress Bar - initial width moved to JS to avoid inline Jinja in style #}
             <div class="progress-container">
                 <div class="progress-bar" id="song-progress-bar"
@@ -1002,13 +1037,15 @@
                 </div>
             </div>
             {% else %}
-            <p class="status-item"><span>Artist:</span> N/A</p>
-            <p class="status-item"><span>Title:</span> N/A</p>
-            <p class="status-item"><span>Album:</span> N/A</p>
-            <p class="status-item"><span>Genre:</span> N/A</p>
-            <p class="status-item"><span>Format:</span> N/A</p>
-            <p class="status-item"><span>Playback:</span> Vol 0% • 00:00 / 00:00</p>
-            <p class="status-item"><span>Up Next:</span> <em>N/A</em></p>
+            <div class="status-items-grid">
+                <p class="status-item"><span>Artist:</span> N/A</p>
+                <p class="status-item"><span>Title:</span> N/A</p>
+                <p class="status-item"><span>Album:</span> N/A</p>
+                <p class="status-item"><span>Genre:</span> N/A</p>
+                <p class="status-item"><span>Format:</span> N/A</p>
+                <p class="status-item"><span>Playback:</span> Vol 0% • 00:00 / 00:00</p>
+            </div>
+            <p class="up-next-item"><span>Up Next:</span> <em>N/A</em></p>
             <div class="progress-container">
                 <div class="progress-bar" id="song-progress-bar" data-initial-elapsed="0" data-initial-total="0"></div>
             </div>
