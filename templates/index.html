@@ -121,6 +121,34 @@
             margin-bottom: 10px;
         }
 
+        /* File path display */
+        .file-path-item {
+            font-size: 0.85em;
+            color: #95a5a6;
+            padding: 8px 10px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .file-path-item span:first-child {
+            color: #7f8c8d;
+            font-weight: bold;
+            min-width: 40px;
+            flex-shrink: 0;
+        }
+
+        .file-path-value {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-family: monospace;
+        }
+
         /* Special styling for Up Next */
         .up-next-item {
             text-align: center;
@@ -1028,6 +1056,10 @@
                 <p class="status-item"><span>Format:</span> <span id="current-format">{% if mpd_info.get('file_format') or mpd_info.get('sample_rate') or mpd_info.get('bit_depth') %}{% if mpd_info.get('file_format') %}{{ mpd_info.get('file_format') }}{% endif %}{% if mpd_info.get('sample_rate') %}{% if mpd_info.get('file_format') %} • {% endif %}{{ (mpd_info.get('sample_rate') / 1000.0)|float|round(1, 'common') }} kHz{% endif %}{% if mpd_info.get('bit_depth') %}{% if mpd_info.get('file_format') or mpd_info.get('sample_rate') %} • {% endif %}{{ mpd_info.get('bit_depth') }}-bit{% endif %}{% else %}N/A{% endif %}</span></p>
                 <p class="status-item"><span>Playback:</span> <span id="playback-summary">Vol {{ mpd_info.volume }}% • {{ mpd_info.elapsed_time }} / {{ mpd_info.total_time }}</span></p>
             </div>
+            <div class="file-path-item">
+                <span>File:</span>
+                <span class="file-path-value" id="current-file-path" title="{{ mpd_info.get('file', 'N/A') }}">{{ mpd_info.get('file', 'N/A') }}</span>
+            </div>
             <p class="up-next-item"><span>Up Next:</span> <em><span id="up-next-artist"><a href="/search?query={{ mpd_info.next_song_artist|strip_location|urlencode }}&type=artist" style="color:#27ae60; text-decoration:underline;">{{ mpd_info.next_song_artist }}</a></span> - <span id="up-next-title">{{ mpd_info.next_song_title }}</span></em></p>
             {# Progress Bar - initial width moved to JS to avoid inline Jinja in style #}
             <div class="progress-container">
@@ -1044,6 +1076,10 @@
                 <p class="status-item"><span>Genre:</span> N/A</p>
                 <p class="status-item"><span>Format:</span> N/A</p>
                 <p class="status-item"><span>Playback:</span> Vol 0% • 00:00 / 00:00</p>
+            </div>
+            <div class="file-path-item">
+                <span>File:</span>
+                <span class="file-path-value" id="current-file-path" title="N/A">N/A</span>
             </div>
             <p class="up-next-item"><span>Up Next:</span> <em>N/A</em></p>
             <div class="progress-container">
@@ -1178,6 +1214,7 @@
         // Global variables and functions for playback control
         let messageArea = null;
         let messageTimeout = null;
+        let currentFilePath = '';
 
         function displayMessage(type, text) {
             if (!messageArea) {
@@ -1214,6 +1251,7 @@
             const currentFormatSpan = document.getElementById('current-format');
             const upNextArtistSpan = document.getElementById('up-next-artist');
             const upNextTitleSpan = document.getElementById('up-next-title');
+            const currentFilePathSpan = document.getElementById('current-file-path');
             const playbackSummarySpan = document.getElementById('playback-summary');
             const volumePercentageDisplay = document.getElementById('volume-percentage-display');
             const muteBtn = document.getElementById('mute-btn');
@@ -1466,6 +1504,12 @@
                     if (upNextTitleSpan && typeof data.next_song_title !== 'undefined') {
                         upNextTitleSpan.textContent = data.next_song_title;
                     }
+                    // Update file path
+                    if (currentFilePathSpan && typeof data.file !== 'undefined') {
+                        currentFilePath = data.file || 'N/A';
+                        currentFilePathSpan.textContent = currentFilePath;
+                        currentFilePathSpan.title = currentFilePath;
+                    }
 
                 } else {
                     // Clear or set N/A for song details if disconnected/error
@@ -1492,6 +1536,11 @@
                     crossfadeCheckbox.checked = false;
                     if (upNextArtistSpan) upNextArtistSpan.innerHTML = 'N/A';
                     if (upNextTitleSpan) upNextTitleSpan.textContent = 'N/A';
+                    if (currentFilePathSpan) {
+                        currentFilePath = 'N/A';
+                        currentFilePathSpan.textContent = 'N/A';
+                        currentFilePathSpan.title = 'N/A';
+                    }
                 }
             }
 

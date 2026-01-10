@@ -548,6 +548,7 @@ def get_mpd_status_for_display():
             'raw_elapsed_time': elapsed_time_float,
             'raw_total_time': total_time_float,
             'song_file': song_file_path,
+            'file': song_file_path,
             'queue_length': len(playlist_info),
             'consume_mode': consume_mode_status,
             'shuffle_mode': shuffle_mode_status,
