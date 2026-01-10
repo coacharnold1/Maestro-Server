@@ -1,10 +1,23 @@
-Maestro MPD Server v2.4.1
-Release Date: Thu Dec 26 00:00:00 UTC 2025
-Version: 2.4.1
+Maestro MPD Server v2.5.0
+Release Date: Fri Jan 10 00:00:00 UTC 2026
+Version: 2.5.0
 
-📻 INTERNET RADIO RELEASE - Streaming Radio with Radio Browser Integration 📻
+🎨 UI ENHANCEMENT RELEASE - Collage View & Compact Layout 🎨
 
-Latest Features (Dec 26, 2025 - v2.4.1):
+Latest Features (Jan 10, 2026 - v2.5.0):
+✅ NEW: Album Art Collage View - Click album art to see interactive 3x3 grid with artist's albums
+✅ NEW: Local Album Discovery - Prioritizes your music collection, shows collaborations
+✅ NEW: Interactive Album Covers - Click any album in collage to search and auto-close view
+✅ NEW: Dual-Priority Album Art - Main page uses local (fast), full-screen uses LastFM (best quality)
+✅ NEW: Random Album Selection - Shows 8 random albums from collection for variety
+✅ ENHANCED: Compact 2-Column Layout - Status info takes 50% less vertical space
+✅ ENHANCED: Visual Hierarchy - Blue labels, consistent spacing, highlighted "Up Next" section
+✅ ENHANCED: File Path Button - Clean popup instead of inline display (less clutter)
+✅ ENHANCED: Mobile Protection - Album art not clickable on screens <768px
+✅ OPTIMIZED: High-Res Images - LastFM mega size prioritized for full-screen view
+✅ UI POLISH: Hover effects on collage, album titles on hover, smooth transitions
+
+Previous Release (Dec 26, 2025 - v2.4.1):
 🐛 FIXED: Search Results - Album drill-down buttons now work correctly with special characters
 ✅ IMPROVED: Event Handling - Replaced inline onclick with safe event delegation
 ✅ IMPROVED: Error Handling - Better debugging and user feedback in search interface
