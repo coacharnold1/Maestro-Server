@@ -3305,28 +3305,31 @@ def get_album_songs():
         artist = request.form.get('artist', '').strip()
         album = request.form.get('album', '').strip()
         
-        if not artist or not album:
-            return jsonify({'error': 'Artist and album are required'}), 400
+        if not album:
+            return jsonify({'error': 'Album is required'}), 400
             
         client = connect_mpd_client()
         if not client:
             return jsonify({'error': 'Could not connect to MPD'}), 500
             
         try:
-            # Search for songs in the specific album - try AlbumArtist first, then Artist
-            songs = []
-            try:
-                songs = client.find('albumartist', artist, 'album', album)
-                if songs:
-                    print(f"[DEBUG] Found {len(songs)} songs using AlbumArtist")
-            except:
-                pass
+            print(f"[DEBUG] /get_album_songs - Searching for album='{album}', artist='{artist}'", flush=True)
+            
+            # Always search by album first to get all tracks (handles Various Artists and trailing spaces properly)
+            songs = client.find('album', album)
+            print(f"[DEBUG] /get_album_songs - Album-only search for '{album}' returned {len(songs) if songs else 0} tracks", flush=True)
+            
+            # If artist specified, try more precise search as well
+            if artist and songs:
+                songs_with_artist = client.find('album', album, 'artist', artist)
+                print(f"[DEBUG] /get_album_songs - Album+Artist search returned {len(songs_with_artist) if songs_with_artist else 0} tracks", flush=True)
                 
-            # If no songs found by AlbumArtist, try by Artist
-            if not songs:
-                songs = client.find('artist', artist, 'album', album)
-                if songs:
-                    print(f"[DEBUG] Found {len(songs)} songs using Artist")
+                # Use the search that returned MORE results (handles Various Artists vs single artist and tag issues)
+                if len(songs_with_artist) < len(songs):
+                    print(f"[DEBUG] /get_album_songs - Using album-only results ({len(songs)} tracks) - likely Various Artists or tag mismatch", flush=True)
+                else:
+                    print(f"[DEBUG] /get_album_songs - Using album+artist results ({len(songs_with_artist)} tracks)", flush=True)
+                    songs = songs_with_artist
             
             # Format the songs for the frontend
             formatted_songs = []
