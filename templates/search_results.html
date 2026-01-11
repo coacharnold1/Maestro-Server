@@ -606,7 +606,7 @@
     <div class="container">
         <!-- Logo -->
         <div class="logo-container">
-            <img src="/static/logo.svg" alt="Maestro MPD Control" onerror="this.style.display='none'">
+            <img id="maestro-logo" src="/static/logo.svg" alt="Maestro MPD Control" onerror="this.style.display='none'">
         </div>
 
         <!-- Navigation Links -->
@@ -714,6 +714,9 @@
         </div>
     </div>
 
+    <!-- Socket.IO for real-time updates -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
     <!-- App Info + Settings (inline, always visible) -->
     <div class="footer-info">
         <span id="version-info">Loading version info...</span>
@@ -723,6 +726,9 @@
         <a href="/charts">Charts</a>
     </div>
 
+    <!-- Socket.IO for real-time updates -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
     <script>
         (function(){
             fetch('/api/version')
@@ -730,6 +736,34 @@
                 .then(d=>{var el=document.getElementById('version-info'); if(el) el.textContent = d.app_name+' v'+d.version+' ('+d.build_date+')';})
                 .catch(()=>{var el=document.getElementById('version-info'); if(el) el.textContent='MPD Web Control';});
         })();
+
+        // Socket.IO connection for real-time updates
+        const socket = io();
+        const maestroLogo = document.getElementById('maestro-logo');
+
+        socket.on('status_update', function(data) {
+            // Update logo based on playback state
+            if (maestroLogo) {
+                maestroLogo.src = data.state === 'play' ? "/static/logo.svg" : "/static/logo-static.svg";
+            }
+        });
+
+        socket.on('disconnect', function() {
+            // Use static logo when not connected
+            if (maestroLogo) maestroLogo.src = "/static/logo-static.svg";
+        });
+
+        // Fetch initial state to set logo correctly on page load
+        fetch('/status?ajax=1')
+            .then(r => r.json())
+            .then(data => {
+                if (maestroLogo && data.state === 'play') {
+                    maestroLogo.src = "/static/logo.svg";
+                } else if (maestroLogo) {
+                    maestroLogo.src = "/static/logo-static.svg";
+                }
+            });
+        
 
         // Playback control functions
         function playbackAction(action) {
