@@ -754,7 +754,7 @@
         });
 
         // Fetch initial state to set logo correctly on page load
-        fetch('/status?ajax=1')
+        fetch('/get_mpd_status')
             .then(r => r.json())
             .then(data => {
                 if (maestroLogo && data.state === 'play') {
@@ -762,7 +762,8 @@
                 } else if (maestroLogo) {
                     maestroLogo.src = "/static/logo-static.svg";
                 }
-            });
+            })
+            .catch(err => console.error('Error fetching initial state:', err));
         
 
         // Playback control functions
