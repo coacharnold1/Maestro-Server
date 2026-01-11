@@ -635,7 +635,7 @@
         </div>
 
         {% if results %}
-        <div class="results-info">
+        <div class="results-info" id="search-results-info">
             Found <strong>{{ results|length }}</strong> results matching your search for "<strong>{{ query }}</strong>"
             by <strong>{{ search_tag }}</strong>
         </div>
@@ -1012,6 +1012,7 @@
         function showAlbumSongs(artist, album, songs, discStructure) {
             // Hide search results and show album songs section
             const resultsSection = document.querySelector('.song-list');
+            const searchResultsInfo = document.getElementById('search-results-info');
             const albumSection = document.getElementById('album-songs-section');
             const albumInfo = document.getElementById('album-info');
             const songsList = document.getElementById('album-songs-list');
@@ -1130,6 +1131,7 @@
 
             // Hide search results, show album songs
             if (resultsSection) resultsSection.style.display = 'none';
+            if (searchResultsInfo) searchResultsInfo.style.display = 'none';
             albumSection.style.display = 'block';
 
             // Scroll to top
@@ -1139,10 +1141,12 @@
         function hideAlbumSongs() {
             // Hide album songs and show search results
             const resultsSection = document.querySelector('.song-list');
+            const searchResultsInfo = document.getElementById('search-results-info');
             const albumSection = document.getElementById('album-songs-section');
 
             albumSection.style.display = 'none';
             if (resultsSection) resultsSection.style.display = 'block';
+            if (searchResultsInfo) searchResultsInfo.style.display = 'block';
 
             // Scroll to top
             window.scrollTo(0, 0);
