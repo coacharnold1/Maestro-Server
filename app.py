@@ -4981,6 +4981,7 @@ def api_browse_albums():
                 
         print(f"[DEBUG] Total unique albums: {len(all_albums)}", flush=True)
         
+        # Group albums by directory to show each physical copy separately (like search does)
         album_data = []
         for album in all_albums:
             if not album or str(album).strip() == '':
@@ -5001,20 +5002,30 @@ def api_browse_albums():
                 else:
                     songs = songs_by_albumartist
                 
-                # Try to get date and sample file from first song
-                date = ''
-                sample_file = ''
-                if songs and len(songs) > 0:
-                    date = songs[0].get('date', '')
-                    sample_file = songs[0].get('file', '')
+                # Group songs by directory to handle multiple physical copies
+                albums_by_dir = {}
+                for song in songs:
+                    song_file = song.get('file', '')
+                    album_dir = os.path.dirname(song_file) if song_file else ''
+                    
+                    if album_dir not in albums_by_dir:
+                        albums_by_dir[album_dir] = {
+                            'songs': [],
+                            'date': song.get('date', ''),
+                            'sample_file': song_file
+                        }
+                    albums_by_dir[album_dir]['songs'].append(song)
                 
-                album_data.append({
-                    'album': str(album),
-                    'artist': str(artist),
-                    'track_count': len(songs),
-                    'date': str(date),
-                    'sample_file': str(sample_file)
-                })
+                # Add an entry for each directory (each physical copy)
+                for album_dir, dir_data in albums_by_dir.items():
+                    album_data.append({
+                        'album': str(album),
+                        'artist': str(artist),
+                        'track_count': len(dir_data['songs']),
+                        'date': str(dir_data['date']),
+                        'sample_file': str(dir_data['sample_file'])
+                    })
+                    
             except Exception as e:
                 print(f"[DEBUG] Error getting info for album '{album}': {e}")
                 continue
