@@ -700,6 +700,9 @@
 
         <!-- Album Songs Drill-down (hidden by default) -->
         <div id="album-songs-section" style="display: none;">
+            <div style="text-align: center; margin: 10px 0 20px 0;">
+                <button onclick="hideAlbumSongs()" class="btn-back">← Back to Search Results</button>
+            </div>
             <h2>🎵 Album Songs</h2>
             <div id="album-art-large" style="text-align: center; margin: 20px 0;">
                 <!-- Album art will be inserted here by JS -->
@@ -708,9 +711,6 @@
             <ul id="album-songs-list" class="song-list">
                 <!-- Songs will be populated by JavaScript -->
             </ul>
-            <div style="text-align: center; margin: 20px 0;">
-                <button onclick="hideAlbumSongs()" class="btn-back">← Back to Search Results</button>
-            </div>
         </div>
     </div>
 
