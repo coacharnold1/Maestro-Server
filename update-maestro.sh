@@ -215,26 +215,77 @@ echo -e "${GREEN}✓ Updated admin interface files${NC}"
 
 echo ""
 echo -e "${GREEN}[5/6] Updating Python dependencies...${NC}"
+
+# Function to check if venv needs to be recreated (e.g., after Python update)
+check_venv_health() {
+    local venv_path="$1"
+    if [ ! -d "$venv_path" ]; then
+        return 1  # venv doesn't exist
+    fi
+    
+    # Check if pip is functional
+    if ! "$venv_path/bin/pip" --version &>/dev/null; then
+        echo -e "${YELLOW}⚠ Virtual environment is broken (likely due to Python update)${NC}"
+        return 1
+    fi
+    
+    return 0
+}
+
 # Update main app dependencies (use virtual environment)
 if [ -d "$INSTALL_DIR/web/venv" ]; then
     cd "$INSTALL_DIR/web"
+    
+    if ! check_venv_health "$INSTALL_DIR/web/venv"; then
+        echo -e "${YELLOW}Recreating web virtual environment...${NC}"
+        rm -rf venv
+        python3 -m venv venv
+        echo -e "${GREEN}✓ Recreated web virtual environment${NC}"
+    fi
+    
     source venv/bin/activate
+    pip install --upgrade pip --quiet
     pip install --upgrade -r "$INSTALL_DIR/requirements.txt" --quiet
     deactivate
     echo -e "${GREEN}✓ Updated main app dependencies${NC}"
 else
     echo -e "${YELLOW}⚠ Virtual environment not found at $INSTALL_DIR/web/venv${NC}"
+    echo -e "${YELLOW}Creating new virtual environment...${NC}"
+    cd "$INSTALL_DIR/web"
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install --upgrade pip --quiet
+    pip install -r "$INSTALL_DIR/requirements.txt" --quiet
+    deactivate
+    echo -e "${GREEN}✓ Created web virtual environment and installed dependencies${NC}"
 fi
 
 # Update admin dependencies (use virtual environment)
 if [ -d "$INSTALL_DIR/admin/venv" ]; then
     cd "$INSTALL_DIR/admin"
+    
+    if ! check_venv_health "$INSTALL_DIR/admin/venv"; then
+        echo -e "${YELLOW}Recreating admin virtual environment...${NC}"
+        rm -rf venv
+        python3 -m venv venv
+        echo -e "${GREEN}✓ Recreated admin virtual environment${NC}"
+    fi
+    
     source venv/bin/activate
+    pip install --upgrade pip --quiet
     pip install --upgrade -r requirements.txt --quiet
     deactivate
     echo -e "${GREEN}✓ Updated admin dependencies${NC}"
 else
     echo -e "${YELLOW}⚠ Virtual environment not found at $INSTALL_DIR/admin/venv${NC}"
+    echo -e "${YELLOW}Creating new virtual environment...${NC}"
+    cd "$INSTALL_DIR/admin"
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install --upgrade pip --quiet
+    pip install -r requirements.txt --quiet
+    deactivate
+    echo -e "${GREEN}✓ Created admin virtual environment and installed dependencies${NC}"
 fi
 
 echo ""
