@@ -2626,4 +2626,4 @@ if __name__ == '__main__':
     restore_mounts_on_startup()
     print()
     
-    socketio.run(app, host='0.0.0.0', port=5004, debug=True, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='0.0.0.0', port=5004, debug=False, allow_unsafe_werkzeug=True)
