@@ -63,6 +63,37 @@ check_root() {
     fi
 }
 
+# Check Python version
+check_python() {
+    echo -e "${BLUE}Checking Python installation...${NC}"
+    
+    if ! command -v python3 &> /dev/null; then
+        echo -e "${RED}Error: python3 not found${NC}"
+        echo "Please install Python 3.8 or higher"
+        exit 1
+    fi
+    
+    local py_version=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+    echo -e "${GREEN}✓ Found Python ${py_version}${NC}"
+    
+    # Check if python3-venv is available
+    if ! python3 -m venv --help &> /dev/null; then
+        echo -e "${YELLOW}⚠ python3-venv module not found${NC}"
+        echo "Installing python3-venv..."
+        case "$OS" in
+            ubuntu|debian)
+                sudo apt install -y python3-venv
+                ;;
+            arch|manjaro)
+                # Arch includes venv in python package
+                echo -e "${GREEN}✓ venv should be included in Arch python package${NC}"
+                ;;
+        esac
+    fi
+    
+    echo ""
+}
+
 # Detect existing MPD installation
 detect_mpd() {
     echo ""
@@ -424,10 +455,26 @@ install_web_ui() {
     fi
     # Create virtual environment
     cd "$INSTALL_DIR/web"
+    echo -e "${YELLOW}Creating virtual environment with $(python3 --version)...${NC}"
+    
+    # Remove any existing broken venv
+    if [ -d venv ]; then
+        echo -e "${YELLOW}Removing existing venv...${NC}"
+        rm -rf venv
+    fi
+    
     python3 -m venv venv
+    
+    # Verify venv was created successfully
+    if [ ! -f venv/bin/pip ]; then
+        echo -e "${RED}Error: Failed to create virtual environment${NC}"
+        exit 1
+    fi
+    
     source venv/bin/activate
     
     # Install dependencies
+    echo -e "${YELLOW}Installing Python packages...${NC}"
     pip install --upgrade pip
     if [ -f requirements.txt ]; then
         pip install -r requirements.txt
@@ -436,7 +483,14 @@ install_web_ui() {
         pip install flask flask-socketio python-mpd2 werkzeug
     fi
     
+    # Verify critical packages are installed
+    if ! python -c "import flask" 2>/dev/null; then
+        echo -e "${RED}Error: Flask installation failed${NC}"
+        exit 1
+    fi
+    
     deactivate
+    echo -e "${GREEN}✓ Virtual environment created with Python $(python3 --version | cut -d' ' -f2)${NC}"
     
     echo -e "${GREEN}✓ Web UI installed${NC}"
 }
@@ -507,10 +561,26 @@ EOF
     
     # Create virtual environment
     cd "$INSTALL_DIR/admin"
+    echo -e "${YELLOW}Creating admin virtual environment with $(python3 --version)...${NC}"
+    
+    # Remove any existing broken venv
+    if [ -d venv ]; then
+        echo -e "${YELLOW}Removing existing venv...${NC}"
+        rm -rf venv
+    fi
+    
     python3 -m venv venv
+    
+    # Verify venv was created successfully
+    if [ ! -f venv/bin/pip ]; then
+        echo -e "${RED}Error: Failed to create admin virtual environment${NC}"
+        exit 1
+    fi
+    
     source venv/bin/activate
     
     # Install dependencies
+    echo -e "${YELLOW}Installing admin Python packages...${NC}"
     pip install --upgrade pip
     if [ -f requirements.txt ]; then
         pip install -r requirements.txt
@@ -518,7 +588,14 @@ EOF
         pip install Flask flask-socketio psutil python-mpd2
     fi
     
+    # Verify critical packages are installed
+    if ! python -c "import flask" 2>/dev/null; then
+        echo -e "${RED}Error: Flask installation failed in admin venv${NC}"
+        exit 1
+    fi
+    
     deactivate
+    echo -e "${GREEN}✓ Admin virtual environment created with Python $(python3 --version | cut -d' ' -f2)${NC}"
     
     # Create config directory
     mkdir -p "$HOME/.config/maestro"
@@ -835,6 +912,7 @@ main() {
     print_banner
     check_root
     detect_os
+    check_python
     
     echo -e "${BLUE}Detected OS:${NC} $OS $VERSION"
     echo -e "${BLUE}Installation Directory:${NC} $INSTALL_DIR"
