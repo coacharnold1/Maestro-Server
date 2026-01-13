@@ -194,6 +194,51 @@
             background-color: #2980b9 !important;
         }
 
+        /* Autocomplete dropdown styling */
+        .autocomplete-container {
+            position: relative;
+        }
+
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: #2c3e50;
+            border: 1px solid #3498db;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .autocomplete-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            color: #ecf0f1;
+            border-bottom: 1px solid #34495e;
+        }
+
+        .autocomplete-item:hover,
+        .autocomplete-item.selected {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .autocomplete-loading {
+            padding: 10px 15px;
+            color: #95a5a6;
+            text-align: center;
+            font-style: italic;
+        }
+
         /* Message display styling */
         #message-area {
             position: fixed;
@@ -471,7 +516,10 @@
                 </div>
                 <div class="form-group">
                     <label for="query">Search Query:</label>
-                    <input type="text" id="query" name="query" required placeholder="Enter your search term...">
+                    <div class="autocomplete-container">
+                        <input type="text" id="query" name="query" required placeholder="Enter your search term..." autocomplete="off">
+                        <div id="autocomplete-dropdown" class="autocomplete-dropdown"></div>
+                    </div>
                 </div>
                 <div style="text-align: center;">
                     <button type="submit" class="search-button">🔍 Search Library</button>
@@ -564,6 +612,130 @@
             if (query && type) {
                 document.querySelector('form').submit();
             }
+
+            // ===== AUTOCOMPLETE FUNCTIONALITY =====
+            let autocompleteData = { artists: [], albums: [], titles: [] };
+            let selectedIndex = -1;
+            const queryInput = document.getElementById('query');
+            const searchTagSelect = document.getElementById('search_tag');
+            const dropdown = document.getElementById('autocomplete-dropdown');
+
+            // Load autocomplete data on page load
+            fetch('/api/search/autocomplete')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        autocompleteData = data;
+                        console.log(`Autocomplete data loaded: ${data.artists.length} artists, ${data.albums.length} albums, ${data.titles.length} titles`);
+                    }
+                })
+                .catch(err => console.error('Error loading autocomplete data:', err));
+
+            // Filter and display suggestions
+            function showSuggestions() {
+                const searchType = searchTagSelect.value;
+                const inputValue = queryInput.value.trim().toLowerCase();
+                
+                if (inputValue.length < 2) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+
+                let suggestions = [];
+                if (searchType === 'artist') {
+                    suggestions = autocompleteData.artists.filter(a => 
+                        a.toLowerCase().includes(inputValue)
+                    ).slice(0, 10);
+                } else if (searchType === 'album') {
+                    suggestions = autocompleteData.albums.filter(a => 
+                        a.toLowerCase().includes(inputValue)
+                    ).slice(0, 10);
+                } else if (searchType === 'title') {
+                    suggestions = autocompleteData.titles.filter(t => 
+                        t.toLowerCase().includes(inputValue)
+                    ).slice(0, 10);
+                }
+
+                if (suggestions.length === 0) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+
+                // Build dropdown HTML
+                dropdown.innerHTML = suggestions.map((item, index) => 
+                    `<div class="autocomplete-item" data-index="${index}">${escapeHtml(item)}</div>`
+                ).join('');
+
+                dropdown.style.display = 'block';
+                selectedIndex = -1;
+
+                // Add click handlers
+                dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+                    item.addEventListener('click', function() {
+                        queryInput.value = this.textContent;
+                        dropdown.style.display = 'none';
+                    });
+                });
+            }
+
+            // Handle keyboard navigation
+            function handleKeyDown(e) {
+                if (dropdown.style.display === 'none') return;
+
+                const items = dropdown.querySelectorAll('.autocomplete-item');
+                if (items.length === 0) return;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                    updateSelection(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, -1);
+                    updateSelection(items);
+                } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                    e.preventDefault();
+                    queryInput.value = items[selectedIndex].textContent;
+                    dropdown.style.display = 'none';
+                } else if (e.key === 'Escape') {
+                    dropdown.style.display = 'none';
+                    selectedIndex = -1;
+                }
+            }
+
+            function updateSelection(items) {
+                items.forEach((item, index) => {
+                    if (index === selectedIndex) {
+                        item.classList.add('selected');
+                        item.scrollIntoView({ block: 'nearest' });
+                    } else {
+                        item.classList.remove('selected');
+                    }
+                });
+            }
+
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            // Event listeners
+            queryInput.addEventListener('input', showSuggestions);
+            queryInput.addEventListener('keydown', handleKeyDown);
+            searchTagSelect.addEventListener('change', () => {
+                if (queryInput.value.trim().length >= 2) {
+                    showSuggestions();
+                }
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!queryInput.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+            // ===== END AUTOCOMPLETE =====
         });
 
         // Playback control function

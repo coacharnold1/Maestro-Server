@@ -1,13 +1,21 @@
-Maestro MPD Server v2.5.0
-Release Date: Fri Jan 10 00:00:00 UTC 2026
-Version: 2.5.0
+Maestro MPD Server v2.6.0
+Release Date: Mon Jan 13 00:00:00 UTC 2026
+Version: 2.6.0
 
-🎨 UI ENHANCEMENT RELEASE - Collage View & Compact Layout 🎨
+🔍 SEARCH & DISCOVERY RELEASE - Autocomplete & Better Autofill 🔍
 
-Latest Features (Jan 10, 2026 - v2.5.0):
-✅ NEW: Album Art Collage View - Click album art to see interactive 3x3 grid with artist's albums
-✅ NEW: Local Album Discovery - Prioritizes your music collection, shows collaborations
-✅ NEW: Interactive Album Covers - Click any album in collage to search and auto-close view
+Latest Features (Jan 13, 2026 - v2.6.0):
+✅ NEW: Search Autocomplete - Instant suggestions as you type (artists, albums, titles)
+✅ NEW: Client-side Filtering - Lightning fast, no server delay, keyboard navigation
+✅ IMPROVED: Autofill Artist Variety - Now pulls tracks from all 30 similar artists
+✅ IMPROVED: Better Music Discovery - Collects 3 tracks per artist for balanced variety
+✅ NEW: Clickable Artist Links - Random album results link back to artist search
+✅ ENHANCED: Debug Messages - Shows similar artist count and candidate pool size
+
+Previous Features (Jan 10, 2026 - v2.5.0):
+✅ Album Art Collage View - Click album art to see interactive 3x3 grid with artist's albums
+✅ Local Album Discovery - Prioritizes your music collection, shows collaborations
+✅ Interactive Album Covers - Click any album in collage to search and auto-close view
 ✅ NEW: Dual-Priority Album Art - Main page uses local (fast), full-screen uses LastFM (best quality)
 ✅ NEW: Random Album Selection - Shows 8 random albums from collection for variety
 ✅ ENHANCED: Compact 2-Column Layout - Status info takes 50% less vertical space

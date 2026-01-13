@@ -1,8 +1,8 @@
 print("[DEBUG] app.py loaded and running", flush=True)
 
 # Application version information
-APP_VERSION = "2.5.0"
-APP_BUILD_DATE = "2026-01-10" 
+APP_VERSION = "2.6.0"
+APP_BUILD_DATE = "2026-01-13" 
 APP_NAME = "Maestro MPD Server"
 
 # Simple threading mode to avoid eventlet issues
@@ -1597,6 +1597,49 @@ def get_artist_images():
     except Exception as e:
         print(f"Error in artist_images: {e}")
         return jsonify({'albums': []})
+
+@app.route('/api/search/autocomplete')
+def search_autocomplete_data():
+    """Return all artists, albums, and titles for client-side autocomplete."""
+    try:
+        client = connect_mpd_client()
+        if not client:
+            return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
+        
+        # Get all unique artists, albums, and titles
+        # Handle both string and dict responses from MPD
+        artists_raw = client.list('artist')
+        artists = sorted(set([
+            (a if isinstance(a, str) else a.get('artist', '')) 
+            for a in artists_raw if a
+        ]))
+        
+        albums_raw = client.list('album')
+        albums = sorted(set([
+            (a if isinstance(a, str) else a.get('album', '')) 
+            for a in albums_raw if a
+        ]))
+        
+        # Get titles - limit to reasonable amount for performance
+        titles_raw = client.list('title')
+        titles = sorted(set([
+            (t if isinstance(t, str) else t.get('title', '')) 
+            for t in titles_raw if t
+        ]))[:1000]  # Limit titles to 1000 most common
+        
+        client.disconnect()
+        
+        return jsonify({
+            'status': 'success',
+            'artists': [a for a in artists if a],  # Filter out empty strings
+            'albums': [a for a in albums if a],
+            'titles': [t for t in titles if t]
+        })
+    except Exception as e:
+        print(f"Error fetching autocomplete data: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/search', methods=['GET', 'POST'])
 def search():
