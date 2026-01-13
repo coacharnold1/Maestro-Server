@@ -1229,7 +1229,7 @@ def perform_add_random_tracks_logic(artist_name_input, num_tracks, clear_playlis
                 if mpd_search_results:
                     for mpd_track in mpd_search_results:
                         file_path = mpd_track.get('file')
-                        if file_path:
+                        if file_path and file_path not in candidate_uris:
                             # Check genre if filtering is enabled
                             if filter_by_genre and current_genre_for_filter:
                                 try:
@@ -1239,19 +1239,19 @@ def perform_add_random_tracks_logic(artist_name_input, num_tracks, clear_playlis
                                         mpd_track_genre = mpd_track_genre[0] if mpd_track_genre else 'N/A'
                                     if is_genre_match(current_genre_for_filter, mpd_track_genre):
                                         candidate_uris.append(file_path)
-                                        break
                                     else:
                                         print(f"Skipped (genre mismatch): {track_info['artist']} - {track_info['title']} (MPD Genre: {mpd_track_genre}, Target: {current_genre_for_filter})")
                                 except Exception as e:
                                     print(f"Error reading genre for {file_path}: {e}. Skipping genre check.")
                             else:
                                 candidate_uris.append(file_path)
-                                break
                 else:
                     print(f"Last.fm suggested '{track_info['artist']} - {track_info['title']}', but not found in local MPD.")
 
         # Get similar artists and their top tracks
         similar_artists = get_similar_artists_from_lastfm(artist_name_input, limit=30)
+        print(f"[AUTO-FILL DEBUG] Got {len(similar_artists)} similar artists from Last.fm for {artist_name_input}", flush=True)
+        socketio.emit('server_message', {'type': 'info', 'text': f'Checking {len(similar_artists)} similar artists...'})
         for sim_artist in similar_artists:
             top_tracks_sim_artist = get_top_tracks_from_lastfm(sim_artist, limit=5)
             for track_info in top_tracks_sim_artist:
@@ -1262,7 +1262,7 @@ def perform_add_random_tracks_logic(artist_name_input, num_tracks, clear_playlis
                     if mpd_search_results:
                         for mpd_track in mpd_search_results:
                             file_path = mpd_track.get('file')
-                            if file_path:
+                            if file_path and file_path not in candidate_uris:
                                 if filter_by_genre and current_genre_for_filter:
                                     try:
                                         mpd_track_details = client.readcomments(file_path)
@@ -1271,46 +1271,44 @@ def perform_add_random_tracks_logic(artist_name_input, num_tracks, clear_playlis
                                             mpd_track_genre = mpd_track_genre[0] if mpd_track_genre else 'N/A'
                                         if is_genre_match(current_genre_for_filter, mpd_track_genre):
                                             candidate_uris.append(file_path)
-                                            break
                                         else:
                                             print(f"Skipped (genre mismatch): {track_info['artist']} - {track_info['title']} (MPD Genre: {mpd_track_genre}, Target: {current_genre_for_filter})")
                                     except Exception as e:
                                         print(f"Error reading genre for {file_path}: {e}. Skipping genre check.")
                                 else:
                                     candidate_uris.append(file_path)
-                                    break
                     else:
                         print(f"Last.fm suggested '{track_info['artist']} - {track_info['title']}' from similar artist, but not found in local MPD.")
 
-            # Fallback to broader local search for similar artist if not enough tracks yet
-            if len(candidate_uris) < num_tracks and sim_artist:
-                print(f"Searching local MPD for any tracks by similar artist: {sim_artist}")
+            # Fallback to broader local search for similar artist - collect 2-3 tracks from each
+            if sim_artist:
                 try:
                     mpd_all_artist_tracks = client.find('artist', sim_artist)
-                    random.shuffle(mpd_all_artist_tracks)
-                    for mpd_track in mpd_all_artist_tracks:
-                        file_path = mpd_track.get('file')
-                        if file_path:
-                            if filter_by_genre and current_genre_for_filter:
-                                try:
-                                    mpd_track_details = client.readcomments(file_path)
-                                    mpd_track_genre = mpd_track_details.get('genre')
-                                    if isinstance(mpd_track_genre, list):
-                                        mpd_track_genre = mpd_track_genre[0] if mpd_track_genre else 'N/A'
-                                    if is_genre_match(current_genre_for_filter, mpd_track_genre):
-                                        if file_path not in candidate_uris:
+                    if mpd_all_artist_tracks:
+                        print(f"[AUTO-FILL DEBUG] Found {len(mpd_all_artist_tracks)} tracks by {sim_artist}, adding up to 3...", flush=True)
+                        random.shuffle(mpd_all_artist_tracks)
+                        tracks_added_from_this_artist = 0
+                        # Limit to 2-3 tracks per artist to ensure variety
+                        max_tracks_per_artist = 3
+                        for mpd_track in mpd_all_artist_tracks:
+                            if tracks_added_from_this_artist >= max_tracks_per_artist:
+                                break
+                            file_path = mpd_track.get('file')
+                            if file_path and file_path not in candidate_uris:
+                                if filter_by_genre and current_genre_for_filter:
+                                    try:
+                                        mpd_track_details = client.readcomments(file_path)
+                                        mpd_track_genre = mpd_track_details.get('genre')
+                                        if isinstance(mpd_track_genre, list):
+                                            mpd_track_genre = mpd_track_genre[0] if mpd_track_genre else 'N/A'
+                                        if is_genre_match(current_genre_for_filter, mpd_track_genre):
                                             candidate_uris.append(file_path)
-                                            if len(candidate_uris) >= num_tracks:
-                                                break
-                                except Exception as e:
-                                    print(f"Error reading genre for {file_path} in broader search: {e}. Skipping genre check.")
-                            else:
-                                if file_path not in candidate_uris:
+                                            tracks_added_from_this_artist += 1
+                                    except Exception as e:
+                                        print(f"Error reading genre for {file_path} in broader search: {e}. Skipping genre check.")
+                                else:
                                     candidate_uris.append(file_path)
-                                    if len(candidate_uris) >= num_tracks:
-                                        break
-                    if len(candidate_uris) >= num_tracks:
-                        break
+                                    tracks_added_from_this_artist += 1
                 except CommandError as e:
                     print(f"MPD CommandError during broader search for artist {sim_artist}: {e}")
                 except Exception as e:
@@ -1320,6 +1318,9 @@ def perform_add_random_tracks_logic(artist_name_input, num_tracks, clear_playlis
             socketio.emit('server_message', {'type': 'error', 'text': f'No local MPD tracks found matching Last.fm suggestions for "{artist_name_input}" or similar artists, with current filters.'})
             return
 
+        print(f"[AUTO-FILL DEBUG] Collected {len(candidate_uris)} total candidate tracks from all similar artists", flush=True)
+        socketio.emit('server_message', {'type': 'info', 'text': f'Collected {len(candidate_uris)} tracks, adding {num_tracks}...'})
+        
         # Shuffle all collected and filtered tracks
         random.shuffle(candidate_uris)
 
