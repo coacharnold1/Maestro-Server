@@ -661,11 +661,11 @@
                     </div>
                 </div>
                 <div class="song-actions">
-                    <button class="btn-view-album" data-artist="{{ item.get('artist','')|e }}" data-album="{{ item.get('album','')|e }}">📋
+                    <button class="btn-view-album" data-artist="{{ item.get('artist','')|urlencode }}" data-album="{{ item.get('album','')|urlencode }}">📋
                         View Songs</button>
-                    <button class="btn-replace-album" data-artist="{{ item.get('artist','')|e }}" data-album="{{ item.get('album','')|e }}">🔄
+                    <button class="btn-replace-album" data-artist="{{ item.get('artist','')|urlencode }}" data-album="{{ item.get('album','')|urlencode }}">🔄
                         Replace Playlist</button>
-                    <button class="btn-add-album" data-artist="{{ item.get('artist','')|e }}" data-album="{{ item.get('album','')|e }}">➕
+                    <button class="btn-add-album" data-artist="{{ item.get('artist','')|urlencode }}" data-album="{{ item.get('album','')|urlencode }}">➕
                         Add Album</button>
                 </div>
             </li>
@@ -1204,8 +1204,8 @@
             console.log('Found', viewAlbumBtns.length, 'view album buttons');
             viewAlbumBtns.forEach(btn => {
                 btn.addEventListener('click', function(){
-                    const artist = this.dataset.artist || '';
-                    const album = this.dataset.album || '';
+                    const artist = decodeURIComponent(this.dataset.artist || '');
+                    const album = decodeURIComponent(this.dataset.album || '');
                     console.log('View album clicked:', artist, album);
                     viewAlbumSongs(artist, album);
                 });
@@ -1215,8 +1215,8 @@
             console.log('Found', replaceAlbumBtns.length, 'replace album buttons');
             replaceAlbumBtns.forEach(btn => {
                 btn.addEventListener('click', function(){
-                    const artist = this.dataset.artist || '';
-                    const album = this.dataset.album || '';
+                    const artist = decodeURIComponent(this.dataset.artist || '');
+                    const album = decodeURIComponent(this.dataset.album || '');
                     console.log('Replace album clicked:', artist, album);
                     clearAndAddAlbum(artist, album);
                 });
@@ -1226,8 +1226,8 @@
             console.log('Found', addAlbumBtns.length, 'add album buttons');
             addAlbumBtns.forEach(btn => {
                 btn.addEventListener('click', function(){
-                    const artist = this.dataset.artist || '';
-                    const album = this.dataset.album || '';
+                    const artist = decodeURIComponent(this.dataset.artist || '');
+                    const album = decodeURIComponent(this.dataset.album || '');
                     console.log('Add album clicked:', artist, album);
                     addAlbumToPlaylist(album, artist);
                 });

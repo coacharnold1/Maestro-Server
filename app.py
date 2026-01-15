@@ -3347,9 +3347,9 @@ def get_album_songs():
     """Get all songs from a specific album."""
     try:
         artist = request.form.get('artist', '').strip()
-        album = request.form.get('album', '').strip()
+        album = request.form.get('album', '')  # Don't strip - preserve trailing spaces in album names
         
-        if not album:
+        if not album or not album.strip():
             return jsonify({'error': 'Album is required'}), 400
             
         client = connect_mpd_client()
@@ -3359,9 +3359,19 @@ def get_album_songs():
         try:
             print(f"[DEBUG] /get_album_songs - Searching for album='{album}', artist='{artist}'", flush=True)
             
-            # Always search by album first to get all tracks (handles Various Artists and trailing spaces properly)
+            # Try exact match first
             songs = client.find('album', album)
-            print(f"[DEBUG] /get_album_songs - Album-only search for '{album}' returned {len(songs) if songs else 0} tracks", flush=True)
+            print(f"[DEBUG] /get_album_songs - Exact album search for '{album}' returned {len(songs) if songs else 0} tracks", flush=True)
+            
+            # If no results, try with trailing space (handles MPD tags with trailing spaces)
+            if not songs:
+                songs = client.find('album', album + ' ')
+                print(f"[DEBUG] /get_album_songs - Album search with trailing space returned {len(songs) if songs else 0} tracks", flush=True)
+            
+            # If still no results, try a broader search to find the album
+            if not songs:
+                songs = client.search('album', album)
+                print(f"[DEBUG] /get_album_songs - Broader album search returned {len(songs) if songs else 0} tracks", flush=True)
             
             # If artist specified, try more precise search as well
             if artist and songs:
@@ -5093,11 +5103,11 @@ def api_browse_albums():
 def api_album_tracks():
     """Return all tracks for a given album and artist as JSON."""
 
-    album = request.args.get('album', '').strip()
+    album = request.args.get('album', '')  # Don't strip - preserve trailing spaces
     artist = request.args.get('artist', '').strip()
     print(f"[DEBUG] /api/album_tracks called with album='{album}', artist='{artist}'")
     
-    if not album:
+    if not album or not album.strip():
         print("[DEBUG] Missing album parameter")
         return jsonify({'status': 'error', 'message': 'Missing album parameter'}), 400
 
@@ -5107,9 +5117,19 @@ def api_album_tracks():
         return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
 
     try:
-        # Always search by album first to get all tracks (handles Various Artists properly)
+        # Try exact match first
         tracks_album_only = client.find('album', album)
-        print(f"[DEBUG] Album-only search for '{album}' returned {len(tracks_album_only) if tracks_album_only else 0} tracks")
+        print(f"[DEBUG] Exact album search for '{album}' returned {len(tracks_album_only) if tracks_album_only else 0} tracks")
+        
+        # If no results, try with trailing space (handles MPD tags with trailing spaces)
+        if not tracks_album_only:
+            tracks_album_only = client.find('album', album + ' ')
+            print(f"[DEBUG] Album search with trailing space returned {len(tracks_album_only) if tracks_album_only else 0} tracks")
+        
+        # If still no results, try a broader search
+        if not tracks_album_only:
+            tracks_album_only = client.search('album', album)
+            print(f"[DEBUG] Broader album search returned {len(tracks_album_only) if tracks_album_only else 0} tracks")
         
         # If artist specified, try more precise search as well
         if artist:
