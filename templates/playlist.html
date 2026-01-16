@@ -945,7 +945,7 @@
             {% set file_name = song.file if song.file else '' %}
             <div class="playlist-item" data-pos="{{ song.pos }}">
                 <img class="playlist-album-art"
-                    src="/album_art?artist={{ artist_name | urlencode }}&album={{ album_name | urlencode }}&size=thumb&file={{ file_name | urlencode }}"
+                    src="/album_art?artist={{ artist_name | urlencode_str }}&album={{ album_name | urlencode_str }}&size=thumb&file={{ file_name | urlencode_str }}"
                     alt="{{ song.album | default('Unknown Album') }} cover" loading="lazy"
                     onerror="this.style.display='none'">
                 <div class="playlist-item-info" data-pos="{{ song.pos }}">
