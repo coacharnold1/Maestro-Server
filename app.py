@@ -540,9 +540,11 @@ def get_mpd_status_for_display():
 
         current_status_info = {
             'state': status.get('state', 'unknown'),
+            'song_id': current_song.get('id'),
             'song_title': current_title,
             'artist': current_artist,
             'album': current_album,
+            'album_artist': current_song.get('albumartist', current_artist),
             'genre': current_genre,
             'file_format': file_format,
             'bit_depth': bit_depth_val,
