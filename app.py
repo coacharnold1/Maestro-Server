@@ -1929,6 +1929,8 @@ def seek_position():
 def history():
     """Display play history page"""
     mpd_status = get_mpd_status_for_display()
+    if mpd_status is None:
+        mpd_status = last_mpd_status if last_mpd_status else {'state': 'unknown'}
     app_theme = app.config.get('THEME', 'dark')
     return render_template('history.html', 
                           history=play_history,

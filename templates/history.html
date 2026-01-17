@@ -450,7 +450,11 @@
     <div class="container">
         <!-- Logo -->
         <div class="logo-container">
+            {% if mpd_info and mpd_info.state == 'play' %}
             <img id="maestro-logo" src="{{ url_for('static', filename='logo.svg') }}" alt="Maestro MPD Control">
+            {% else %}
+            <img id="maestro-logo" src="{{ url_for('static', filename='logo-static.svg') }}" alt="Maestro MPD Control">
+            {% endif %}
         </div>
 
         <!-- Now Playing Bar -->
