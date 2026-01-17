@@ -655,17 +655,17 @@
                         onerror="this.style.display='none';">
                     {% endif %}
                     <div class="song-info">
-                        <div class="artist"><a href="/search?query={{ item.get('artist', 'Unknown Artist')|urlencode }}&type=artist" style="color: inherit; text-decoration: none; border-bottom: 1px dotted currentColor;">{{ item.get('artist', 'Unknown Artist') }}</a></div>
+                        <div class="artist"><a href="/search?query={{ item.get('artist', 'Unknown Artist')|urlencode_str }}&type=artist" style="color: inherit; text-decoration: none; border-bottom: 1px dotted currentColor;">{{ item.get('artist', 'Unknown Artist') }}</a></div>
                         <div class="title">{{ item.get('album', 'Unknown Album') }}</div>
                         <div class="album">Full Album</div>
                     </div>
                 </div>
                 <div class="song-actions">
-                    <button class="btn-view-album" data-artist="{{ item.get('artist','')|urlencode }}" data-album="{{ item.get('album','')|urlencode }}">📋
+                    <button class="btn-view-album" data-artist="{{ item.get('artist','')|urlencode_str }}" data-album="{{ item.get('album','')|urlencode_str }}">📋
                         View Songs</button>
-                    <button class="btn-replace-album" data-artist="{{ item.get('artist','')|urlencode }}" data-album="{{ item.get('album','')|urlencode }}">🔄
+                    <button class="btn-replace-album" data-artist="{{ item.get('artist','')|urlencode_str }}" data-album="{{ item.get('album','')|urlencode_str }}">🔄
                         Replace Playlist</button>
-                    <button class="btn-add-album" data-artist="{{ item.get('artist','')|urlencode }}" data-album="{{ item.get('album','')|urlencode }}">➕
+                    <button class="btn-add-album" data-artist="{{ item.get('artist','')|urlencode_str }}" data-album="{{ item.get('album','')|urlencode_str }}">➕
                         Add Album</button>
                 </div>
             </li>
