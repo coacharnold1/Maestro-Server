@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Play History - Maestro MPD Control</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #1a1a1a;
+            color: #ecf0f1;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #2c3e50;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 18px rgba(0, 0, 0, 0.4);
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: #ecf0f1;
+            text-align: center;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #9b59b6, #3498db);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 3s ease-in-out infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Logo styling */
+        .logo-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .logo-container img {
+            max-width: 600px;
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
+
+        /* Now Playing Bar */
+        .now-playing-bar {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            border: 1px solid #4a6279;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin: 15px 0;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .now-playing-bar .label {
+            font-size: 0.8em;
+            color: #95a5a6;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+
+        .now-playing-bar .info {
+            font-size: 1.1em;
+            color: #ecf0f1;
+            font-weight: 500;
+        }
+
+        .now-playing-bar .artist { color: #27ae60; }
+        .now-playing-bar .separator { color: #7f8c8d; margin: 0 8px; }
+        .now-playing-bar .track { color: #3498db; }
+        .now-playing-bar .album { color: #e67e22; }
+
+        /* Action buttons */
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .btn {
+            background-color: #34495e;
+            color: #ecf0f1;
+            border: 1px solid #4a5f7f;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+            font-weight: bold;
+        }
+
+        .btn:hover {
+            background-color: #4a5f7f;
+            transform: translateY(-1px);
+        }
+
+        .btn-clear {
+            background-color: #e74c3c;
+            border-color: #c0392b;
+        }
+
+        .btn-clear:hover {
+            background-color: #c0392b;
+        }
+
+        .btn-close {
+            background-color: #3498db;
+            border-color: #2980b9;
+        }
+
+        .btn-close:hover {
+            background-color: #2980b9;
+        }
+
+        /* History stats */
+        .stats {
+            text-align: center;
+            padding: 15px;
+            background-color: rgba(52, 152, 219, 0.1);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(52, 152, 219, 0.3);
+        }
+
+        .stats-title {
+            font-size: 0.9em;
+            color: #95a5a6;
+            margin-bottom: 5px;
+        }
+
+        .stats-value {
+            font-size: 1.4em;
+            color: #3498db;
+            font-weight: bold;
+        }
+
+        /* History list */
+        .history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 10px;
+            background-color: rgba(44, 62, 80, 0.6);
+            border-radius: 8px;
+            border: 1px solid #34495e;
+            transition: all 0.2s ease;
+        }
+
+        .history-item:hover {
+            background-color: rgba(52, 73, 94, 0.8);
+            border-color: #4a6279;
+        }
+
+        .history-thumbnail {
+            width: 60px;
+            height: 60px;
+            border-radius: 6px;
+            object-fit: cover;
+            margin-right: 15px;
+            border: 2px solid #34495e;
+            background-color: #1a1a1a;
+        }
+
+        .history-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .history-title {
+            font-size: 1em;
+            font-weight: bold;
+            color: #ecf0f1;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .history-artist {
+            font-size: 0.9em;
+            color: #27ae60;
+            margin-bottom: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .history-album {
+            font-size: 0.85em;
+            color: #95a5a6;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .history-time {
+            font-size: 0.8em;
+            color: #7f8c8d;
+            text-align: right;
+            white-space: nowrap;
+            margin-left: 10px;
+            min-width: 90px;
+        }
+
+        .history-actions {
+            display: flex;
+            gap: 8px;
+            margin-left: 10px;
+        }
+
+        .history-actions button {
+            background-color: #34495e;
+            color: #ecf0f1;
+            border: 1px solid #4a5f7f;
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .history-actions button:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-add {
+            background-color: #3498db !important;
+            border-color: #2980b9 !important;
+        }
+
+        .btn-add:hover {
+            background-color: #2980b9 !important;
+        }
+
+        .btn-play {
+            background-color: #27ae60 !important;
+            border-color: #229954 !important;
+        }
+
+        .btn-play:hover {
+            background-color: #229954 !important;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #95a5a6;
+        }
+
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h3 {
+            color: #bdc3c7;
+            margin-bottom: 10px;
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #27ae60;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .toast.error {
+            background: #e74c3c;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+
+            .history-item {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            .history-thumbnail {
+                margin: 0;
+            }
+
+            .history-info {
+                flex: 1;
+                min-width: 200px;
+            }
+
+            .history-time {
+                width: 100%;
+                text-align: left;
+                margin: 0;
+            }
+
+            .history-actions {
+                width: 100%;
+                margin: 0;
+                justify-content: stretch;
+            }
+
+            .history-actions button {
+                flex: 1;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .now-playing-bar .info {
+                font-size: 0.9em;
+            }
+        }
+    </style>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+</head>
+
+<body class="{{ app_theme }}">
+    <div class="container">
+        <!-- Logo -->
+        <div class="logo-container">
+            <img id="maestro-logo" src="{{ url_for('static', filename='logo.svg') }}" alt="Maestro MPD Control">
+        </div>
+
+        <!-- Now Playing Bar -->
+        {% if mpd_info and mpd_info.state in ['play', 'pause'] %}
+        <div class="now-playing-bar">
+            <div class="label">♪ Now Playing</div>
+            <div class="info">
+                <span class="artist">{{ mpd_info.artist|default('-') }}</span>
+                <span class="separator">•</span>
+                <span class="album">{{ mpd_info.album|default('-') }}</span>
+                <span class="separator">•</span>
+                <span class="track">{{ mpd_info.title|default('-') }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <h1>📜 Play History</h1>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button class="btn btn-close" onclick="window.close()">← Close</button>
+            <button class="btn btn-clear" onclick="clearHistory()">🗑️ Clear History</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats">
+            <div class="stats-title">Songs Played This Session</div>
+            <div class="stats-value" id="history-count">{{ history|length }}</div>
+        </div>
+
+        <!-- History List -->
+        {% if history %}
+        <ul class="history-list" id="history-list">
+            {% for item in history %}
+            <li class="history-item">
+                <img class="history-thumbnail" 
+                     src="/album_art?artist={{ item.album_artist|urlencode if item.album_artist else item.artist|urlencode }}&album={{ item.album|urlencode }}&size=thumb&file={{ item.file|urlencode }}"
+                     alt="{{ item.album }}"
+                     onerror="this.src='/static/default-album.png'">
+                <div class="history-info">
+                    <div class="history-title">{{ item.title }}</div>
+                    <div class="history-artist">{{ item.artist }}</div>
+                    <div class="history-album">{{ item.album }}</div>
+                </div>
+                <div class="history-time" data-timestamp="{{ item.timestamp }}"></div>
+                <div class="history-actions">
+                    <button class="btn-add" onclick="addToPlaylist('{{ item.file }}', '{{ item.artist }}', '{{ item.title }}')">➕ Add Song</button>
+                    <button class="btn-play" onclick="playNow('{{ item.file }}', '{{ item.artist }}', '{{ item.title }}')">▶️ Play</button>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">🎵</div>
+            <h3>No History Yet</h3>
+            <p>Songs you play will appear here</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Initialize SocketIO
+        const socket = io();
+
+        // Update now playing bar with MPD status
+        socket.on('mpd_status', function(data) {
+            const nowPlayingBar = document.getElementById('now-playing-bar');
+            const npArtist = document.getElementById('np-artist');
+            const npAlbum = document.getElementById('np-album');
+            const npTrack = document.getElementById('np-track');
+            const maestroLogo = document.getElementById('maestro-logo');
+
+            if (data.state === 'play' || data.state === 'pause') {
+                nowPlayingBar.style.display = 'block';
+                npArtist.textContent = data.artist || '-';
+                npAlbum.textContent = data.album || '-';
+                npTrack.textContent = data.song_title || '-';
+                
+                if (data.state === 'play' && maestroLogo) {
+                    maestroLogo.src = "/static/logo.svg";
+                } else if (maestroLogo) {
+                    maestroLogo.src = "/static/logo-static.svg";
+                }
+            } else {
+                nowPlayingBar.style.display = 'none';
+                if (maestroLogo) {
+                    maestroLogo.src = "/static/logo-static.svg";
+                }
+            }
+        });
+
+        // Format relative time
+        function formatRelativeTime(timestamp) {
+            const now = Date.now() / 1000;
+            const diff = now - timestamp;
+
+            if (diff < 60) {
+                return 'just now';
+            } else if (diff < 3600) {
+                const mins = Math.floor(diff / 60);
+                return `${mins} min${mins > 1 ? 's' : ''} ago`;
+            } else if (diff < 86400) {
+                const hours = Math.floor(diff / 3600);
+                return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+            } else {
+                const days = Math.floor(diff / 86400);
+                return `${days} day${days > 1 ? 's' : ''} ago`;
+            }
+        }
+
+        // Update all timestamps
+        function updateTimestamps() {
+            document.querySelectorAll('.history-time').forEach(el => {
+                const timestamp = parseFloat(el.dataset.timestamp);
+                if (timestamp) {
+                    el.textContent = formatRelativeTime(timestamp);
+                }
+            });
+        }
+
+        // Add to playlist without playing
+        function addToPlaylist(file, artist, title) {
+            console.log('addToPlaylist called:', file, artist, title);
+            fetch('/add_song_to_playlist', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `file=${encodeURIComponent(file)}`
+            })
+            .then(response => {
+                console.log('Add response:', response);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Add data:', data);
+                if (data.status === 'success') {
+                    showToast(`✓ Added: ${title}`, 'success');
+                } else {
+                    showToast('Failed to add song', 'error');
+                }
+            })
+            .catch(err => {
+                console.error('Error adding song:', err);
+                showToast('Error adding song', 'error');
+            });
+        }
+
+        // Play a song now
+        function playNow(file, artist, title) {
+            console.log('playNow called:', file, artist, title);
+            // First, clear the playlist
+            fetch('/clear_playlist', { method: 'POST' })
+            .then(() => {
+                console.log('Playlist cleared');
+                // Add the song
+                return fetch('/add_song_to_playlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `file=${encodeURIComponent(file)}`
+                });
+            })
+            .then(response => {
+                console.log('Play add response:', response);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Play add data:', data);
+                if (data.status === 'success') {
+                    // Play the first song in playlist (position 0)
+                    return fetch('/play_song_at_pos', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: 'pos=0'
+                    });
+                } else {
+                    throw new Error('Failed to add song');
+                }
+            })
+            .then(response => {
+                console.log('Play response:', response);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Play data:', data);
+                if (data.status === 'success') {
+                    showToast(`▶️ Playing: ${title}`, 'success');
+                } else {
+                    showToast('Failed to play song', 'error');
+                }
+            })
+            .catch(err => {
+                console.error('Error playing song:', err);
+                showToast('Error playing song', 'error');
+            });
+        }
+
+        // Clear history
+        function clearHistory() {
+            if (!confirm('Clear all play history? This cannot be undone.')) {
+                return;
+            }
+
+            fetch('/api/history/clear', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    location.reload();
+                } else {
+                    showToast('Failed to clear history', 'error');
+                }
+            })
+            .catch(err => {
+                console.error('Error clearing history:', err);
+                showToast('Error clearing history', 'error');
+            });
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // Initialize timestamps
+        updateTimestamps();
+        // Update timestamps every 30 seconds
+        setInterval(updateTimestamps, 30000);
+    </script>
+</body>
+
+</html>

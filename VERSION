@@ -1,10 +1,21 @@
-Maestro MPD Server v2.6.0
-Release Date: Mon Jan 13 00:00:00 UTC 2026
-Version: 2.6.0
+Maestro MPD Server v2.6.2
+Release Date: Thu Jan 16 00:00:00 UTC 2026
+Version: 2.6.2
 
-🔍 SEARCH & DISCOVERY RELEASE - Autocomplete & Better Autofill 🔍
+🎵 HISTORY & USABILITY RELEASE - Queue History Tracking 🎵
 
-Latest Features (Jan 13, 2026 - v2.6.0):
+Latest Features (Jan 16, 2026 - v2.6.2):
+✅ NEW: Queue History - Track all played songs with timestamps in a dedicated history page
+✅ NEW: History Button - Quick access button next to file path on main page
+✅ NEW: Add Song/Play Now - Dual action buttons for each history item
+✅ NEW: Toast Notifications - Visual feedback when adding or playing songs from history
+✅ ENHANCED: Album Art Display - History shows album art thumbnails with artist/album info
+✅ ENHANCED: Relative Timestamps - "just now", "5 mins ago", "2 hours ago" display format
+✅ FIXED: Album Art Search - Clicking covers in 3x3 grid now properly searches
+✅ UI POLISH: Session statistics show total songs played
+✅ OPTIMIZED: 100-song history limit per session for performance
+
+Previous Features (Jan 13, 2026 - v2.6.0):
 ✅ NEW: Search Autocomplete - Instant suggestions as you type (artists, albums, titles)
 ✅ NEW: Client-side Filtering - Lightning fast, no server delay, keyboard navigation
 ✅ IMPROVED: Autofill Artist Variety - Now pulls tracks from all 30 similar artists

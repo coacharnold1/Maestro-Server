@@ -240,7 +240,7 @@
                             // Make clickable - opens search for this album
                             slot.style.cursor = 'pointer';
                             slot.onclick = function() {
-                                const searchUrl = '/search?query=' + encodeURIComponent(album.album) + '&type=album';
+                                const searchUrl = '/search?query=' + encodeURIComponent(album.album) + '&search_tag=album';
                                 window.opener.location.href = searchUrl;
                                 window.close();  // Close this tab after opening search
                             };

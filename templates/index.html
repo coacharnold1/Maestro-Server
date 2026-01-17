@@ -121,10 +121,13 @@
             margin-bottom: 10px;
         }
 
-        /* File path button */
+        /* File path and history buttons container */
         .file-path-button {
-            display: inline-block;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin: 8px 0;
+            gap: 10px;
         }
 
         .file-path-button button {
@@ -145,6 +148,16 @@
 
         .file-path-button button:active {
             transform: translateY(1px);
+        }
+
+        .history-button {
+            background-color: #9b59b6 !important;
+            color: #ecf0f1 !important;
+            border-color: #8e44ad !important;
+        }
+
+        .history-button:hover {
+            background-color: #8e44ad !important;
         }
 
         /* Special styling for Up Next */
@@ -1080,6 +1093,7 @@
             </div>
             <div class="file-path-button">
                 <button onclick="showFilePath()" title="Show file path">📁 Show File Path</button>
+                <button onclick="window.open('/history', '_blank')" class="history-button" title="View play history">📜 History</button>
             </div>
             <p class="up-next-item"><span>Up Next:</span> <em><span id="up-next-artist"><a href="/search?query={{ mpd_info.next_song_artist|strip_location|urlencode }}&type=artist" style="color:#27ae60; text-decoration:underline;">{{ mpd_info.next_song_artist }}</a></span> - <span id="up-next-title">{{ mpd_info.next_song_title }}</span></em></p>
             {# Progress Bar - initial width moved to JS to avoid inline Jinja in style #}
@@ -1100,6 +1114,7 @@
             </div>
             <div class="file-path-button">
                 <button onclick="showFilePath()" title="Show file path">📁 Show File Path</button>
+                <button onclick="window.open('/history', '_blank')" class="history-button" title="View play history">📜 History</button>
             </div>
             <p class="up-next-item"><span>Up Next:</span> <em>N/A</em></p>
             <div class="progress-container">

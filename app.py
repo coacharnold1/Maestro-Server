@@ -1,8 +1,8 @@
 print("[DEBUG] app.py loaded and running", flush=True)
 
 # Application version information
-APP_VERSION = "2.6.0"
-APP_BUILD_DATE = "2026-01-13" 
+APP_VERSION = "2.6.2"
+APP_BUILD_DATE = "2026-01-16" 
 APP_NAME = "Maestro MPD Server"
 
 # Simple threading mode to avoid eventlet issues
@@ -188,6 +188,11 @@ recent_albums_cache_mod_times = None
 # Playlists directory for saving/loading playlists
 PLAYLISTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'playlists')
 os.makedirs(PLAYLISTS_DIR, exist_ok=True)
+
+# Play history tracking (session-based, cleared on server restart)
+play_history = []
+MAX_HISTORY_ITEMS = 100  # Keep last 100 songs
+last_tracked_song_id = None  # Track song ID to avoid duplicates
 
 # Configure SocketIO to use threading for async support (no eventlet issues)
 socketio = SocketIO(app, async_mode='threading', cors_allowed_origins="*")
@@ -607,6 +612,26 @@ def mpd_status_monitor():
         status = get_mpd_status_for_display()
         if status:
             socketio.emit('mpd_status', status)
+            
+            # Add to play history when a new song starts playing
+            global last_tracked_song_id, play_history
+            current_song_id = status.get('song_id')
+            if status.get('state') == 'play' and current_song_id and current_song_id != last_tracked_song_id:
+                last_tracked_song_id = current_song_id
+                history_item = {
+                    'timestamp': time.time(),
+                    'artist': status.get('artist', 'Unknown Artist'),
+                    'title': status.get('song_title', 'Unknown Title'),
+                    'album': status.get('album', 'Unknown Album'),
+                    'file': status.get('song_file', ''),
+                    'album_artist': status.get('album_artist', '')
+                }
+                # Add to beginning of list (most recent first)
+                play_history.insert(0, history_item)
+                # Keep only MAX_HISTORY_ITEMS
+                if len(play_history) > MAX_HISTORY_ITEMS:
+                    play_history = play_history[:MAX_HISTORY_ITEMS]
+            
             # Scrobbling integration on track changes
             try:
                 if scrobbling_enabled and status.get('state') == 'play':
@@ -1645,15 +1670,19 @@ def search_autocomplete_data():
 def search():
     """Search page with improved functionality from beta version."""
     print(f"Request method: {request.method}, Request form: {dict(request.form)}, Request args: {dict(request.args)}", flush=True)
+    
+    # Handle both POST and GET requests
     if request.method == 'POST':
+        query = request.form.get('query', '').strip()
+        search_tag = request.form.get('search_tag', 'any')
+    else:  # GET request
+        query = request.args.get('query', '').strip()
+        # Support both 'search_tag' and 'type' parameter names for compatibility
+        search_tag = request.args.get('search_tag') or request.args.get('type', 'any')
+    
+    # If there's a query, perform the search
+    if query:
         try:
-            query = request.form.get('query', '').strip()
-            search_tag = request.form.get('search_tag', 'any')
-            
-
-            if not query:
-                return render_template('search.html', error="Please enter a search query")
-
             print(f"Received search request for tag: {search_tag} with query: {query}")
 
             client = connect_mpd_client()
@@ -1678,6 +1707,7 @@ def search():
             print(f"Error processing search: {e}")
             return render_template('search.html', error="An error occurred while processing your search")
     
+    # No query provided, just show the search page
     return render_template('search.html')
 
 @app.route('/random_albums', methods=['GET'])
@@ -1892,6 +1922,29 @@ def seek_position():
     except Exception as e:
         print(f"Error processing seek request: {e}")
         return jsonify({'status': 'error', 'message': f'Error: {e}'}), 500
+
+@app.route('/history')
+def history():
+    """Display play history page"""
+    mpd_status = get_mpd_status_for_display()
+    app_theme = app.config.get('THEME', 'dark')
+    return render_template('history.html', 
+                          history=play_history,
+                          mpd_info=mpd_status,
+                          app_theme=app_theme)
+
+@app.route('/api/history/clear', methods=['POST'])
+def clear_history():
+    """Clear play history"""
+    global play_history, last_tracked_song_id
+    play_history = []
+    last_tracked_song_id = None
+    return jsonify({'status': 'success', 'message': 'History cleared'})
+
+@app.route('/api/history', methods=['GET'])
+def get_history():
+    """Return play history as JSON"""
+    return jsonify({'status': 'success', 'history': play_history})
 
 @app.route('/set_volume', methods=['POST'])
 def set_volume():
