@@ -425,8 +425,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s, opacity 0.3s;
             border-bottom: 1px solid #4a6279;
+            position: relative;
         }
 
         .playlist-item:last-child {
@@ -437,6 +438,80 @@
             transform: translateY(-1px);
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
             background-color: #3d566e;
+        }
+
+        /* Drag handle */
+        .drag-handle {
+            cursor: grab;
+            padding: 8px 10px;
+            margin-right: 10px;
+            color: #7f8c8d;
+            font-size: 20px;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            transition: color 0.2s;
+            line-height: 1;
+        }
+
+        .drag-handle:hover {
+            color: #3498db;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        /* Dragging states */
+        .playlist-item.dragging {
+            opacity: 0.3;
+            transform: scale(0.98);
+            background-color: #2c3e50;
+        }
+
+        .playlist-item.drag-over {
+            border-top: 4px solid #3498db;
+            background-color: rgba(52, 152, 219, 0.1);
+            box-shadow: 0 -2px 8px rgba(52, 152, 219, 0.5);
+        }
+
+        .playlist-item.drag-over-bottom {
+            border-bottom: 4px solid #3498db;
+            background-color: rgba(52, 152, 219, 0.1);
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.5);
+        }
+
+        /* Drag ghost/preview */
+        .drag-ghost {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.85;
+            background-color: #3498db;
+            color: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            transform: rotate(-2deg);
+            transition: transform 0.1s;
+            max-width: 400px;
+            font-size: 14px;
+        }
+
+        /* Smooth reordering animation */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .playlist-item.just-moved {
+            animation: slideIn 0.3s ease-out;
         }
 
         .playlist-item-info {
@@ -476,6 +551,20 @@
             display: flex;
             gap: 8px;
             align-items: center;
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+        }
+
+        /* Show actions on hover (desktop only) */
+        .playlist-item:hover .playlist-item-actions {
+            opacity: 1;
+        }
+
+        /* Always show actions on mobile/tablet */
+        @media (max-width: 768px) {
+            .playlist-item-actions {
+                opacity: 1;
+            }
         }
 
         .playlist-item button {
@@ -943,7 +1032,8 @@
             {% endif %}
             {% set album_name = song.album if song.album else '' %}
             {% set file_name = song.file if song.file else '' %}
-            <div class="playlist-item" data-pos="{{ song.pos }}">
+            <div class="playlist-item" data-pos="{{ song.pos }}" draggable="false">
+                <div class="drag-handle" draggable="true" title="Drag to reorder">⋮⋮</div>
                 <img class="playlist-album-art"
                     src="/album_art?artist={{ artist_name | urlencode_str }}&album={{ album_name | urlencode_str }}&size=thumb&file={{ file_name | urlencode_str }}"
                     alt="{{ song.album | default('Unknown Album') }} cover" loading="lazy"
@@ -1218,6 +1308,140 @@
             // Make clearPlaylist globally available
             window.clearPlaylist = clearPlaylist;
 
+            // Initialize drag-and-drop functionality
+            function initializeDragAndDrop() {
+                let draggedItem = null;
+                let draggedPos = null;
+                let dragGhost = null;
+
+                // Add event listeners to all drag handles
+                document.querySelectorAll('.drag-handle').forEach(handle => {
+                    const item = handle.closest('.playlist-item');
+                    
+                    handle.addEventListener('dragstart', function(e) {
+                        draggedItem = item;
+                        draggedPos = parseInt(item.getAttribute('data-pos'));
+                        item.classList.add('dragging');
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('text/html', item.innerHTML);
+
+                        // Create custom drag ghost
+                        const titleEl = item.querySelector('.title');
+                        const artistEl = item.querySelector('.artist-album');
+                        if (titleEl && artistEl) {
+                            dragGhost = document.createElement('div');
+                            dragGhost.className = 'drag-ghost';
+                            dragGhost.innerHTML = `<strong>🎵 ${titleEl.textContent}</strong><br><small>${artistEl.textContent}</small>`;
+                            dragGhost.style.left = '-9999px';
+                            document.body.appendChild(dragGhost);
+                        }
+                    });
+
+                    handle.addEventListener('drag', function(e) {
+                        if (dragGhost && e.clientX !== 0 && e.clientY !== 0) {
+                            dragGhost.style.left = (e.clientX + 10) + 'px';
+                            dragGhost.style.top = (e.clientY + 10) + 'px';
+                        }
+                    });
+
+                    handle.addEventListener('dragend', function(e) {
+                        item.classList.remove('dragging');
+                        // Remove all drag-over classes
+                        document.querySelectorAll('.playlist-item').forEach(i => {
+                            i.classList.remove('drag-over', 'drag-over-bottom');
+                        });
+                        // Remove ghost
+                        if (dragGhost) {
+                            dragGhost.remove();
+                            dragGhost = null;
+                        }
+                    });
+                });
+
+                // Add event listeners to all playlist items for drop zones
+                document.querySelectorAll('.playlist-item').forEach(item => {
+                    item.addEventListener('dragover', function(e) {
+                        if (draggedItem === null || draggedItem === item) return;
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+
+                        // Remove previous highlights
+                        document.querySelectorAll('.playlist-item').forEach(i => {
+                            i.classList.remove('drag-over', 'drag-over-bottom');
+                        });
+
+                        // Determine if we're dragging above or below
+                        const rect = item.getBoundingClientRect();
+                        const midpoint = rect.top + rect.height / 2;
+                        
+                        if (e.clientY < midpoint) {
+                            item.classList.add('drag-over');
+                        } else {
+                            item.classList.add('drag-over-bottom');
+                        }
+                    });
+
+                    item.addEventListener('dragleave', function(e) {
+                        // Only remove if we're actually leaving the item
+                        if (e.target === item) {
+                            item.classList.remove('drag-over', 'drag-over-bottom');
+                        }
+                    });
+
+                    item.addEventListener('drop', function(e) {
+                        if (draggedItem === null || draggedItem === item) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        const targetPos = parseInt(item.getAttribute('data-pos'));
+                        const rect = item.getBoundingClientRect();
+                        const midpoint = rect.top + rect.height / 2;
+                        
+                        // Determine final position based on drop location
+                        let finalPos = targetPos;
+                        if (e.clientY >= midpoint) {
+                            finalPos = targetPos + 1;
+                        }
+
+                        // Adjust for the fact that removing the dragged item shifts positions
+                        if (draggedPos < finalPos) {
+                            finalPos--;
+                        }
+
+                        // Only move if position actually changed
+                        if (draggedPos !== finalPos) {
+                            moveToDragPosition(draggedPos, finalPos);
+                        }
+
+                        // Clean up
+                        item.classList.remove('drag-over', 'drag-over-bottom');
+                        draggedItem = null;
+                        draggedPos = null;
+                    });
+                });
+            }
+
+            // Move track to specific position (for drag-and-drop)
+            function moveToDragPosition(fromPos, toPos) {
+                // MPD's move command takes from and to positions
+                fetch('/move_track', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pos: fromPos, to: toPos })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'error') {
+                            displayMessage('error', data.message);
+                        }
+                        // Playlist update will be handled via Socket.IO
+                    })
+                    .catch(error => {
+                        console.error('Error moving track:', error);
+                        displayMessage('error', `Error moving track: ${error.message}`);
+                    });
+            }
+
             // Function to update the playlist display
             function updatePlaylistDisplay(playlist) {
                 playlistContainer.innerHTML = ''; // Clear current list
@@ -1235,6 +1459,7 @@
                         const isLast = song.pos === playlist.length - 1;
 
                         div.innerHTML = `
+                            <div class="drag-handle" draggable="true" title="Drag to reorder">⋮⋮</div>
                             <img class="playlist-album-art" 
                                  src="/album_art?artist=${artist}&album=${album}&size=thumb&file=${file}" 
                                  alt="${song.album || 'Unknown Album'} cover"
@@ -1256,6 +1481,7 @@
                     playlistContainer.innerHTML = '<p style="text-align: center; color: #bdc3c7;">Playlist is empty.</p>';
                 }
                 attachEventListeners(); // Re-attach all listeners after updating
+                initializeDragAndDrop(); // Initialize drag-and-drop after updating
             }
 
             // Attach event listeners to play, move, and remove buttons
@@ -1427,6 +1653,7 @@
 
             // Initial attachment of listeners on page load
             attachEventListeners();
+            initializeDragAndDrop(); // Initialize drag-and-drop on page load
 
             // Initial fetch of MPD status to set consume mode checkbox on page load
             // This is important because the playlist page doesn't receive mpd_info directly from Flask render

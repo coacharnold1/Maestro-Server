@@ -1,8 +1,8 @@
 print("[DEBUG] app.py loaded and running", flush=True)
 
 # Application version information
-APP_VERSION = "2.6.2"
-APP_BUILD_DATE = "2026-01-16" 
+APP_VERSION = "2.7.0"
+APP_BUILD_DATE = "2026-01-20" 
 APP_NAME = "Maestro MPD Server"
 
 # Simple threading mode to avoid eventlet issues
@@ -3998,16 +3998,12 @@ def remove_from_playlist():
 
 @app.route('/move_track', methods=['POST'])
 def move_track():
-    """Moves a track up or down in the playlist."""
+    """Moves a track up/down or to a specific position in the playlist."""
     data = request.get_json()
-    if not data or 'pos' not in data or 'direction' not in data:
-        return jsonify({'status': 'error', 'message': 'Position and direction required'}), 400
+    if not data or 'pos' not in data:
+        return jsonify({'status': 'error', 'message': 'Position required'}), 400
     
     pos = data['pos']
-    direction = data['direction']
-    
-    if direction not in ['up', 'down']:
-        return jsonify({'status': 'error', 'message': 'Direction must be "up" or "down"'}), 400
     
     client = connect_mpd_client()
     if not client:
@@ -4018,17 +4014,37 @@ def move_track():
         playlist = client.playlistinfo()
         playlist_length = len(playlist)
         
-        # Calculate new position
-        if direction == 'up':
-            if pos == 0:
+        # Check if moving to specific position (drag-and-drop) or by direction (up/down buttons)
+        if 'to' in data:
+            # Drag-and-drop to specific position
+            new_pos = data['to']
+            if new_pos < 0 or new_pos >= playlist_length:
                 client.disconnect()
-                return jsonify({'status': 'error', 'message': 'Already at top of playlist'}), 400
-            new_pos = pos - 1
-        else:  # down
-            if pos >= playlist_length - 1:
+                return jsonify({'status': 'error', 'message': 'Invalid target position'}), 400
+            if pos == new_pos:
                 client.disconnect()
-                return jsonify({'status': 'error', 'message': 'Already at bottom of playlist'}), 400
-            new_pos = pos + 1
+                return jsonify({'status': 'success', 'message': 'Track already in position'})
+        elif 'direction' in data:
+            # Up/down button movement
+            direction = data['direction']
+            if direction not in ['up', 'down']:
+                client.disconnect()
+                return jsonify({'status': 'error', 'message': 'Direction must be "up" or "down"'}), 400
+            
+            # Calculate new position
+            if direction == 'up':
+                if pos == 0:
+                    client.disconnect()
+                    return jsonify({'status': 'error', 'message': 'Already at top of playlist'}), 400
+                new_pos = pos - 1
+            else:  # down
+                if pos >= playlist_length - 1:
+                    client.disconnect()
+                    return jsonify({'status': 'error', 'message': 'Already at bottom of playlist'}), 400
+                new_pos = pos + 1
+        else:
+            client.disconnect()
+            return jsonify({'status': 'error', 'message': 'Either "direction" or "to" parameter required'}), 400
         
         # Move the track
         client.move(pos, new_pos)
@@ -4039,7 +4055,7 @@ def move_track():
         
         return jsonify({
             'status': 'success',
-            'message': f'Moved track {"up" if direction == "up" else "down"}',
+            'message': 'Track moved',
             'new_pos': new_pos
         })
     
