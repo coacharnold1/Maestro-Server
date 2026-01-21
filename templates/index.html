@@ -1197,6 +1197,7 @@
             style="border-top: 2px solid #34495e; margin-top: 20px; padding-top: 20px;">
             <h2>External Information</h2>
             <div class="button-row">
+                <button id="lastfm-artist-btn">Last.fm (Artist)</button>
                 <button id="wikipedia-artist-search-btn">Wikipedia (Artist)</button>
                 <button id="musicbrainz-album-search-btn">MusicBrainz (Album)</button>
             </div>
@@ -1254,6 +1255,35 @@
         let currentFilePath = '';
 
         // Show file path in alert popup
+        function showSongInfo() {
+            const artist = document.getElementById('current-artist') ? 
+                (document.getElementById('current-artist').textContent || document.getElementById('current-artist').innerText) : 'N/A';
+            const title = document.getElementById('current-title') ? 
+                document.getElementById('current-title').textContent : 'N/A';
+            const album = document.getElementById('current-album') ? 
+                document.getElementById('current-album').textContent : 'N/A';
+            
+            if (artist === 'N/A' || title === 'N/A') {
+                alert('No song currently playing');
+                return;
+            }
+
+            // Strip location tags
+            const cleanArtist = artist.replace(/\s*\[.*?\]\s*$/g, '').trim();
+            
+            // Build info message
+            let info = `🎵 Now Playing:\n\n`;
+            info += `Artist: ${cleanArtist}\n`;
+            info += `Title: ${title}\n`;
+            info += `Album: ${album}\n\n`;
+            info += `Quick Links:\n`;
+            info += `• Last.fm: https://www.last.fm/music/${encodeURIComponent(cleanArtist)}/_/${encodeURIComponent(title)}\n`;
+            info += `• Wikipedia: https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(cleanArtist)}\n`;
+            info += `• AllMusic: https://www.allmusic.com/search/all/${encodeURIComponent(cleanArtist)}`;
+            
+            alert(info);
+        }
+
         function showFilePath() {
             if (currentFilePath && currentFilePath !== 'N/A') {
                 alert('File Path:\n\n' + currentFilePath);
@@ -1362,6 +1392,7 @@
             const allmusicArtistSearchBtn = document.getElementById('allmusic-artist-search-btn');
             const wikipediaAlbumSearchBtn = document.getElementById('allmusic-album-search-btn');
             const allmusicAlbumSearchBtn = document.getElementById('musicbrainz-album-search-btn');
+            const lastfmArtistBtn = document.getElementById('lastfm-artist-btn');
 
             // NEW: Consume Mode Checkbox
             const consumeModeCheckbox = document.getElementById('consume-mode-checkbox');
@@ -1528,6 +1559,7 @@
                     allmusicArtistSearchBtn.disabled = !hasArtist;
                     wikipediaAlbumSearchBtn.disabled = !(hasArtist && hasAlbum);
                     allmusicAlbumSearchBtn.disabled = !(hasArtist && hasAlbum);
+                    if (lastfmArtistBtn) lastfmArtistBtn.disabled = !hasArtist;
 
                     // NEW: Update consume mode checkbox
                     if (consumeModeCheckbox) {
@@ -1572,6 +1604,7 @@
                     allmusicArtistSearchBtn.disabled = true;
                     wikipediaAlbumSearchBtn.disabled = true;
                     allmusicAlbumSearchBtn.disabled = true;
+                    if (lastfmArtistBtn) lastfmArtistBtn.disabled = true;
 
                     // NEW: Set consume mode checkbox to false if disconnected
                     consumeModeCheckbox.checked = false;
@@ -1669,6 +1702,17 @@
                     window.open(`https://musicbrainz.org/search?query=${query}&type=release`, '_blank');
                 }
             });
+
+            // Last.fm Artist button
+            if (lastfmArtistBtn) {
+                lastfmArtistBtn.addEventListener('click', function () {
+                    const artist = currentArtistSpan.textContent || currentArtistSpan.innerText;
+                    if (artist !== 'N/A') {
+                        const query = encodeURIComponent(stripLocation(artist));
+                        window.open(`https://www.last.fm/music/${query}`, '_blank');
+                    }
+                });
+            }
 
             // NEW: Consume Mode Checkbox Event Listener
             if (consumeModeCheckbox) {
