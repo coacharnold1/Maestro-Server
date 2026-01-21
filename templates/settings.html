@@ -70,7 +70,31 @@
     </form>
 </div>
 
+<div class="status-box" id="squeezebox-section" style="display:none;">
+    <h2 style="text-align:left;">Squeezebox Players</h2>
+    <div class="controls" style="border-top:none;">
+        <div style="margin-bottom:12px; padding:8px; background:rgba(52,152,219,0.1); border-radius:6px; font-size:0.9em; color:#bdc3c7;">
+            <strong>ℹ️ Multi-Room Audio:</strong> Stream Maestro's audio to Squeezebox devices around your home via Logitech Media Server.
+            Configure LMS settings in the <a href="javascript:window.location.href='http://' + window.location.hostname + ':5004/system'" style="color:#3498db;">Admin Panel → System</a>.
+        </div>
+        <div id="lms-not-configured" style="display:none; padding:12px; background:rgba(243,156,18,0.2); border-left:4px solid #f39c12; border-radius:4px; margin-bottom:12px;">
+            <strong style="color:#f39c12;">⚠️ LMS Not Configured</strong>
+            <div style="color:#ecf0f1; margin-top:5px; font-size:0.9em;">
+                Enable and configure Logitech Media Server in the <a href="javascript:window.location.href='http://' + window.location.hostname + ':5004/system'" style="color:#3498db;">Admin Panel</a>.
+            </div>
+        </div>
+        <div id="player-list" style="margin-top:10px;"></div>
+        <div style="margin-top:15px; display:flex; justify-content:center; flex-wrap:wrap; gap:8px;">
+            <button type="button" class="button" onclick="refreshPlayers()" style="background:#3498db; color:#ecf0f1;">🔄 Refresh Players</button>
+            <button type="button" class="button" onclick="syncSelectedPlayers()" style="background:#2ecc71; color:#1a1a1a;">▶️ Start Streaming</button>
+            <button type="button" class="button" onclick="unsyncSelectedPlayers()" style="background:#e74c3c; color:#ecf0f1;">⏹️ Stop Streaming</button>
+        </div>
+        <div id="lms-status-message" style="margin-top:12px; padding:10px; border-radius:6px; display:none;"></div>
+    </div>
+</div>
+
 <script>
+    // Last.fm functionality
     document.getElementById('btn-test-lastfm').addEventListener('click', async () => {
         const keyField = document.getElementById('lastfm_api_key');
         const testKey = keyField.value.trim();
@@ -118,5 +142,193 @@
             alert('Finalize request failed');
         }
     });
+
+    // Squeezebox/LMS functionality
+    let currentPlayers = [];
+
+    async function checkLMSStatus() {
+        try {
+            const resp = await fetch('/api/lms/status');
+            const data = await resp.json();
+            
+            if (data.enabled && data.available) {
+                document.getElementById('squeezebox-section').style.display = 'block';
+                document.getElementById('lms-not-configured').style.display = 'none';
+                refreshPlayers();
+            } else if (data.enabled && !data.available) {
+                document.getElementById('squeezebox-section').style.display = 'block';
+                document.getElementById('lms-not-configured').style.display = 'block';
+                document.getElementById('player-list').innerHTML = '<div style="color:#95a5a6; text-align:center; padding:20px;">Cannot connect to LMS server. Check configuration.</div>';
+            } else {
+                document.getElementById('squeezebox-section').style.display = 'none';
+            }
+        } catch (e) {
+            console.error('Failed to check LMS status:', e);
+        }
+    }
+
+    async function refreshPlayers() {
+        try {
+            const resp = await fetch('/api/lms/players');
+            const data = await resp.json();
+            
+            if (data.status === 'success') {
+                currentPlayers = data.players;
+                renderPlayerList(data.players);
+            } else {
+                showLMSMessage(data.message || 'Failed to load players', 'error');
+            }
+        } catch (e) {
+            showLMSMessage('Network error: ' + e.message, 'error');
+        }
+    }
+
+    function renderPlayerList(players) {
+        const container = document.getElementById('player-list');
+        
+        if (players.length === 0) {
+            container.innerHTML = '<div style="color:#95a5a6; text-align:center; padding:20px;">No Squeezebox players found. Make sure your devices are powered on and connected to LMS.</div>';
+            return;
+        }
+        
+        let html = '<div style="display:grid; gap:10px;">';
+        
+        players.forEach(player => {
+            const statusColor = player.connected ? '#2ecc71' : '#e74c3c';
+            const statusText = player.connected ? 'Connected' : 'Offline';
+            
+            html += `
+                <div style="background:rgba(255,255,255,0.05); border-radius:8px; padding:12px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <input type="checkbox" class="player-checkbox" data-player-id="${player.id}" 
+                                   style="width:20px; height:20px; cursor:pointer;" ${player.connected ? '' : 'disabled'}>
+                            <div>
+                                <div style="font-weight:bold; color:#ecf0f1;">${player.name}</div>
+                                <div style="font-size:0.85em; color:#95a5a6;">${player.model} · ${player.ip || 'Unknown IP'}</div>
+                            </div>
+                        </div>
+                        <div style="padding:4px 10px; border-radius:4px; background:rgba(${statusColor === '#2ecc71' ? '46,204,113' : '231,76,60'},0.2); border:1px solid ${statusColor}; color:${statusColor}; font-size:0.85em;">
+                            ${statusText}
+                        </div>
+                    </div>
+                    ${player.connected ? `
+                    <div style="display:flex; align-items:center; gap:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.1);">
+                        <span style="color:#95a5a6; font-size:0.85em; min-width:50px;">🔊 Volume</span>
+                        <input type="range" min="0" max="100" value="50" 
+                               class="volume-slider" data-player-id="${player.id}"
+                               style="flex:1; height:6px; border-radius:3px; background:rgba(255,255,255,0.2); cursor:pointer;"
+                               onchange="setPlayerVolume('${player.id}', this.value)">
+                        <span class="volume-display" data-player-id="${player.id}" style="color:#ecf0f1; font-size:0.9em; min-width:40px; text-align:right;">50%</span>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    async function syncSelectedPlayers() {
+        const checkboxes = document.querySelectorAll('.player-checkbox:checked');
+        const playerIds = Array.from(checkboxes).map(cb => cb.dataset.playerId);
+        
+        if (playerIds.length === 0) {
+            showLMSMessage('Please select at least one player', 'warning');
+            return;
+        }
+        
+        try {
+            const resp = await fetch('/api/lms/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ players: playerIds })
+            });
+            const data = await resp.json();
+            
+            if (data.status === 'success') {
+                showLMSMessage('✅ ' + data.message, 'success');
+            } else {
+                showLMSMessage('❌ ' + data.message, 'error');
+            }
+        } catch (e) {
+            showLMSMessage('❌ Network error: ' + e.message, 'error');
+        }
+    }
+
+    async function unsyncSelectedPlayers() {
+        const checkboxes = document.querySelectorAll('.player-checkbox:checked');
+        const playerIds = Array.from(checkboxes).map(cb => cb.dataset.playerId);
+        
+        if (playerIds.length === 0) {
+            showLMSMessage('Please select at least one player', 'warning');
+            return;
+        }
+        
+        try {
+            const resp = await fetch('/api/lms/unsync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ players: playerIds })
+            });
+            const data = await resp.json();
+            
+            if (data.status === 'success') {
+                showLMSMessage('✅ ' + data.message, 'success');
+            } else {
+                showLMSMessage('❌ ' + data.message, 'error');
+            }
+        } catch (e) {
+            showLMSMessage('❌ Network error: ' + e.message, 'error');
+        }
+    }
+
+    async function setPlayerVolume(playerId, volume) {
+        try {
+            const resp = await fetch('/api/lms/volume', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ player: playerId, volume: parseInt(volume) })
+            });
+            const data = await resp.json();
+            
+            // Update display
+            const display = document.querySelector(`.volume-display[data-player-id="${playerId}"]`);
+            if (display) {
+                display.textContent = volume + '%';
+            }
+            
+            if (data.status !== 'success') {
+                showLMSMessage('❌ Volume control failed: ' + data.message, 'error');
+            }
+        } catch (e) {
+            showLMSMessage('❌ Network error: ' + e.message, 'error');
+        }
+    }
+
+    function showLMSMessage(message, type) {
+        const msgEl = document.getElementById('lms-status-message');
+        msgEl.textContent = message;
+        msgEl.style.display = 'block';
+        
+        const colors = {
+            success: { bg: 'rgba(46,204,113,0.2)', border: '#2ecc71', text: '#2ecc71' },
+            error: { bg: 'rgba(231,76,60,0.2)', border: '#e74c3c', text: '#e74c3c' },
+            warning: { bg: 'rgba(243,156,18,0.2)', border: '#f39c12', text: '#f39c12' }
+        };
+        
+        const style = colors[type] || colors.success;
+        msgEl.style.background = style.bg;
+        msgEl.style.borderLeft = `4px solid ${style.border}`;
+        msgEl.style.color = style.text;
+        
+        setTimeout(() => {
+            msgEl.style.display = 'none';
+        }, 5000);
+    }
+
+    // Initialize LMS on page load
+    checkLMSStatus();
 </script>
 {% endblock %}

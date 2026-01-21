@@ -2610,6 +2610,115 @@ def restore_mounts_on_startup():
         traceback.print_exc()
 
 # ============================================================================
+# API ENDPOINTS - LMS (LOGITECH MEDIA SERVER)
+# ============================================================================
+
+def load_settings():
+    """Load settings from settings.json"""
+    settings_file = Path.home() / 'maestro' / 'web' / 'settings.json'
+    try:
+        with open(settings_file, 'r') as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_settings(settings):
+    """Save settings to settings.json"""
+    settings_file = Path.home() / 'maestro' / 'web' / 'settings.json'
+    try:
+        os.makedirs(os.path.dirname(settings_file), exist_ok=True)
+        with open(settings_file, 'w') as f:
+            json.dump(settings, f, indent=2)
+        # Set secure permissions
+        try:
+            os.chmod(settings_file, 0o600)
+        except:
+            pass
+        return True
+    except Exception as e:
+        print(f"Error saving settings: {e}")
+        return False
+
+@app.route('/api/lms/settings')
+def get_lms_settings():
+    """Get LMS configuration"""
+    try:
+        settings = load_settings()
+        return jsonify({
+            'status': 'success',
+            'lms_enabled': settings.get('lms_enabled', False),
+            'lms_host': settings.get('lms_host', ''),
+            'lms_port': settings.get('lms_port', 9000)
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/lms/settings', methods=['POST'])
+def update_lms_settings():
+    """Update LMS configuration"""
+    try:
+        data = request.json
+        settings = load_settings()
+        
+        # Update LMS settings
+        settings['lms_enabled'] = data.get('lms_enabled', False)
+        settings['lms_host'] = data.get('lms_host', '')
+        settings['lms_port'] = data.get('lms_port', 9000)
+        
+        if save_settings(settings):
+            return jsonify({'status': 'success', 'message': 'LMS settings saved'})
+        else:
+            return jsonify({'status': 'error', 'message': 'Failed to save settings'}), 500
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/lms/test', methods=['POST'])
+def test_lms_connection():
+    """Test connection to LMS server"""
+    try:
+        data = request.json
+        host = data.get('lms_host', '')
+        port = data.get('lms_port', 9000)
+        
+        if not host:
+            return jsonify({'status': 'error', 'message': 'LMS host is required'}), 400
+        
+        # Import and test LMS client
+        import sys
+        sys.path.insert(0, str(Path.home() / 'Maestro-Server'))
+        from lms_client import LMSClient
+        
+        client = LMSClient(host=host, port=port)
+        
+        # Test connection
+        if not client.test_connection():
+            return jsonify({
+                'status': 'error',
+                'message': f'Cannot connect to LMS server at {host}:{port}'
+            }), 400
+        
+        # Get server info
+        version = client.get_server_version()
+        players = client.get_players()
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Connection successful',
+            'version': version,
+            'players': len(players)
+        })
+    except ImportError as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'LMS client module not found: {e}'
+        }), 500
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Connection failed: {str(e)}'
+        }), 500
+
+# ============================================================================
 # MAIN
 # ============================================================================
 

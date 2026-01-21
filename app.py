@@ -1,8 +1,8 @@
 print("[DEBUG] app.py loaded and running", flush=True)
 
 # Application version information
-APP_VERSION = "2.7.1"
-APP_BUILD_DATE = "2026-01-20" 
+APP_VERSION = "2.8.0"
+APP_BUILD_DATE = "2026-01-21" 
 APP_NAME = "Maestro MPD Server"
 
 # Simple threading mode to avoid eventlet issues
@@ -5302,6 +5302,159 @@ def on_connect():
 def on_disconnect():
     """Handle client disconnection."""
     print(f"Client disconnected: {request.sid}")
+
+# ============================================================================
+# LMS (LOGITECH MEDIA SERVER) API ROUTES
+# ============================================================================
+
+def get_lms_client():
+    """Get LMS client instance from settings"""
+    try:
+        from lms_client import create_lms_client
+        settings = load_settings()
+        return create_lms_client(settings)
+    except ImportError:
+        return None
+    except Exception as e:
+        print(f"Error creating LMS client: {e}")
+        return None
+
+@app.route('/api/lms/players')
+def api_lms_players():
+    """Get list of available Squeezebox players"""
+    try:
+        client = get_lms_client()
+        if not client:
+            return jsonify({'status': 'error', 'message': 'LMS not configured or unavailable'}), 400
+        
+        players = client.get_players()
+        return jsonify({'status': 'success', 'players': players})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/lms/sync', methods=['POST'])
+def api_lms_sync():
+    """Sync MPD stream to selected Squeezebox players"""
+    try:
+        data = request.json
+        player_ids = data.get('players', [])
+        
+        if not player_ids:
+            return jsonify({'status': 'error', 'message': 'No players selected'}), 400
+        
+        client = get_lms_client()
+        if not client:
+            return jsonify({'status': 'error', 'message': 'LMS not configured'}), 400
+        
+        # Get MPD stream URL (assuming HTTP stream on port 8000)
+        # You can make this configurable later
+        mpd_stream_url = f"http://{request.host.split(':')[0]}:8000"
+        
+        # Play stream on all selected players
+        success_count = 0
+        failed_players = []
+        
+        for player_id in player_ids:
+            if client.play_url(player_id, mpd_stream_url):
+                success_count += 1
+            else:
+                failed_players.append(player_id)
+        
+        if success_count > 0:
+            message = f'Started streaming to {success_count} player(s)'
+            if failed_players:
+                message += f', {len(failed_players)} failed'
+            return jsonify({'status': 'success', 'message': message})
+        else:
+            return jsonify({'status': 'error', 'message': 'Failed to start streaming on any player'}), 500
+            
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/lms/unsync', methods=['POST'])
+def api_lms_unsync():
+    """Stop streaming on selected Squeezebox players"""
+    try:
+        data = request.json
+        player_ids = data.get('players', [])
+        
+        if not player_ids:
+            return jsonify({'status': 'error', 'message': 'No players selected'}), 400
+        
+        client = get_lms_client()
+        if not client:
+            return jsonify({'status': 'error', 'message': 'LMS not configured'}), 400
+        
+        # Stop playback on all selected players
+        success_count = 0
+        failed_players = []
+        
+        for player_id in player_ids:
+            if client.stop(player_id):
+                success_count += 1
+            else:
+                failed_players.append(player_id)
+        
+        if success_count > 0:
+            message = f'Stopped streaming on {success_count} player(s)'
+            if failed_players:
+                message += f', {len(failed_players)} failed'
+            return jsonify({'status': 'success', 'message': message})
+        else:
+            return jsonify({'status': 'error', 'message': 'Failed to stop any player'}), 500
+            
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/lms/status')
+def api_lms_status():
+    """Get LMS enabled status and player information"""
+    try:
+        settings = load_settings()
+        lms_enabled = settings.get('lms_enabled', False)
+        
+        if not lms_enabled:
+            return jsonify({'status': 'success', 'enabled': False, 'players': []})
+        
+        client = get_lms_client()
+        if not client:
+            return jsonify({'status': 'success', 'enabled': True, 'available': False, 'players': []})
+        
+        players = client.get_players()
+        return jsonify({
+            'status': 'success',
+            'enabled': True,
+            'available': True,
+            'players': players
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/lms/volume', methods=['POST'])
+def api_lms_volume():
+    """Set volume on a Squeezebox player"""
+    try:
+        data = request.json
+        player_id = data.get('player')
+        volume = data.get('volume')
+        
+        if not player_id:
+            return jsonify({'status': 'error', 'message': 'Player ID required'}), 400
+        
+        if volume is None or not (0 <= volume <= 100):
+            return jsonify({'status': 'error', 'message': 'Volume must be between 0 and 100'}), 400
+        
+        client = get_lms_client()
+        if not client:
+            return jsonify({'status': 'error', 'message': 'LMS not configured'}), 400
+        
+        if client.set_volume(player_id, volume):
+            return jsonify({'status': 'success', 'message': f'Volume set to {volume}%'})
+        else:
+            return jsonify({'status': 'error', 'message': 'Failed to set volume'}), 500
+            
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # --- Application Startup ---
 if __name__ == '__main__':

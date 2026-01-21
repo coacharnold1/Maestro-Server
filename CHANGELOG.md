@@ -1,5 +1,35 @@
 # Maestro Server - Changelog
 
+## Version 2.8.0 - Squeezebox/LMS Multi-Room Audio (January 21, 2026)
+
+### 🔊 Logitech Media Server Integration
+- **Squeezebox Support**: Stream Maestro audio to Squeezebox Radio and other LMS-compatible devices
+- **LMS Configuration UI**: Easy setup in Admin Panel → System with IP address and port fields
+- **Player Discovery**: Automatic detection of all Squeezebox players on your network
+- **Multi-Room Control**: Select which players stream Maestro audio from Settings page
+- **Volume Control**: Individual volume sliders for each Squeezebox player (0-100%)
+- **Real-time Status**: See player connection status and control streaming with one click
+- **Connection Testing**: Test LMS server connectivity before saving settings
+- **Smart Enable/Disable**: Toggle LMS integration without losing configuration
+- **User-Configurable**: Complete freedom to specify your own LMS server IP and port
+- **Graceful Degradation**: System continues working if LMS server is unreachable
+
+### 🎵 Technical Implementation
+- **JSON-RPC Client**: Full LMS API client (lms_client.py) with player control methods
+- **HTTP Stream Integration**: Automatically pushes MPD's HTTP stream (port 8000) to selected players
+- **REST API**: New endpoints `/api/lms/players`, `/api/lms/sync`, `/api/lms/unsync`, `/api/lms/volume`, `/api/lms/status`
+- **Settings Persistence**: LMS configuration stored in settings.json alongside other preferences
+- **Error Handling**: Graceful fallbacks with timeout protection when LMS is unavailable or unconfigured
+- **Independent Audio Paths**: Works alongside Raspberry Pi MPV streamers without interference
+
+### 📚 Documentation & Setup
+- **Admin Interface**: New "Squeezebox/LMS Integration" section in System Administration
+- **Settings Page**: Dedicated player selection UI with checkbox controls and volume sliders
+- **Status Indicators**: Visual feedback for player connectivity and streaming state
+- **Setup Instructions**: Clear guidance linking to Admin Panel from Settings page
+
+---
+
 ## Version 2.1.0 - HTTP Streaming UI & Critical Fixes (December 20, 2025)
 
 ### 🎧 HTTP Streaming Configuration

@@ -255,6 +255,40 @@
         </div>
 
         <div class="section">
+            <h2 class="section-title">Squeezebox/LMS Integration</h2>
+            <p style="color: #95a5a6; margin-bottom: 15px;">Configure Logitech Media Server to stream Maestro audio to Squeezebox players.</p>
+            
+            <div style="display: grid; gap: 15px; max-width: 600px;">
+                <div>
+                    <label style="display: block; margin-bottom: 5px; color: #3498db;">Enable LMS Integration</label>
+                    <label style="display: inline-flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="lms-enabled" style="width: 20px; height: 20px; cursor: pointer;">
+                        <span style="margin-left: 10px; color: #ecf0f1;">Enable Squeezebox streaming</span>
+                    </label>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px; color: #3498db;">LMS Server IP Address</label>
+                    <input type="text" id="lms-host" placeholder="192.168.1.105" 
+                           style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #ecf0f1; font-size: 1em;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px; color: #3498db;">LMS Server Port</label>
+                    <input type="number" id="lms-port" placeholder="9000" value="9000"
+                           style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #ecf0f1; font-size: 1em;">
+                </div>
+                <div style="background: rgba(52, 152, 219, 0.1); border-left: 4px solid #3498db; padding: 12px; border-radius: 4px;">
+                    <div style="color: #ecf0f1; font-size: 0.95em;">
+                        ℹ️ Enter the IP address and port of your Logitech Media Server. Default port is 9000.
+                    </div>
+                </div>
+                <div class="action-group">
+                    <button class="btn" onclick="saveLMSSettings()">💾 Save LMS Settings</button>
+                    <button class="btn" onclick="testLMSConnection()">🔌 Test Connection</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
             <h2 class="section-title">Maestro Updates</h2>
             <p style="color: #95a5a6; margin-bottom: 15px;">Check for updates to Maestro MPD Server.</p>
             
@@ -504,9 +538,90 @@
 
         // Load system info on page load
         updateSystemInfo();
+        loadLMSSettings();
 
         // Refresh every 5 seconds
         setInterval(updateSystemInfo, 5000);
+
+        function loadLMSSettings() {
+            fetch('/api/lms/settings')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        document.getElementById('lms-enabled').checked = data.lms_enabled || false;
+                        document.getElementById('lms-host').value = data.lms_host || '';
+                        document.getElementById('lms-port').value = data.lms_port || 9000;
+                    }
+                })
+                .catch(error => console.error('Error loading LMS settings:', error));
+        }
+
+        function saveLMSSettings() {
+            const enabled = document.getElementById('lms-enabled').checked;
+            const host = document.getElementById('lms-host').value.trim();
+            const port = parseInt(document.getElementById('lms-port').value) || 9000;
+
+            if (enabled && !host) {
+                showMessage('❌ Error: LMS Server IP address is required when LMS is enabled.', 'error');
+                return;
+            }
+
+            const data = {
+                lms_enabled: enabled,
+                lms_host: host,
+                lms_port: port
+            };
+
+            fetch('/api/lms/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showMessage('✅ LMS Settings Saved!\n\nLogitech Media Server settings have been updated successfully.\n\nYou can now control Squeezebox players from the main Maestro interface.', 'success');
+                    } else {
+                        showMessage(`❌ Save Failed!\n\n${data.message}`, 'error');
+                    }
+                })
+                .catch(error => showMessage(`❌ Network Error!\n\n${error.message}`, 'error'));
+        }
+
+        function testLMSConnection() {
+            const host = document.getElementById('lms-host').value.trim();
+            const port = parseInt(document.getElementById('lms-port').value) || 9000;
+
+            if (!host) {
+                showMessage('❌ Error: Please enter an LMS Server IP address.', 'error');
+                return;
+            }
+
+            showMessage('⏳ Testing connection to LMS server...', 'warning');
+
+            fetch('/api/lms/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lms_host: host, lms_port: port })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        let message = `✅ Connection Successful!\n\n`;
+                        message += `🖥️  LMS Server: ${host}:${port}\n`;
+                        if (data.version) {
+                            message += `📦 Version: ${data.version}\n`;
+                        }
+                        if (data.players !== undefined) {
+                            message += `🎵 Players Found: ${data.players}\n`;
+                        }
+                        showMessage(message, 'success');
+                    } else {
+                        showMessage(`❌ Connection Failed!\n\n${data.message}\n\nPlease check:\n• LMS server is running\n• IP address and port are correct\n• No firewall blocking port ${port}`, 'error');
+                    }
+                })
+                .catch(error => showMessage(`❌ Network Error!\n\n${error.message}`, 'error'));
+        }
     </script>
 </body>
 
