@@ -582,6 +582,8 @@ The updater:
 - ✅ Restarts services
 - ✅ Migrates configuration if needed
 
+> **⚠️ Note for v2.8.0 Update:** If updating from v2.7.1 or earlier, the update script needs to update itself first. Run the update script **twice**, or do `git pull origin main` before running `./update-maestro.sh`. This is a one-time requirement for the LMS integration feature.
+
 ## 🔌 Related Projects
 
 ### MPD Framebuffer Display

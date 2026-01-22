@@ -636,8 +636,15 @@
 
         {% if results %}
         <div class="results-info" id="search-results-info">
-            Found <strong>{{ results|length }}</strong> results matching your search for "<strong>{{ query }}</strong>"
-            by <strong>{{ search_tag }}</strong>
+            {% if search_tag == 'album' %}
+            Found <strong>{{ results|length }}</strong> album(s) matching "<strong>{{ query }}</strong>"
+            {% elif search_tag == 'artist' %}
+            Found <strong>{{ results|length }}</strong> result(s) for artist "<strong>{{ query }}</strong>"
+            {% elif search_tag == 'title' %}
+            Found <strong>{{ results|length }}</strong> song(s) matching "<strong>{{ query }}</strong>"
+            {% else %}
+            Found <strong>{{ results|length }}</strong> results for "<strong>{{ query }}</strong>" in {{ search_tag }}
+            {% endif %}
         </div>
 
         <ul class="song-list">
@@ -655,17 +662,17 @@
                         onerror="this.style.display='none';">
                     {% endif %}
                     <div class="song-info">
-                        <div class="artist"><a href="/search?query={{ item.get('artist', 'Unknown Artist')|urlencode_str }}&type=artist" style="color: inherit; text-decoration: none; border-bottom: 1px dotted currentColor;">{{ item.get('artist', 'Unknown Artist') }}</a></div>
+                        <div class="artist"><a href="/search?query={{ item.get('artist', 'Unknown Artist')|urlencode }}&type=artist" style="color: inherit; text-decoration: none; border-bottom: 1px dotted currentColor;">{{ item.get('artist', 'Unknown Artist') }}</a></div>
                         <div class="title">{{ item.get('album', 'Unknown Album') }}</div>
                         <div class="album">Full Album</div>
                     </div>
                 </div>
                 <div class="song-actions">
-                    <button class="btn-view-album" data-artist="{{ item.get('artist','')|urlencode_str }}" data-album="{{ item.get('album','')|urlencode_str }}">📋
+                    <button class="btn-view-album" data-artist="{{ item.get('artist','')|e }}" data-album="{{ item.get('album','')|e }}">📋
                         View Songs</button>
-                    <button class="btn-replace-album" data-artist="{{ item.get('artist','')|urlencode_str }}" data-album="{{ item.get('album','')|urlencode_str }}">🔄
+                    <button class="btn-replace-album" data-artist="{{ item.get('artist','')|e }}" data-album="{{ item.get('album','')|e }}">🔄
                         Replace Playlist</button>
-                    <button class="btn-add-album" data-artist="{{ item.get('artist','')|urlencode_str }}" data-album="{{ item.get('album','')|urlencode_str }}">➕
+                    <button class="btn-add-album" data-artist="{{ item.get('artist','')|e }}" data-album="{{ item.get('album','')|e }}">➕
                         Add Album</button>
                 </div>
             </li>
@@ -693,7 +700,15 @@
         {% else %}
         <div class="no-results">
             <h3>No results found</h3>
+            {% if search_tag == 'album' %}
             <p>No results found for album "<strong>{{ query }}</strong>".</p>
+            {% elif search_tag == 'artist' %}
+            <p>No results found for artist "<strong>{{ query }}</strong>".</p>
+            {% elif search_tag == 'title' %}
+            <p>No results found for song title "<strong>{{ query }}</strong>".</p>
+            {% else %}
+            <p>No results found for "<strong>{{ query }}</strong>" in {{ search_tag }}.</p>
+            {% endif %}
             <p>Try adjusting your search terms or search by a different category.</p>
         </div>
         {% endif %}
@@ -1204,8 +1219,8 @@
             console.log('Found', viewAlbumBtns.length, 'view album buttons');
             viewAlbumBtns.forEach(btn => {
                 btn.addEventListener('click', function(){
-                    const artist = decodeURIComponent(this.dataset.artist || '');
-                    const album = decodeURIComponent(this.dataset.album || '');
+                    const artist = this.dataset.artist || '';
+                    const album = this.dataset.album || '';
                     console.log('View album clicked:', artist, album);
                     viewAlbumSongs(artist, album);
                 });
@@ -1215,8 +1230,8 @@
             console.log('Found', replaceAlbumBtns.length, 'replace album buttons');
             replaceAlbumBtns.forEach(btn => {
                 btn.addEventListener('click', function(){
-                    const artist = decodeURIComponent(this.dataset.artist || '');
-                    const album = decodeURIComponent(this.dataset.album || '');
+                    const artist = this.dataset.artist || '';
+                    const album = this.dataset.album || '';
                     console.log('Replace album clicked:', artist, album);
                     clearAndAddAlbum(artist, album);
                 });
@@ -1226,8 +1241,8 @@
             console.log('Found', addAlbumBtns.length, 'add album buttons');
             addAlbumBtns.forEach(btn => {
                 btn.addEventListener('click', function(){
-                    const artist = decodeURIComponent(this.dataset.artist || '');
-                    const album = decodeURIComponent(this.dataset.album || '');
+                    const artist = this.dataset.artist || '';
+                    const album = this.dataset.album || '';
                     console.log('Add album clicked:', artist, album);
                     addAlbumToPlaylist(album, artist);
                 });
