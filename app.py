@@ -1582,7 +1582,7 @@ def get_artist_images():
                 local_albums_list = list(local_albums.values())
                 random.shuffle(local_albums_list)  # Randomize so you see different albums each time
                 albums.extend(local_albums_list[:8])  # Limit to 8
-                print(f"Found {len(local_albums_list)} local albums for {artist}, showing 8 random ones")
+                print(f"Found {len(local_albums_list)} local albums for {artist}, showing {min(8, len(albums))} random ones")
                 
                 client.disconnect()
             except Exception as e:
@@ -1590,35 +1590,55 @@ def get_artist_images():
                 if client:
                     client.disconnect()
         
-        # If we don't have enough images, fill with LastFM top albums
+        # If we don't have 8 albums yet, fill with albums from similar artists (that are in local library)
         if len(albums) < 8 and LASTFM_API_KEY:
-            try:
-                params = {
-                    'method': 'artist.gettopalbums',
-                    'api_key': LASTFM_API_KEY,
-                    'artist': artist,
-                    'limit': 12,
-                    'format': 'json'
-                }
-                response = requests.get(LASTFM_API_URL, params=params, timeout=5)
-                response.raise_for_status()
-                data = response.json()
-                
-                if 'topalbums' in data and 'album' in data['topalbums']:
-                    for album_data in data['topalbums']['album']:
-                        if len(albums) >= 8:
-                            break
-                        album_name = album_data.get('name', '')
-                        if album_name:
-                            albums.append({
-                                'artist': artist,
-                                'album': album_name,
-                                'local': False
-                            })
-                
-                print(f"Added {len(albums)} total albums (including LastFM)")
-            except Exception as e:
-                print(f"Error fetching LastFM albums: {e}")
+            print(f"Only found {len(albums)} albums for {artist}, searching similar artists for more local content...")
+            similar_artists = get_similar_artists_from_lastfm(artist, limit=20)
+            
+            if similar_artists:
+                client = connect_mpd_client()
+                if client:
+                    try:
+                        for sim_artist in similar_artists:
+                            if len(albums) >= 8:
+                                break
+                            
+                            # Search for albums by this similar artist in local library
+                            sim_songs = client.search('artist', sim_artist)
+                            sim_albums = {}
+                            
+                            for song in sim_songs:
+                                song_artist = song.get('artist', '')
+                                song_album = song.get('album', '')
+                                song_file = song.get('file', '')
+                                if song_album and song_file:
+                                    key = f"{song_artist}|||{song_album}"
+                                    if key not in sim_albums:
+                                        sim_albums[key] = {
+                                            'artist': song_artist,
+                                            'album': song_album,
+                                            'local': True,
+                                            'file': song_file
+                                        }
+                            
+                            if sim_albums:
+                                # Add random albums from this similar artist
+                                import random
+                                sim_albums_list = list(sim_albums.values())
+                                random.shuffle(sim_albums_list)
+                                
+                                # Add as many as we need (up to 8 total)
+                                remaining_slots = 8 - len(albums)
+                                albums.extend(sim_albums_list[:remaining_slots])
+                                print(f"Added {min(len(sim_albums_list), remaining_slots)} albums from similar artist: {sim_artist}")
+                        
+                        client.disconnect()
+                    except Exception as e:
+                        print(f"Error searching similar artists in MPD: {e}")
+                        if client:
+                            client.disconnect()
+        
+        print(f"Returning {len(albums)} total local albums for album art grid")
         
         return jsonify({'albums': albums})
     except Exception as e:
