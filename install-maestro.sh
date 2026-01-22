@@ -443,12 +443,18 @@ install_web_ui() {
     if [ -f "$HOME/Maestro-Server/app.py" ]; then
         cp -r "$HOME/Maestro-Server"/{app.py,templates,static,requirements.txt} "$INSTALL_DIR/web/" 2>/dev/null || true
         cp -r "$HOME/Maestro-Server"/data "$INSTALL_DIR/web/" 2>/dev/null || true
+        # Copy LMS client library if it exists
+        [ -f "$HOME/Maestro-Server/lms_client.py" ] && cp "$HOME/Maestro-Server/lms_client.py" "$INSTALL_DIR/web/"
     elif [ -f "app.py" ]; then
         # Running from Maestro-Server directory
         cp -r {app.py,templates,static,requirements.txt} "$INSTALL_DIR/web/" 2>/dev/null || true
         cp -r data "$INSTALL_DIR/web/" 2>/dev/null || true
+        # Copy LMS client library if it exists
+        [ -f "lms_client.py" ] && cp lms_client.py "$INSTALL_DIR/web/"
     elif [ -f "$HOME/Maestro-MPD-Control/app.py" ]; then
         cp -r "$HOME/Maestro-MPD-Control"/{app.py,templates,static,requirements.txt} "$INSTALL_DIR/web/" 2>/dev/null || true
+        # Copy LMS client library if it exists
+        [ -f "$HOME/Maestro-MPD-Control/lms_client.py" ] && cp "$HOME/Maestro-MPD-Control/lms_client.py" "$INSTALL_DIR/web/"
     else
         echo -e "${YELLOW}Warning: Web UI source not found in ~/Maestro-Server, current directory, or ~/Maestro-MPD-Control${NC}"
         return
