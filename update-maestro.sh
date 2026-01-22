@@ -203,6 +203,12 @@ sudo cp -rf "$REPO_DIR/static/"* "$INSTALL_DIR/web/static/"
 sudo cp "$REPO_DIR/app.py" "$INSTALL_DIR/"
 sudo cp "$REPO_DIR/app.py" "$INSTALL_DIR/web/"
 sudo cp "$REPO_DIR/requirements.txt" "$INSTALL_DIR/"
+# Copy LMS client library if it exists
+if [ -f "$REPO_DIR/lms_client.py" ]; then
+    sudo cp "$REPO_DIR/lms_client.py" "$INSTALL_DIR/"
+    sudo cp "$REPO_DIR/lms_client.py" "$INSTALL_DIR/web/"
+    echo -e "${GREEN}✓ Updated LMS client library${NC}"
+fi
 echo -e "${GREEN}✓ Updated main application files${NC}"
 
 echo ""
