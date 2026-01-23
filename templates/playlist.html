@@ -452,6 +452,8 @@
             align-items: center;
             transition: color 0.2s;
             line-height: 1;
+            touch-action: none; /* Prevent scrolling when touching drag handle */
+            -webkit-touch-callout: none; /* Prevent iOS callout menu */
         }
 
         .drag-handle:hover {
@@ -460,6 +462,16 @@
 
         .drag-handle:active {
             cursor: grabbing;
+            color: #2980b9;
+        }
+
+        /* Increase touch target size on mobile */
+        @media (hover: none) and (pointer: coarse) {
+            .drag-handle {
+                padding: 12px 14px;
+                font-size: 22px;
+                margin-right: 12px;
+            }
         }
 
         /* Dragging states */
@@ -1313,11 +1325,14 @@
                 let draggedItem = null;
                 let draggedPos = null;
                 let dragGhost = null;
+                let touchStartY = 0;
+                let isTouchDragging = false;
 
                 // Add event listeners to all drag handles
                 document.querySelectorAll('.drag-handle').forEach(handle => {
                     const item = handle.closest('.playlist-item');
                     
+                    // Mouse drag events
                     handle.addEventListener('dragstart', function(e) {
                         draggedItem = item;
                         draggedPos = parseInt(item.getAttribute('data-pos'));
@@ -1356,6 +1371,109 @@
                             dragGhost = null;
                         }
                     });
+
+                    // Touch events for mobile support
+                    handle.addEventListener('touchstart', function(e) {
+                        draggedItem = item;
+                        draggedPos = parseInt(item.getAttribute('data-pos'));
+                        touchStartY = e.touches[0].clientY;
+                        isTouchDragging = true;
+                        item.classList.add('dragging');
+
+                        // Create ghost element
+                        const titleEl = item.querySelector('.title');
+                        const artistEl = item.querySelector('.artist-album');
+                        if (titleEl && artistEl) {
+                            dragGhost = document.createElement('div');
+                            dragGhost.className = 'drag-ghost';
+                            dragGhost.innerHTML = `<strong>🎵 ${titleEl.textContent}</strong><br><small>${artistEl.textContent}</small>`;
+                            dragGhost.style.position = 'fixed';
+                            dragGhost.style.pointerEvents = 'none';
+                            dragGhost.style.zIndex = '9999';
+                            document.body.appendChild(dragGhost);
+                        }
+                        e.preventDefault();
+                    }, { passive: false });
+
+                    handle.addEventListener('touchmove', function(e) {
+                        if (!isTouchDragging) return;
+                        
+                        const touch = e.touches[0];
+                        
+                        // Update ghost position
+                        if (dragGhost) {
+                            dragGhost.style.left = (touch.clientX + 10) + 'px';
+                            dragGhost.style.top = (touch.clientY + 10) + 'px';
+                        }
+
+                        // Find element under touch point
+                        const elementUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+                        const targetItem = elementUnder?.closest('.playlist-item');
+
+                        // Remove previous highlights
+                        document.querySelectorAll('.playlist-item').forEach(i => {
+                            i.classList.remove('drag-over', 'drag-over-bottom');
+                        });
+
+                        // Highlight drop target
+                        if (targetItem && targetItem !== draggedItem) {
+                            const rect = targetItem.getBoundingClientRect();
+                            const midpoint = rect.top + rect.height / 2;
+                            
+                            if (touch.clientY < midpoint) {
+                                targetItem.classList.add('drag-over');
+                            } else {
+                                targetItem.classList.add('drag-over-bottom');
+                            }
+                        }
+
+                        e.preventDefault();
+                    }, { passive: false });
+
+                    handle.addEventListener('touchend', function(e) {
+                        if (!isTouchDragging) return;
+                        
+                        const touch = e.changedTouches[0];
+                        const elementUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+                        const targetItem = elementUnder?.closest('.playlist-item');
+
+                        if (targetItem && targetItem !== draggedItem) {
+                            const targetPos = parseInt(targetItem.getAttribute('data-pos'));
+                            const rect = targetItem.getBoundingClientRect();
+                            const midpoint = rect.top + rect.height / 2;
+                            
+                            // Determine final position based on drop location
+                            let finalPos = targetPos;
+                            if (touch.clientY >= midpoint) {
+                                finalPos = targetPos + 1;
+                            }
+
+                            // Adjust for the fact that removing the dragged item shifts positions
+                            if (draggedPos < finalPos) {
+                                finalPos--;
+                            }
+
+                            // Only move if position actually changed
+                            if (draggedPos !== finalPos) {
+                                moveToDragPosition(draggedPos, finalPos);
+                            }
+                        }
+
+                        // Clean up
+                        item.classList.remove('dragging');
+                        document.querySelectorAll('.playlist-item').forEach(i => {
+                            i.classList.remove('drag-over', 'drag-over-bottom');
+                        });
+                        if (dragGhost) {
+                            dragGhost.remove();
+                            dragGhost = null;
+                        }
+                        
+                        draggedItem = null;
+                        draggedPos = null;
+                        isTouchDragging = false;
+                        e.preventDefault();
+                    }, { passive: false });
                 });
 
                 // Add event listeners to all playlist items for drop zones
