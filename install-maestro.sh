@@ -515,7 +515,10 @@ create_settings() {
     "show_scrobble_toasts": true,
     "lastfm_api_key": "",
     "lastfm_shared_secret": "",
-    "lastfm_session_key": ""
+    "lastfm_session_key": "",
+    "bandcamp_enabled": false,
+    "bandcamp_username": "",
+    "bandcamp_identity_token": ""
 EOF
     
     # Add recent_albums_dir if configured

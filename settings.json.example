@@ -5,6 +5,9 @@
   "lastfm_session_key": "",
   "scrobbling_enabled": false,
   "show_scrobble_toasts": true,
+  "bandcamp_enabled": false,
+  "bandcamp_username": "",
+  "bandcamp_identity_token": "",
   "cd_ripper": {
     "enabled": true,
     "output_dir": "/media/music/ripped",
