@@ -535,8 +535,24 @@ def get_mpd_status_for_display():
                         current_album = station_name
                     print(f"[Stream] Parsed from title field: {current_artist} - {current_title} (Station: {current_album})")
             
+            # Check for cached Bandcamp metadata (match by track_id)
+            import re
+            bc_meta = None
+            if 'bandcamp.com' in song_file_path and 'track_id=' in song_file_path:
+                track_id_match = re.search(r'track_id=(\d+)', song_file_path)
+                if track_id_match:
+                    cache_key = f"track_{track_id_match.group(1)}"
+                    bc_meta = bandcamp_metadata_cache.get(cache_key)
+            elif song_file_path in bandcamp_metadata_cache:
+                bc_meta = bandcamp_metadata_cache[song_file_path]
+            
+            if bc_meta:
+                current_artist = bc_meta.get('artist', current_artist)
+                current_title = bc_meta.get('title', current_title)
+                current_album = bc_meta.get('album', current_album)
+                print(f"[Bandcamp] Using cached metadata: {current_artist} - {current_title}", flush=True)
             # Final fallback: if stream has NO metadata at all, use cached station name
-            if (current_artist == 'N/A' and current_title == 'N/A' and 
+            elif (current_artist == 'N/A' and current_title == 'N/A' and 
                 song_file_path in stream_name_cache):
                 station_name = stream_name_cache[song_file_path]
                 current_title = f"🔴 LIVE: {station_name}"
@@ -2680,6 +2696,8 @@ def get_radio_stations():
 stream_favicon_cache = {}
 # Cache for stream station names (stream_url -> station_name)
 stream_name_cache = {}
+# Cache for Bandcamp stream metadata (stream_url -> {artist, title, album, artwork_url})
+bandcamp_metadata_cache = {}
 
 @app.route('/api/radio/play', methods=['POST'])
 def play_radio_station():
@@ -3879,7 +3897,46 @@ def get_album_art():
         except Exception as e:
             print(f"An unexpected error occurred during Last.fm art fetch: {e}")
 
-    # 4. For streams with no Last.fm art, try to use cached favicon
+    # 4a. For Bandcamp streams, try to use cached artwork (match by track_id)
+    bc_meta = None
+    if is_stream and 'bandcamp.com' in song_file and 'track_id=' in song_file:
+        import re
+        track_id_match = re.search(r'track_id=(\d+)', song_file)
+        if track_id_match:
+            cache_key = f"track_{track_id_match.group(1)}"
+            bc_meta = bandcamp_metadata_cache.get(cache_key)
+    elif is_stream and song_file in bandcamp_metadata_cache:
+        bc_meta = bandcamp_metadata_cache[song_file]
+    
+    if bc_meta:
+        artwork_url = bc_meta.get('artwork_url', '')
+        if artwork_url:
+            cache_key = f"bandcamp-{song_file}" if size == 'full' else f"thumb-bandcamp-{song_file}"
+            
+            # Check cache first
+            cached_art = album_art_cache.get(cache_key)
+            if cached_art:
+                print(f"Serving cached Bandcamp artwork for: {song_file}")
+                return Response(cached_art['data'], mimetype=cached_art['mimetype'])
+            
+            try:
+                # If artwork_url is a relative path to our own API, make internal request
+                if artwork_url.startswith('/api/bandcamp/artwork/'):
+                    artwork_url = f"http://localhost:5003{artwork_url}"
+                print(f"Fetching Bandcamp artwork: {artwork_url}")
+                art_response = requests.get(artwork_url, timeout=5)
+                art_response.raise_for_status()
+                art_data = art_response.content
+                mimetype = art_response.headers.get('Content-Type', 'image/jpeg')
+                
+                # Cache and return
+                album_art_cache[cache_key] = {'data': art_data, 'mimetype': mimetype}
+                print(f"Cached and serving Bandcamp artwork for: {song_file}")
+                return Response(art_data, mimetype=mimetype)
+            except Exception as e:
+                print(f"Error fetching Bandcamp artwork: {e}")
+    
+    # 4b. For streams with no Last.fm art, try to use cached favicon
     if is_stream and song_file in stream_favicon_cache:
         favicon_url = stream_favicon_cache[song_file]
         cache_key = f"favicon-{song_file}" if size == 'full' else f"thumb-favicon-{song_file}"
@@ -5559,9 +5616,26 @@ def bandcamp_add_track():
         title = data.get('title', 'Unknown')
         artist = data.get('artist', 'Unknown')
         album = data.get('album', 'Unknown')
+        artwork_url = data.get('artwork_url', '')
         
         if not streaming_url:
             return jsonify({'status': 'error', 'message': 'Streaming URL required'}), 400
+        
+        # Cache metadata for this Bandcamp stream
+        # Extract track_id from URL for caching (Bandcamp URLs have changing timestamps)
+        import re
+        track_id_match = re.search(r'track_id=(\d+)', streaming_url)
+        cache_key = f"track_{track_id_match.group(1)}" if track_id_match else streaming_url
+        
+        bandcamp_metadata_cache[cache_key] = {
+            'artist': artist,
+            'title': title,
+            'album': album,
+            'artwork_url': artwork_url
+        }
+        print(f"Cached Bandcamp metadata with key: {cache_key}")
+        print(f"  Artist: {artist}, Title: {title}")
+        print(f"  Album: {album}, Artwork: {artwork_url}", flush=True)
         
         client = connect_mpd_client()
         if not client:

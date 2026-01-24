@@ -410,7 +410,6 @@
             background: #2a1f4a;
         }
     </style>
-    <script src="/static/socket.io.min.js"></script>
 </head>
 <body class="{{ app_theme }}">
     <div class="container">
@@ -442,13 +441,19 @@
 
         // Load collection on page load
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('[Bandcamp] Page loaded, fetching collection...');
             loadCollection();
         });
 
         function loadCollection() {
+            console.log('[Bandcamp] loadCollection() called');
             fetch('/api/bandcamp/collection')
-                .then(r => r.json())
+                .then(r => {
+                    console.log('[Bandcamp] API response received:', r.status);
+                    return r.json();
+                })
                 .then(data => {
+                    console.log('[Bandcamp] Data parsed:', data);
                     document.getElementById('loading').style.display = 'none';
                     
                     if (data.status === 'error') {
@@ -457,6 +462,7 @@
                     }
                     
                     collection = data.albums || [];
+                    console.log('[Bandcamp] Collection length:', collection.length);
                     
                     if (collection.length === 0) {
                         showError('No albums found in your Bandcamp collection');
@@ -466,6 +472,7 @@
                     displayAlbums(collection);
                 })
                 .catch(error => {
+                    console.error('[Bandcamp] Error:', error);
                     document.getElementById('loading').style.display = 'none';
                     showError('Failed to load collection: ' + error);
                 });
@@ -505,6 +512,10 @@
                 return;
             }
             
+            // Store art_id and artist from collection before fetching details
+            const collectionArtId = album.art_id;
+            const collectionArtist = album.band_name;
+            
             // Show modal with loading
             const modal = document.getElementById('album-modal');
             const modalBody = document.getElementById('modal-body');
@@ -521,6 +532,16 @@
                     }
                     
                     const albumData = data.album;
+                    // Use collection data if album details are missing
+                    console.log('[DEBUG] Original album data:', {artist: albumData.artist, art_id: albumData.art_id});
+                    console.log('[DEBUG] Collection data:', {artist: collectionArtist, art_id: collectionArtId});
+                    if (!albumData.art_id && collectionArtId) {
+                        albumData.art_id = collectionArtId;
+                    }
+                    if (!albumData.artist && collectionArtist) {
+                        albumData.artist = collectionArtist;
+                    }
+                    console.log('[DEBUG] Final album data:', {artist: albumData.artist, art_id: albumData.art_id});
                     displayAlbumModal(albumData);
                 })
                 .catch(error => {
@@ -532,9 +553,16 @@
             const artworkUrl = album.art_id ? 
                 `/api/bandcamp/artwork/${album.art_id}?size=5` : '';
             
+            // Store artwork URL in album object for tracks
+            album.artwork_url = artworkUrl;
+            
             let tracksHtml = '';
             if (album.tracks && album.tracks.length > 0) {
                 album.tracks.forEach(track => {
+                    // Add artwork URL and artist to each track from album
+                    track.artwork_url = artworkUrl;
+                    track.artist = album.artist || track.artist;
+                    
                     const duration = track.duration ? formatDuration(track.duration) : '';
                     tracksHtml += `
                         <div class="track-item">
@@ -580,6 +608,13 @@
                 return;
             }
             
+            console.log('[DEBUG] Adding track:', {
+                artist: track.artist,
+                title: track.title,
+                album: track.album,
+                artwork_url: track.artwork_url
+            });
+            
             fetch('/api/bandcamp/add_track', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -587,7 +622,8 @@
                     streaming_url: track.streaming_url,
                     title: track.title,
                     artist: track.artist,
-                    album: track.album
+                    album: track.album,
+                    artwork_url: track.artwork_url || ''
                 })
             })
             .then(r => r.json())
@@ -632,6 +668,13 @@
                     return;
                 }
 
+                console.log('[DEBUG] Adding track from album:', {
+                    artist: track.artist,
+                    title: track.title,
+                    album: track.album,
+                    artwork_url: track.artwork_url
+                });
+
                 fetch('/api/bandcamp/add_track', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -639,6 +682,7 @@
                         streaming_url: track.streaming_url,
                         title: track.title,
                         artist: track.artist,
+                        artwork_url: track.artwork_url || '',
                         album: track.album
                     })
                 })
