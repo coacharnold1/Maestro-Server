@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bandcamp Integration - Maestro Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #ecf0f1;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #3498db, #27ae60);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .back-button {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ecf0f1;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateX(-5px);
+        }
+        
+        .settings-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .info-box {
+            background: rgba(52, 152, 219, 0.1);
+            border: 1px solid rgba(52, 152, 219, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .info-box h3 {
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+        
+        .info-box ol {
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+        
+        .info-box code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #3498db;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #3498db;
+            font-weight: 600;
+        }
+        
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ecf0f1;
+            font-size: 14px;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.3);
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 14px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-save {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+        }
+        
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(46, 204, 113, 0.4);
+        }
+        
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .message.success {
+            background: rgba(46, 204, 113, 0.2);
+            border: 1px solid rgba(46, 204, 113, 0.4);
+            color: #2ecc71;
+        }
+        
+        .message.error {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid rgba(231, 76, 60, 0.4);
+            color: #e74c3c;
+        }
+        
+        .help-text {
+            font-size: 0.9em;
+            color: #95a5a6;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-button">← Back to Dashboard</a>
+        
+        <header>
+            <h1>🎵 Bandcamp Integration</h1>
+            <p class="subtitle">Connect your Bandcamp account to stream your purchased music</p>
+        </header>
+        
+        <div id="message" class="message"></div>
+        
+        <div class="settings-card">
+            <div class="info-box">
+                <h3>📋 How to get your Bandcamp Identity Token:</h3>
+                <ol>
+                    <li>Open your browser and log in to <strong>bandcamp.com</strong></li>
+                    <li>Press <strong>F12</strong> (or Right-click → Inspect) to open Developer Tools</li>
+                    <li>Click the <strong>Application</strong> tab at the top
+                        <ul style="margin-top: 5px; font-size: 0.95em; color: #95a5a6;">
+                            <li>In Chrome/Edge: "Application" tab</li>
+                            <li>In Firefox: "Storage" tab</li>
+                            <li>In Safari: Enable "Develop" menu first, then use "Storage" tab</li>
+                        </ul>
+                    </li>
+                    <li>In the left sidebar, expand <strong>Cookies</strong></li>
+                    <li>Click on <strong>https://bandcamp.com</strong></li>
+                    <li>In the table on the right, find the cookie named <code>identity</code></li>
+                    <li>Double-click the <strong>Value</strong> column to select it (it's a long string of numbers)</li>
+                    <li>Copy the entire value and paste it into the "Identity Token" field below</li>
+                </ol>
+                <p style="margin-top: 15px; padding: 10px; background: rgba(231, 76, 60, 0.1); border-left: 3px solid #e74c3c; border-radius: 4px; font-size: 0.9em;">
+                    ⚠️ <strong>Important:</strong> This token allows access to your Bandcamp account. Keep it private and never share it. If you suspect it's been compromised, log out of Bandcamp and log back in to get a new token.
+                </p>
+            </div>
+            
+            <form id="bandcampForm">
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="bandcamp_enabled" name="bandcamp_enabled">
+                        <label for="bandcamp_enabled" style="margin-bottom: 0;">Enable Bandcamp Integration</label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="bandcamp_username">Bandcamp Username</label>
+                    <input type="text" id="bandcamp_username" name="bandcamp_username" placeholder="your-username">
+                    <div class="help-text">Your Bandcamp username (appears in your profile URL)</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="bandcamp_identity_token">Identity Token</label>
+                    <input type="password" id="bandcamp_identity_token" name="bandcamp_identity_token" placeholder="Paste your identity cookie value here">
+                    <div class="help-text">Your identity token from browser cookies (see instructions above)</div>
+                </div>
+                
+                <div class="button-group">
+                    <button type="submit" class="btn-save">💾 Save Settings</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // Load current settings on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            loadSettings();
+        });
+        
+        function loadSettings() {
+            fetch('/api/bandcamp/settings')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        document.getElementById('bandcamp_enabled').checked = data.bandcamp_enabled || false;
+                        document.getElementById('bandcamp_username').value = data.bandcamp_username || '';
+                        document.getElementById('bandcamp_identity_token').value = data.bandcamp_identity_token || '';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading settings:', error);
+                    showMessage('Error loading settings: ' + error, 'error');
+                });
+        }
+        
+        // Handle form submission
+        document.getElementById('bandcampForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const settings = {
+                bandcamp_enabled: document.getElementById('bandcamp_enabled').checked,
+                bandcamp_username: document.getElementById('bandcamp_username').value.trim(),
+                bandcamp_identity_token: document.getElementById('bandcamp_identity_token').value.trim()
+            };
+            
+            fetch('/api/bandcamp/settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(settings)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showMessage('✓ Bandcamp settings saved successfully!', 'success');
+                } else {
+                    showMessage('Error: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving settings:', error);
+                showMessage('Error saving settings: ' + error, 'error');
+            });
+        });
+        
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = 'message ' + type;
+            messageEl.style.display = 'block';
+            
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

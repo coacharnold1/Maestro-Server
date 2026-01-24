@@ -285,6 +285,17 @@ def get_version_info():
         'status': 'running'
     })
 
+@app.route('/api/settings')
+def get_settings_info():
+    """Get public settings info (no sensitive data)"""
+    settings = load_settings()
+    return jsonify({
+        'bandcamp_enabled': settings.get('bandcamp_enabled', False),
+        'bandcamp_username': settings.get('bandcamp_username', ''),
+        'bandcamp_identity_token': bool(settings.get('bandcamp_identity_token', '').strip()),  # Just return if it exists
+        'lms_enabled': settings.get('lms_enabled', False)
+    })
+
 # --- API endpoint for auto-fill status (for Add Music page) ---
 @app.route('/get_auto_fill_status')
 def get_auto_fill_status():
@@ -4724,6 +4735,11 @@ def browse_albums_page():
     """Browse albums page."""
     return render_template('browse_albums.html')
 
+@app.route('/bandcamp')
+def bandcamp_page():
+    """Bandcamp browse page."""
+    return render_template('bandcamp.html')
+
 # --- Browse Database API Endpoints ---
 @app.route('/api/browse/genres', methods=['GET'])
 def api_browse_genres():
@@ -5475,6 +5491,120 @@ def api_lms_volume():
             
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# ============================================================================
+# BANDCAMP INTEGRATION
+# ============================================================================
+
+def get_bandcamp_client():
+    """Get configured Bandcamp client or None"""
+    try:
+        settings = load_settings()
+        if not settings.get('bandcamp_enabled'):
+            return None
+        
+        username = settings.get('bandcamp_username', '').strip()
+        token = settings.get('bandcamp_identity_token', '').strip()
+        
+        if not username or not token:
+            return None
+        
+        from bandcamp_client import BandcampClient
+        return BandcampClient(username, token)
+    except Exception as e:
+        print(f"Error creating Bandcamp client: {e}")
+        return None
+
+@app.route('/api/bandcamp/collection')
+def bandcamp_collection():
+    """Get user's Bandcamp collection"""
+    try:
+        client = get_bandcamp_client()
+        if not client:
+            return jsonify({'status': 'error', 'message': 'Bandcamp not configured'}), 400
+        
+        collection = client.get_collection()
+        return jsonify({
+            'status': 'success',
+            'albums': collection
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/bandcamp/album/<int:album_id>')
+def bandcamp_album(album_id):
+    """Get album details including tracks"""
+    try:
+        client = get_bandcamp_client()
+        if not client:
+            return jsonify({'status': 'error', 'message': 'Bandcamp not configured'}), 400
+        
+        album = client.get_album_info(album_id)
+        if not album:
+            return jsonify({'status': 'error', 'message': 'Album not found'}), 404
+        
+        return jsonify({
+            'status': 'success',
+            'album': album
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/bandcamp/add_track', methods=['POST'])
+def bandcamp_add_track():
+    """Add Bandcamp track to MPD playlist"""
+    try:
+        data = request.json
+        streaming_url = data.get('streaming_url')
+        title = data.get('title', 'Unknown')
+        artist = data.get('artist', 'Unknown')
+        album = data.get('album', 'Unknown')
+        
+        if not streaming_url:
+            return jsonify({'status': 'error', 'message': 'Streaming URL required'}), 400
+        
+        client = connect_mpd_client()
+        if not client:
+            return jsonify({'status': 'error', 'message': 'MPD connection failed'}), 500
+        
+        try:
+            # Add URL to MPD playlist
+            client.add(streaming_url)
+            client.disconnect()
+            
+            return jsonify({
+                'status': 'success',
+                'message': f'Added {artist} - {title} to playlist'
+            })
+        except Exception as e:
+            client.disconnect()
+            return jsonify({'status': 'error', 'message': f'Failed to add track: {str(e)}'}), 500
+            
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/bandcamp/artwork/<int:art_id>')
+def bandcamp_artwork(art_id):
+    """Proxy Bandcamp artwork"""
+    try:
+        client = get_bandcamp_client()
+        if not client:
+            return '', 404
+        
+        size = request.args.get('size', '5')  # Default 700x700
+        url = client.get_artwork_url(art_id, int(size))
+        
+        if not url:
+            return '', 404
+        
+        # Proxy the image
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        
+        return Response(response.content, mimetype=response.headers.get('content-type', 'image/jpeg'))
+    except Exception as e:
+        print(f"Error fetching Bandcamp artwork: {e}")
+        return '', 404
 
 # --- Application Startup ---
 if __name__ == '__main__':

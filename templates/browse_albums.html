@@ -711,6 +711,16 @@
         console.log('[DEBUG] browse_albums.html - genreName from URL:', genreName);
 
         document.addEventListener('DOMContentLoaded', function () {
+            // Check if Bandcamp is configured
+            fetch('/api/settings')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.bandcamp_enabled && data.bandcamp_username && data.bandcamp_identity_token) {
+                        document.getElementById('bandcamp-link').style.display = 'inline-block';
+                    }
+                })
+                .catch(e => console.log('Could not check Bandcamp settings'));
+            
             // SocketIO setup for now playing bar
             const socket = io();
             const nowPlayingBar = document.getElementById('now-playing-bar');

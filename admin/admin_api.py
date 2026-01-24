@@ -133,6 +133,11 @@ def system_page():
     """System administration page"""
     return render_template('system_admin.html')
 
+@app.route('/bandcamp')
+def bandcamp_page():
+    """Bandcamp integration page"""
+    return render_template('bandcamp_settings.html')
+
 @app.route('/cd-ripper')
 def cd_ripper_page():
     """CD ripper page"""
@@ -2717,6 +2722,43 @@ def test_lms_connection():
             'status': 'error',
             'message': f'Connection failed: {str(e)}'
         }), 500
+
+# ============================================================================
+# API ENDPOINTS - BANDCAMP
+# ============================================================================
+
+@app.route('/api/bandcamp/settings')
+def get_bandcamp_settings():
+    """Get Bandcamp configuration"""
+    try:
+        settings = load_settings()
+        return jsonify({
+            'status': 'success',
+            'bandcamp_enabled': settings.get('bandcamp_enabled', False),
+            'bandcamp_username': settings.get('bandcamp_username', ''),
+            'bandcamp_identity_token': settings.get('bandcamp_identity_token', '')
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/bandcamp/settings', methods=['POST'])
+def update_bandcamp_settings():
+    """Update Bandcamp configuration"""
+    try:
+        data = request.json
+        settings = load_settings()
+        
+        # Update Bandcamp settings
+        settings['bandcamp_enabled'] = data.get('bandcamp_enabled', False)
+        settings['bandcamp_username'] = data.get('bandcamp_username', '').strip()
+        settings['bandcamp_identity_token'] = data.get('bandcamp_identity_token', '').strip()
+        
+        if save_settings(settings):
+            return jsonify({'status': 'success', 'message': 'Bandcamp settings saved'})
+        else:
+            return jsonify({'status': 'error', 'message': 'Failed to save settings'}), 500
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # ============================================================================
 # MAIN

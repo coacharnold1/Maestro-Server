@@ -514,6 +514,7 @@
             <a href="/search">🔍 Search</a>
             <a href="/recent">📀 Recent</a>
             <a href="/browse" class="current-page">🗂️ Browse</a>
+            <a href="/bandcamp" id="bandcamp-link" style="display: none;">🎵 Bandcamp</a>
             <button onclick="clearPlaylist()" class="clear-btn">🗑️ Clear Playlist</button>
         </div>
 
@@ -565,6 +566,19 @@
 
         // Load genres when page loads
         document.addEventListener('DOMContentLoaded', function () {
+            // Check if Bandcamp is enabled and show link
+            fetch('/api/settings')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.bandcamp_enabled && data.bandcamp_username && data.bandcamp_identity_token) {
+                        const bandcampLink = document.getElementById('bandcamp-link');
+                        if (bandcampLink) {
+                            bandcampLink.style.display = 'inline-block';
+                        }
+                    }
+                })
+                .catch(err => console.error('Error loading settings:', err));
+
             // SocketIO setup for now playing bar
             const socket = io();
             const nowPlayingBar = document.getElementById('now-playing-bar');
