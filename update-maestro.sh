@@ -74,21 +74,34 @@ fi
 echo -e "${YELLOW}Migrating settings configuration...${NC}"
 for settings_path in "$INSTALL_DIR/settings.json" "$INSTALL_DIR/web/settings.json"; do
     if [ -f "$settings_path" ]; then
-        # Check if recent_albums_dir is missing
-        if ! grep -q "recent_albums_dir" "$settings_path"; then
-            echo -e "${YELLOW}Adding recent_albums_dir to $(basename $(dirname $settings_path))/settings.json${NC}"
-            # Use Python to safely add the field to JSON
-            python3 <<EOF
+        # Use Python to safely add missing fields to JSON
+        python3 <<EOF
 import json
+modified = False
 with open('$settings_path', 'r') as f:
     settings = json.load(f)
+
+# Add missing recent_albums_dir field
 if 'recent_albums_dir' not in settings:
     settings['recent_albums_dir'] = 'ripped'
-with open('$settings_path', 'w') as f:
-    json.dump(settings, f, indent=2)
+    modified = True
+
+# Add missing Bandcamp fields
+if 'bandcamp_enabled' not in settings:
+    settings['bandcamp_enabled'] = False
+    modified = True
+if 'bandcamp_username' not in settings:
+    settings['bandcamp_username'] = ''
+    modified = True
+if 'bandcamp_identity_token' not in settings:
+    settings['bandcamp_identity_token'] = ''
+    modified = True
+
+if modified:
+    with open('$settings_path', 'w') as f:
+        json.dump(settings, f, indent=2)
+    print('✓ Updated missing fields in settings.json')
 EOF
-            echo -e "${GREEN}✓ Added recent_albums_dir field${NC}"
-        fi
     fi
 done
 
