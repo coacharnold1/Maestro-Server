@@ -1,7 +1,7 @@
 print("[DEBUG] app.py loaded and running", flush=True)
 
 # Application version information
-APP_VERSION = "2.8.0"
+APP_VERSION = "2.9.0"
 APP_BUILD_DATE = "2026-01-21" 
 APP_NAME = "Maestro MPD Server"
 
