@@ -334,6 +334,9 @@ if [ -f "$REPO_DIR/scripts/nfs-health-check.sh" ]; then
         # Update timer
         sudo cp "$REPO_DIR/scripts/nfs-health-check.timer" /etc/systemd/system/
         
+        # Reload systemd to pick up new/updated service files
+        sudo systemctl daemon-reload
+        
         # Enable if not already enabled
         if ! systemctl is-enabled --quiet nfs-health-check.timer 2>/dev/null; then
             sudo systemctl enable nfs-health-check.timer
@@ -345,9 +348,6 @@ if [ -f "$REPO_DIR/scripts/nfs-health-check.sh" ]; then
         fi
     fi
 fi
-
-# Reload systemd to pick up MPD changes
-sudo systemctl daemon-reload
 
 # Restart services
 if systemctl is-active --quiet maestro-web.service; then

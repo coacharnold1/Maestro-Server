@@ -847,15 +847,15 @@ EOF
         # Install timer
         sudo cp "$REPO_DIR/scripts/nfs-health-check.timer" /etc/systemd/system/
         
+        # Reload systemd to pick up new service files
+        sudo systemctl daemon-reload
+        
         # Enable NFS monitoring
         sudo systemctl enable nfs-health-check.timer
         
         echo -e "${GREEN}✓ NFS health monitoring installed (checks every 10 minutes)${NC}"
         echo -e "${BLUE}  View status: $INSTALL_DIR/scripts/nfs-health-report.sh${NC}"
     fi
-    
-    # Reload systemd
-    sudo systemctl daemon-reload
     
     # Enable services
     sudo systemctl enable maestro-web.service
