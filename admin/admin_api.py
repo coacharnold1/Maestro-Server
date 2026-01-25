@@ -182,7 +182,9 @@ def api_nfs_health():
         # Check if NFS server is reachable (common server IP)
         nfs_servers = set()
         # Use plain mount command and filter in Python for better reliability
-        mount_result = run_command('mount')
+        # Use full path to mount since service PATH may not include /usr/bin
+        mount_result = run_command('/usr/bin/mount')
+        
         if mount_result['success'] and mount_result['stdout']:
             # Extract unique NFS server IPs from lines containing nfs
             for line in mount_result['stdout'].split('\n'):
@@ -200,7 +202,7 @@ def api_nfs_health():
         # Check each NFS server
         servers_status = {}
         for server_ip in nfs_servers:
-            ping_result = run_command(f'ping -c 1 -W 2 {server_ip}')
+            ping_result = run_command(f'/usr/bin/ping -c 1 -W 2 {server_ip}')
             servers_status[server_ip] = ping_result['success']
         
         nfs_status['server_reachable'] = any(servers_status.values()) if servers_status else None
@@ -211,6 +213,10 @@ def api_nfs_health():
             for line in mount_result['stdout'].split('\n'):
                 if not line.strip():
                     continue
+                
+                # Only process NFS mounts
+                if ' type nfs' not in line.lower():
+                    continue
                     
                 # Parse mount line: "server:/path on /mount/point type nfs4 (options)"
                 parts = line.split(' on ')
@@ -219,14 +225,16 @@ def api_nfs_health():
                     rest = parts[1].split(' type ')
                     if len(rest) >= 2:
                         mount_point = rest[0].strip()
+                        mount_type = rest[1].split()[0] if rest[1].split() else ''
                         
                         # Test if mount point is accessible
-                        test_result = run_command(f'timeout 3 ls {mount_point}')
+                        test_result = run_command(f'/usr/bin/timeout 3 /usr/bin/ls {mount_point}')
                         is_accessible = test_result['success']
                         
                         mount_info = {
                             'source': source,
                             'mount_point': mount_point,
+                            'type': mount_type,
                             'accessible': is_accessible,
                             'status': 'healthy' if is_accessible else 'stale/timeout'
                         }
