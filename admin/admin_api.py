@@ -181,13 +181,21 @@ def api_nfs_health():
         
         # Check if NFS server is reachable (common server IP)
         nfs_servers = set()
-        mount_result = run_command('mount | grep -E "type nfs|type nfs4"')
+        # Use plain mount command and filter in Python for better reliability
+        mount_result = run_command('mount')
         if mount_result['success'] and mount_result['stdout']:
-            # Extract unique NFS server IPs
+            # Extract unique NFS server IPs from lines containing nfs
             for line in mount_result['stdout'].split('\n'):
-                if ':' in line:
+                # Look for nfs or nfs4 in the line
+                if ' type nfs' in line.lower() and ':' in line:
                     server_ip = line.split(':')[0].strip()
-                    nfs_servers.add(server_ip)
+                    # Handle case where line might have other text before IP
+                    if ' on ' in line:
+                        # Format: "server:/path on /mount type nfs4"
+                        parts = line.split(' on ')
+                        if parts and ':' in parts[0]:
+                            server_ip = parts[0].split(':')[0].strip()
+                            nfs_servers.add(server_ip)
         
         # Check each NFS server
         servers_status = {}
