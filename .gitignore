@@ -5,6 +5,9 @@ settings.json
 genre_stations.json
 maestro-setup.conf
 
+# Machine-specific context
+COPILOT_CONTEXT.md
+
 # Python
 __pycache__/
 *.py[cod]
