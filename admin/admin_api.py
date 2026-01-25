@@ -166,6 +166,90 @@ def api_system_info():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@app.route('/api/system/nfs-health', methods=['GET'])
+def api_nfs_health():
+    """Get NFS mount health status"""
+    try:
+        nfs_status = {
+            'server_reachable': False,
+            'mounts': [],
+            'total_mounts': 0,
+            'healthy_mounts': 0,
+            'log_available': False,
+            'recent_errors': []
+        }
+        
+        # Check if NFS server is reachable (common server IP)
+        nfs_servers = set()
+        mount_result = run_command('mount | grep nfs')
+        if mount_result['success'] and mount_result['stdout']:
+            # Extract unique NFS server IPs
+            for line in mount_result['stdout'].split('\n'):
+                if ':' in line:
+                    server_ip = line.split(':')[0].strip()
+                    nfs_servers.add(server_ip)
+        
+        # Check each NFS server
+        servers_status = {}
+        for server_ip in nfs_servers:
+            ping_result = run_command(f'ping -c 1 -W 2 {server_ip}')
+            servers_status[server_ip] = ping_result['success']
+        
+        nfs_status['server_reachable'] = any(servers_status.values()) if servers_status else None
+        nfs_status['servers'] = servers_status
+        
+        # Check NFS mounts
+        if mount_result['success'] and mount_result['stdout']:
+            for line in mount_result['stdout'].split('\n'):
+                if not line.strip():
+                    continue
+                    
+                # Parse mount line: "server:/path on /mount/point type nfs4 (options)"
+                parts = line.split(' on ')
+                if len(parts) >= 2:
+                    source = parts[0].strip()
+                    rest = parts[1].split(' type ')
+                    if len(rest) >= 2:
+                        mount_point = rest[0].strip()
+                        
+                        # Test if mount point is accessible
+                        test_result = run_command(f'timeout 3 ls {mount_point}')
+                        is_accessible = test_result['success']
+                        
+                        mount_info = {
+                            'source': source,
+                            'mount_point': mount_point,
+                            'accessible': is_accessible,
+                            'status': 'healthy' if is_accessible else 'stale/timeout'
+                        }
+                        
+                        nfs_status['mounts'].append(mount_info)
+                        if is_accessible:
+                            nfs_status['healthy_mounts'] += 1
+        
+        nfs_status['total_mounts'] = len(nfs_status['mounts'])
+        
+        # Check for log file
+        log_paths = ['/var/log/maestro-nfs-health.log', str(Path.home() / 'maestro-nfs-health.log')]
+        for log_path in log_paths:
+            if os.path.exists(log_path):
+                nfs_status['log_available'] = True
+                nfs_status['log_path'] = log_path
+                
+                # Read recent errors
+                try:
+                    with open(log_path, 'r') as f:
+                        lines = f.readlines()
+                        error_lines = [line.strip() for line in lines if 'ERROR' in line or 'WARNING' in line]
+                        nfs_status['recent_errors'] = error_lines[-5:] if error_lines else []
+                except:
+                    pass
+                break
+        
+        return jsonify({'status': 'success', 'nfs': nfs_status})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 @app.route('/api/system/reboot', methods=['POST'])
 def api_system_reboot():
     """Reboot the system"""

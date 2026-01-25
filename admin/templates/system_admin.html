@@ -254,6 +254,44 @@
             </div>
         </div>
 
+        <div class="section" id="nfs-section" style="display: none;">
+            <h2 class="section-title">NFS Mount Health</h2>
+            <p style="color: #95a5a6; margin-bottom: 15px;">Status of NFS network storage mounts.</p>
+            
+            <div class="info-grid" style="margin-bottom: 20px;">
+                <div class="info-card">
+                    <div class="info-label">NFS Servers</div>
+                    <div class="info-value" id="nfs-servers">-</div>
+                    <div style="margin-top: 8px; font-size: 0.85em;" id="nfs-server-status"></div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">Total Mounts</div>
+                    <div class="info-value" id="nfs-total">-</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">Healthy Mounts</div>
+                    <div class="info-value" id="nfs-healthy" style="color: #2ecc71;">-</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">Monitoring</div>
+                    <div class="info-value" id="nfs-monitoring" style="font-size: 1.2em;">-</div>
+                    <div style="margin-top: 8px; font-size: 0.85em; color: #7f8c8d;">
+                        Checks every 10 minutes
+                    </div>
+                </div>
+            </div>
+            
+            <div id="nfs-mounts-list" style="display: none;">
+                <h3 style="color: #3498db; margin-bottom: 15px; font-size: 1.1em;">Mount Points</h3>
+                <div id="nfs-mounts-container"></div>
+            </div>
+            
+            <div id="nfs-errors" style="display: none; background: rgba(192, 57, 43, 0.2); border-left: 4px solid #e74c3c; padding: 15px; margin-top: 20px; border-radius: 4px;">
+                <h3 style="color: #e74c3c; margin-bottom: 10px;">⚠️ Recent Warnings/Errors</h3>
+                <div id="nfs-errors-list" style="font-family: monospace; font-size: 0.85em; color: #ecf0f1;"></div>
+            </div>
+        </div>
+
         <div class="section">
             <h2 class="section-title">Squeezebox/LMS Integration</h2>
             <p style="color: #95a5a6; margin-bottom: 15px;">Configure Logitech Media Server to stream Maestro audio to Squeezebox players.</p>
@@ -539,9 +577,94 @@
         // Load system info on page load
         updateSystemInfo();
         loadLMSSettings();
+        updateNFSHealth();
 
         // Refresh every 5 seconds
         setInterval(updateSystemInfo, 5000);
+        
+        // Refresh NFS health every 30 seconds
+        setInterval(updateNFSHealth, 30000);
+
+        function updateNFSHealth() {
+            fetch('/api/system/nfs-health')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success' && data.nfs) {
+                        const nfs = data.nfs;
+                        
+                        // Only show section if NFS mounts exist
+                        if (nfs.total_mounts > 0) {
+                            document.getElementById('nfs-section').style.display = 'block';
+                            
+                            // Update summary cards
+                            const serverCount = Object.keys(nfs.servers || {}).length;
+                            document.getElementById('nfs-servers').textContent = serverCount;
+                            document.getElementById('nfs-total').textContent = nfs.total_mounts;
+                            document.getElementById('nfs-healthy').textContent = nfs.healthy_mounts;
+                            document.getElementById('nfs-healthy').style.color = 
+                                nfs.healthy_mounts === nfs.total_mounts ? '#2ecc71' : '#e67e22';
+                            
+                            // Server status
+                            const serverStatusDiv = document.getElementById('nfs-server-status');
+                            let serverStatusHTML = '';
+                            for (const [server, reachable] of Object.entries(nfs.servers || {})) {
+                                const icon = reachable ? '✓' : '✗';
+                                const color = reachable ? '#2ecc71' : '#e74c3c';
+                                serverStatusHTML += `<div style="color: ${color};">${icon} ${server}</div>`;
+                            }
+                            serverStatusDiv.innerHTML = serverStatusHTML || '<div style="color: #95a5a6;">No servers</div>';
+                            
+                            // Monitoring status
+                            document.getElementById('nfs-monitoring').textContent = nfs.log_available ? '✓ Active' : '○ Inactive';
+                            document.getElementById('nfs-monitoring').style.color = nfs.log_available ? '#2ecc71' : '#95a5a6';
+                            
+                            // Mount points list
+                            if (nfs.mounts && nfs.mounts.length > 0) {
+                                document.getElementById('nfs-mounts-list').style.display = 'block';
+                                const container = document.getElementById('nfs-mounts-container');
+                                let mountsHTML = '';
+                                
+                                nfs.mounts.forEach(mount => {
+                                    const statusColor = mount.accessible ? '#2ecc71' : '#e74c3c';
+                                    const statusIcon = mount.accessible ? '✓' : '✗';
+                                    const statusText = mount.status;
+                                    
+                                    mountsHTML += `
+                                        <div style="background: rgba(255,255,255,0.03); border-radius: 8px; padding: 15px; margin-bottom: 10px; border-left: 4px solid ${statusColor};">
+                                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                <div>
+                                                    <div style="color: #ecf0f1; font-weight: bold; margin-bottom: 5px;">${mount.mount_point}</div>
+                                                    <div style="color: #7f8c8d; font-size: 0.9em;">${mount.source}</div>
+                                                </div>
+                                                <div style="text-align: right;">
+                                                    <div style="color: ${statusColor}; font-weight: bold; font-size: 1.2em;">${statusIcon}</div>
+                                                    <div style="color: ${statusColor}; font-size: 0.85em;">${statusText}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                });
+                                
+                                container.innerHTML = mountsHTML;
+                            }
+                            
+                            // Recent errors
+                            if (nfs.recent_errors && nfs.recent_errors.length > 0) {
+                                document.getElementById('nfs-errors').style.display = 'block';
+                                const errorsList = document.getElementById('nfs-errors-list');
+                                errorsList.innerHTML = nfs.recent_errors.map(error => 
+                                    `<div style="margin-bottom: 5px;">${error}</div>`
+                                ).join('');
+                            } else {
+                                document.getElementById('nfs-errors').style.display = 'none';
+                            }
+                        } else {
+                            document.getElementById('nfs-section').style.display = 'none';
+                        }
+                    }
+                })
+                .catch(error => console.error('Error fetching NFS health:', error));
+        }
 
         function loadLMSSettings() {
             fetch('/api/lms/settings')
