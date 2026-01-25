@@ -212,7 +212,7 @@ album_art_cache = {}
 
 # Rate limiting for album art requests to prevent client loops from overloading NFS
 album_art_request_times = {}  # {(client_ip, cache_key): last_request_timestamp}
-ALBUM_ART_RATE_LIMIT_SECONDS = 2  # Minimum seconds between identical requests from same client
+ALBUM_ART_RATE_LIMIT_SECONDS = 0.5  # Minimum seconds between identical requests from same client
 
 # Default HTTP headers for outbound requests (identify our app version)
 DEFAULT_HTTP_HEADERS = {
@@ -3654,12 +3654,16 @@ def get_album_art():
     
     if rate_limit_key in album_art_request_times:
         last_request = album_art_request_times[rate_limit_key]
-        if current_time - last_request < ALBUM_ART_RATE_LIMIT_SECONDS:
+        time_since_last = current_time - last_request
+        if time_since_last < ALBUM_ART_RATE_LIMIT_SECONDS:
+            print(f"[RATE LIMIT] Blocked request from {client_ip} - {time_since_last:.2f}s since last request (limit: {ALBUM_ART_RATE_LIMIT_SECONDS}s)")
             # Too soon - return cached version immediately if available
             cached_data = album_art_cache.get(cache_key_base)
             if cached_data:
+                print(f"[RATE LIMIT] Serving cached version")
                 return Response(cached_data['data'], mimetype=cached_data['mimetype'])
             # If not cached yet, serve placeholder to avoid NFS stress
+            print(f"[RATE LIMIT] No cache, serving placeholder")
             return redirect(url_for('static_placeholder_art'))
     
     # Update last request time

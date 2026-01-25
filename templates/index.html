@@ -1126,7 +1126,7 @@
         {# Album Art Display - now uses album_art_url from Flask context #}
         <div class="album-art" id="album-art-container">
             <a href="#" onclick="window.open('/album_art_view', '_blank'); return false;" id="album-art-link" title="Click to view full size">
-                <img id="album-art-img" src="{{ album_art_url }}" alt="Album Art">
+                <img id="album-art-img" src="{{ album_art_url }}" alt="Album Art" data-current-song-id="{{ mpd_info.file }}|{{ mpd_info.artist }}|{{ mpd_info.album }}">
             </a>
         </div>
 
@@ -1523,28 +1523,17 @@
                         songProgressBar.dataset.initialTotal = '0';
                     }
 
-                    // Update album art
-                    // Construct the URL for the album art route, passing current song info
-                    const isStream = data.song_file && (data.song_file.startsWith('http://') || data.song_file.startsWith('https://'));
-                    const newArtSrc = `/album_art?song_file=${encodeURIComponent(data.song_file)}&artist=${encodeURIComponent(data.artist)}&album=${encodeURIComponent(data.album)}&title=${encodeURIComponent(data.song_title)}`;
+                    // Update album art - store song identifier to detect actual changes
+                    const newSongId = `${data.song_file}|${data.artist}|${data.album}`;
                     
-                    // Extract base URL from current src (handle both absolute and relative URLs)
-                    const currentSrc = albumArtImg.src;
-                    let currentArtBaseUrl = '';
-                    if (currentSrc) {
-                        try {
-                            const url = new URL(currentSrc, window.location.origin);
-                            currentArtBaseUrl = url.pathname + url.search.split('&t=')[0].replace(url.pathname, '');
-                        } catch (e) {
-                            currentArtBaseUrl = '';
-                        }
-                    }
-                    
-                    // Only update art when song actually changes
-                    if (currentArtBaseUrl !== newArtSrc) {
-                        // Song changed, update art with cache-busting timestamp
-                        const timestamp = new Date().getTime();
-                        albumArtImg.src = `${newArtSrc}&t=${timestamp}`;
+                    // Check if song has actually changed
+                    if (!albumArtImg.dataset.currentSongId || albumArtImg.dataset.currentSongId !== newSongId) {
+                        // Song changed - update the album art
+                        console.log('Song changed, updating album art');
+                        const newArtSrc = `/album_art?song_file=${encodeURIComponent(data.song_file)}&artist=${encodeURIComponent(data.artist)}&album=${encodeURIComponent(data.album)}&title=${encodeURIComponent(data.song_title)}`;
+                        
+                        albumArtImg.src = newArtSrc;
+                        albumArtImg.dataset.currentSongId = newSongId;
                         albumArtImg.onerror = function () {
                             this.onerror = null;
                             this.src = "{{ url_for('static_placeholder_art') }}";
