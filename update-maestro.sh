@@ -314,7 +314,37 @@ else
 fi
 
 echo ""
-echo -e "${GREEN}[6/6] Restarting services...${NC}"
+echo -e "${GREEN}[6/6] Updating services and configuration...${NC}"
+
+# Update NFS monitoring if scripts exist
+if [ -f "$REPO_DIR/scripts/nfs-health-check.sh" ]; then
+    echo -e "${YELLOW}Updating NFS health monitoring...${NC}"
+    
+    # Update scripts in install directory
+    if [ -d "$INSTALL_DIR/scripts" ]; then
+        cp "$REPO_DIR/scripts/nfs-health-check.sh" "$INSTALL_DIR/scripts/"
+        cp "$REPO_DIR/scripts/nfs-health-report.sh" "$INSTALL_DIR/scripts/"
+        chmod +x "$INSTALL_DIR/scripts/nfs-health-check.sh"
+        chmod +x "$INSTALL_DIR/scripts/nfs-health-report.sh"
+        
+        # Update service file with correct paths
+        sed "s|/home/fausto/Maestro-Server|$INSTALL_DIR|g" "$REPO_DIR/scripts/nfs-health-check.service" | \
+            sudo tee /etc/systemd/system/nfs-health-check.service > /dev/null
+        
+        # Update timer
+        sudo cp "$REPO_DIR/scripts/nfs-health-check.timer" /etc/systemd/system/
+        
+        # Enable if not already enabled
+        if ! systemctl is-enabled --quiet nfs-health-check.timer 2>/dev/null; then
+            sudo systemctl enable nfs-health-check.timer
+            sudo systemctl start nfs-health-check.timer
+            echo -e "${GREEN}✓ NFS monitoring enabled (new feature)${NC}"
+        else
+            sudo systemctl restart nfs-health-check.timer
+            echo -e "${GREEN}✓ NFS monitoring updated${NC}"
+        fi
+    fi
+fi
 
 # Reload systemd to pick up MPD changes
 sudo systemctl daemon-reload
@@ -349,6 +379,10 @@ if systemctl is-active --quiet maestro-admin.service; then
     echo -e "Admin API: ${GREEN}✓ Running${NC}"
 else
     echo -e "Admin API: ${RED}✗ Not running${NC}"
+fi
+
+if systemctl is-active --quiet nfs-health-check.timer 2>/dev/null; then
+    echo -e "NFS Monitor: ${GREEN}✓ Active${NC}"
 fi
 
 echo ""

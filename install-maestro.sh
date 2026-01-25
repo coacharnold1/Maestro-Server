@@ -830,6 +830,30 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
+    # NFS Health Monitoring (if scripts exist)
+    if [ -f "$REPO_DIR/scripts/nfs-health-check.sh" ]; then
+        echo -e "${YELLOW}Installing NFS health monitoring...${NC}"
+        
+        # Copy monitoring scripts
+        cp "$REPO_DIR/scripts/nfs-health-check.sh" "$INSTALL_DIR/scripts/"
+        cp "$REPO_DIR/scripts/nfs-health-report.sh" "$INSTALL_DIR/scripts/"
+        chmod +x "$INSTALL_DIR/scripts/nfs-health-check.sh"
+        chmod +x "$INSTALL_DIR/scripts/nfs-health-report.sh"
+        
+        # Update paths in service file to use install directory
+        sed "s|/home/fausto/Maestro-Server|$INSTALL_DIR|g" "$REPO_DIR/scripts/nfs-health-check.service" | \
+            sudo tee /etc/systemd/system/nfs-health-check.service > /dev/null
+        
+        # Install timer
+        sudo cp "$REPO_DIR/scripts/nfs-health-check.timer" /etc/systemd/system/
+        
+        # Enable NFS monitoring
+        sudo systemctl enable nfs-health-check.timer
+        
+        echo -e "${GREEN}✓ NFS health monitoring installed (checks every 10 minutes)${NC}"
+        echo -e "${BLUE}  View status: $INSTALL_DIR/scripts/nfs-health-report.sh${NC}"
+    fi
+    
     # Reload systemd
     sudo systemctl daemon-reload
     

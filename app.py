@@ -210,6 +210,10 @@ last_mpd_status = {}
 # Simple in-memory cache for Last.fm album art data
 album_art_cache = {}
 
+# Rate limiting for album art requests to prevent client loops from overloading NFS
+album_art_request_times = {}  # {(client_ip, cache_key): last_request_timestamp}
+ALBUM_ART_RATE_LIMIT_SECONDS = 2  # Minimum seconds between identical requests from same client
+
 # Default HTTP headers for outbound requests (identify our app version)
 DEFAULT_HTTP_HEADERS = {
     'User-Agent': f"{APP_NAME}/{APP_VERSION}"
@@ -3641,6 +3645,32 @@ def get_album_art():
     album = request.args.get('album', '')
     size = request.args.get('size', 'full')  # 'full' or 'thumb'
     prefer_lastfm = request.args.get('prefer_lastfm', 'false').lower() == 'true'  # High-quality mode
+
+    # Rate limiting: prevent client loops from hammering NFS with identical requests
+    client_ip = request.remote_addr
+    cache_key_base = f"{song_file}-{artist}-{album}-{size}"
+    rate_limit_key = (client_ip, cache_key_base)
+    current_time = time.time()
+    
+    if rate_limit_key in album_art_request_times:
+        last_request = album_art_request_times[rate_limit_key]
+        if current_time - last_request < ALBUM_ART_RATE_LIMIT_SECONDS:
+            # Too soon - return cached version immediately if available
+            cached_data = album_art_cache.get(cache_key_base)
+            if cached_data:
+                return Response(cached_data['data'], mimetype=cached_data['mimetype'])
+            # If not cached yet, serve placeholder to avoid NFS stress
+            return redirect(url_for('static_placeholder_art'))
+    
+    # Update last request time
+    album_art_request_times[rate_limit_key] = current_time
+    
+    # Clean up old rate limit entries (keep only last 1000 entries)
+    if len(album_art_request_times) > 1000:
+        # Remove oldest entries
+        sorted_keys = sorted(album_art_request_times.items(), key=lambda x: x[1])
+        for old_key, _ in sorted_keys[:500]:
+            del album_art_request_times[old_key]
 
     # Detect if this is a stream
     is_stream = song_file and (song_file.startswith('http://') or song_file.startswith('https://'))
