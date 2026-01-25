@@ -1524,30 +1524,31 @@
                     }
 
                     // Update album art
-                    // Construct the URL for the album art route, passing current song info with cache busting
+                    // Construct the URL for the album art route, passing current song info
                     const isStream = data.song_file && (data.song_file.startsWith('http://') || data.song_file.startsWith('https://'));
-                    const timestamp = new Date().getTime();
-                    const newArtSrc = `/album_art?song_file=${encodeURIComponent(data.song_file)}&artist=${encodeURIComponent(data.artist)}&album=${encodeURIComponent(data.album)}&title=${encodeURIComponent(data.song_title)}&t=${timestamp}`;
+                    const newArtSrc = `/album_art?song_file=${encodeURIComponent(data.song_file)}&artist=${encodeURIComponent(data.artist)}&album=${encodeURIComponent(data.album)}&title=${encodeURIComponent(data.song_title)}`;
                     
-                    // For streams, only update art when song changes (not on every status update)
-                    const artBaseUrl = newArtSrc.split('&t=')[0];
-                    const currentArtBaseUrl = albumArtImg.src.split('&t=')[0];
+                    // Extract base URL from current src (handle both absolute and relative URLs)
+                    const currentSrc = albumArtImg.src;
+                    let currentArtBaseUrl = '';
+                    if (currentSrc) {
+                        try {
+                            const url = new URL(currentSrc, window.location.origin);
+                            currentArtBaseUrl = url.pathname + url.search.split('&t=')[0].replace(url.pathname, '');
+                        } catch (e) {
+                            currentArtBaseUrl = '';
+                        }
+                    }
                     
-                    if (currentArtBaseUrl !== artBaseUrl) {
-                        // Song changed, update art
-                        albumArtImg.src = newArtSrc;
+                    // Only update art when song actually changes
+                    if (currentArtBaseUrl !== newArtSrc) {
+                        // Song changed, update art with cache-busting timestamp
+                        const timestamp = new Date().getTime();
+                        albumArtImg.src = `${newArtSrc}&t=${timestamp}`;
                         albumArtImg.onerror = function () {
                             this.onerror = null;
                             this.src = "{{ url_for('static_placeholder_art') }}";
                         };
-                    } else if (!isStream && currentArtBaseUrl === artBaseUrl) {
-                        // For non-streams, periodically refresh (but not every update)
-                        // Only refresh every 30 seconds to reduce load
-                        const lastUpdate = albumArtImg.dataset.lastUpdate || 0;
-                        if (timestamp - lastUpdate > 30000) {
-                            albumArtImg.src = newArtSrc;
-                            albumArtImg.dataset.lastUpdate = timestamp;
-                        }
                     }
                     albumArtContainer.style.display = 'block';
 
