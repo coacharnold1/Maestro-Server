@@ -53,10 +53,11 @@ SCREENSHOT RECOMMENDATION #1: Hero Image
 **Maestro** is not just another MPD web interface - it's a complete music server ecosystem designed for audiophiles, self-hosters, and music enthusiasts who demand:
 
 ✨ **Elite-grade features** - Bandcamp streaming, internet radio, CD ripping, Last.fm scrobbling  
-🎨 **Beautiful UI** - 21 gorgeous themes, album art collage view, mobile-responsive  
+🎨 **Beautiful UI** - 8 gorgeous themes, album art collage view, mobile-responsive  
 🔧 **Full system control** - NFS/SMB mounts, audio configuration, OS updates, real-time monitoring  
 🚀 **Zero-hassle setup** - One-command installation, automatic MPD detection, smart defaults  
 🎵 **Audiophile-ready** - Bit-perfect playback up to DSD512/384kHz, all formats supported  
+📡 **Multi-room audio** - Stream to Squeezebox/LMS players throughout your home  
 📀 **Smart features** - Search autocomplete, client-side filtering, interactive album discovery  
 
 <!-- 
@@ -104,8 +105,9 @@ SCREENSHOT RECOMMENDATION #2: Theme Showcase
 #### Advanced Features
 - � **Internet Radio** - Stream from 22 countries via Radio Browser API with station logos
 - 🎵 **Bandcamp Integration** - Stream Bandcamp purchases directly in Maestro
+- 📡 **Multi-room Audio** - Stream to Squeezebox/LMS players for whole-home audio
 - 📈 **Playback charts** - Track your listening stats with Last.fm
-- 🎨 **21 beautiful themes** - Multiple color schemes and visual styles
+- 🎨 **8 beautiful themes** - Dark, Light, High Contrast, Desert, Terminal, Sunset, Forest, Midnight
 - 📱 **Mobile-responsive** design with touch-optimized controls
 - 🎵 **Last.fm integration** - Scrobbling with on-screen toast notifications
 - 🔔 **Smart toasts** - Real-time feedback for all actions
