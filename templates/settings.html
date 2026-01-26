@@ -70,6 +70,41 @@
     </form>
 </div>
 
+    <div class="status-box">
+        <form method="POST" action="/settings/genius" style="margin:0;">
+            <h2 style="text-align:left;">🎵 Genius API (Lyrics)</h2>
+            <div class="controls" style="border-top:none;">
+                <div style="margin:10px 0; padding:10px; background:rgba(155,89,182,0.15); border-left:3px solid #9b59b6; border-radius:4px; font-size:0.85em; color:#ecf0f1;">
+                    <strong>📖 Setup Steps:</strong>
+                    <ol style="margin:8px 0 0 20px;">
+                        <li>Go to <a href="https://genius.com/api-clients" target="_blank" style="color:#3498db;">genius.com/api-clients</a></li>
+                        <li>Sign in (create free account if needed)</li>
+                        <li>Click "New API Client"</li>
+                        <li>Copy your <strong>Client ID</strong> and <strong>Client Secret</strong></li>
+                        <li>Paste below and click "Save"</li>
+                    </ol>
+                </div>
+                <div style="margin:15px 0;">
+                    <label for="genius_client_id" style="display:block; font-weight:bold; margin-bottom:5px;">Client ID:</label>
+                    <input type="text" id="genius_client_id" name="genius_client_id" placeholder="Paste Client ID" value="{{ genius_client_id or '' }}" style="padding:8px; width:100%; border-radius:6px; box-sizing:border-box; font-family:monospace;"/>
+                </div>
+                <div style="margin:15px 0;">
+                    <label for="genius_client_secret" style="display:block; font-weight:bold; margin-bottom:5px;">Client Secret:</label>
+                    <input type="password" id="genius_client_secret" name="genius_client_secret" placeholder="Paste Client Secret" value="{{ genius_client_secret or '' }}" style="padding:8px; width:100%; border-radius:6px; box-sizing:border-box; font-family:monospace;"/>
+                </div>
+                <div style="margin:15px 0;">
+                    <label for="genius_access_token" style="display:block; font-weight:bold; margin-bottom:5px;">Access Token (optional):</label>
+                    <input type="password" id="genius_access_token" name="genius_access_token" placeholder="Personal access token from Genius" value="{{ genius_access_token or '' }}" style="padding:8px; width:100%; border-radius:6px; box-sizing:border-box; font-family:monospace;"/>
+                </div>
+                <div style="margin:15px 0; display:flex; gap:8px;">
+                    <button type="button" class="button" id="btn-test-genius" style="background:#3498db; color:#ecf0f1;">🧪 Test</button>
+                    <button type="submit" class="button" style="background:#2ecc71; color:#1a1a1a;">💾 Save</button>
+                </div>
+                <div id="genius-test-result" style="margin-top:12px; display:none; padding:10px; border-radius:6px;"></div>
+            </div>
+        </form>
+    </div>
+
 <div class="status-box" id="squeezebox-section" style="display:none;">
     <h2 style="text-align:left;">Squeezebox Players</h2>
     <div class="controls" style="border-top:none;">
@@ -112,6 +147,28 @@
             el.style.color = '#e74c3c';
         }
     });
+    
+        // Genius API functionality
+        if (document.getElementById('btn-test-genius')) {
+            document.getElementById('btn-test-genius').addEventListener('click', async () => {
+                const clientId = document.getElementById('genius_client_id').value.trim();
+                const form = new FormData();
+                if (clientId) form.append('genius_client_id', clientId);
+                try {
+                    const resp = await fetch('/api/test_genius', { method: 'POST', body: form });
+                    const data = await resp.json();
+                    const el = document.getElementById('genius-test-result');
+                    el.textContent = data.message || 'Unknown response';
+                    el.style.color = data.status === 'success' ? '#2ecc71' : '#e74c3c';
+                    el.style.display = 'block';
+                } catch (e) {
+                    const el = document.getElementById('genius-test-result');
+                    el.textContent = 'Network error: ' + e.message;
+                    el.style.color = '#e74c3c';
+                    el.style.display = 'block';
+                }
+            });
+        }
 
     document.getElementById('btn-connect-lastfm').addEventListener('click', async () => {
         try {

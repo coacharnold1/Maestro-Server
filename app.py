@@ -12,6 +12,7 @@ os.environ["EVENTLET_THREADING"] = "1"
 from flask import Flask, render_template, redirect, url_for, request, send_from_directory, Response, jsonify, flash
 from flask_socketio import SocketIO, emit
 from mpd import MPDClient, ConnectionError, CommandError
+from typing import Optional
 import socket
 import subprocess
 import os
@@ -21,6 +22,8 @@ from PIL import Image, ImageDraw, ImageFont
 import time
 import requests
 import random
+import re
+import html
 
 # Settings and data files
 SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'settings.json')
@@ -39,7 +42,10 @@ def load_settings():
         'theme': 'dark',
         'lastfm_api_key': '',
         'lastfm_shared_secret': '',
-        'show_scrobble_toasts': True
+        'show_scrobble_toasts': True,
+        'genius_client_id': '',
+        'genius_client_secret': '',
+        'genius_access_token': ''
     }
 
 def save_settings(data: dict) -> bool:
@@ -141,6 +147,9 @@ if ENV_LOADED:
     MUSIC_DIRECTORY = os.environ.get('MUSIC_DIRECTORY', '/media/music')
     LASTFM_API_KEY = os.environ.get('LASTFM_API_KEY', '')
     LASTFM_SHARED_SECRET = os.environ.get('LASTFM_SHARED_SECRET', '')
+    GENIUS_CLIENT_ID = os.environ.get('GENIUS_CLIENT_ID', '')
+    GENIUS_CLIENT_SECRET = os.environ.get('GENIUS_CLIENT_SECRET', '')
+    GENIUS_ACCESS_TOKEN = os.environ.get('GENIUS_ACCESS_TOKEN', '')
     MAESTRO_CONFIG_URL = os.environ.get('MAESTRO_CONFIG_URL', '')
     
     # Add to Flask app config
@@ -158,6 +167,9 @@ else:
     MUSIC_DIRECTORY = '/media/music'
     LASTFM_API_KEY = ''  # Set in config.env or settings page for Last.fm integration
     LASTFM_SHARED_SECRET = ''  # Set in config.env or settings page for Last.fm integration
+    GENIUS_CLIENT_ID = ''  # Optional: Genius client id for lyrics lookup
+    GENIUS_CLIENT_SECRET = ''  # Optional: Genius client secret for lyrics lookup
+    GENIUS_ACCESS_TOKEN = ''  # Optional: Genius access token for lyrics lookup
     MAESTRO_CONFIG_URL = ''  # Set in config.env for system config link (optional)
 
 # Load persisted settings and apply precedence: env vars > settings.json > defaults
@@ -172,6 +184,12 @@ if not LASTFM_API_KEY:
     LASTFM_API_KEY = _settings.get('lastfm_api_key', '')
 if not LASTFM_SHARED_SECRET:
     LASTFM_SHARED_SECRET = _settings.get('lastfm_shared_secret', '')
+if not GENIUS_CLIENT_ID:
+    GENIUS_CLIENT_ID = _settings.get('genius_client_id', '')
+if not GENIUS_CLIENT_SECRET:
+    GENIUS_CLIENT_SECRET = _settings.get('genius_client_secret', '')
+if not GENIUS_ACCESS_TOKEN:
+    GENIUS_ACCESS_TOKEN = _settings.get('genius_access_token', '')
 scrobbling_enabled = bool(_settings.get('enable_scrobbling', False))
 lastfm_session_key = _settings.get('lastfm_session_key', '')
 show_scrobble_toasts = bool(_settings.get('show_scrobble_toasts', True))
@@ -1126,7 +1144,207 @@ def settings_page():
                            lastfm_connected=bool(current.get('lastfm_session_key')),
                            show_scrobble_toasts=bool(current.get('show_scrobble_toasts', True)),
                            lastfm_api_key_masked=masked_key,
-                           lastfm_shared_secret_masked=masked_secret)
+                           lastfm_shared_secret_masked=masked_secret,
+                           genius_client_id=current.get('genius_client_id', ''),
+                           genius_client_secret=current.get('genius_client_secret', ''),
+                           genius_access_token=current.get('genius_access_token', ''))
+
+@app.route('/settings/genius', methods=['POST'])
+def settings_genius_page():
+    """Persist Genius API credentials and reload runtime values."""
+    global GENIUS_CLIENT_ID, GENIUS_CLIENT_SECRET, GENIUS_ACCESS_TOKEN
+    current = load_settings()
+    client_id = request.form.get('genius_client_id', '').strip()
+    client_secret = request.form.get('genius_client_secret', '').strip()
+    access_token = request.form.get('genius_access_token', '').strip()
+
+    if client_id:
+        current['genius_client_id'] = client_id
+        if not os.environ.get('GENIUS_CLIENT_ID'):
+            GENIUS_CLIENT_ID = client_id
+    if client_secret:
+        current['genius_client_secret'] = client_secret
+        if not os.environ.get('GENIUS_CLIENT_SECRET'):
+            GENIUS_CLIENT_SECRET = client_secret
+    if access_token:
+        current['genius_access_token'] = access_token
+        if not os.environ.get('GENIUS_ACCESS_TOKEN'):
+            GENIUS_ACCESS_TOKEN = access_token
+
+    if save_settings(current):
+        flash('Genius settings saved.', 'success')
+    else:
+        flash('Failed to save Genius settings.', 'error')
+    return redirect(url_for('settings_page'))
+
+@app.route('/api/lyrics', methods=['POST'])
+def api_get_lyrics():
+    """
+    Fetch lyrics for a track
+    Expected JSON: {"artist": "...", "title": "..."}
+    
+    Note: Lyrics service is currently in fallback mode due to API limitations.
+    This endpoint gracefully handles instrumental tracks and unavailable lyrics.
+    """
+    data = request.get_json() or {}
+    artist = data.get('artist', '').strip()
+    title = data.get('title', '').strip()
+    
+    if not artist or not title:
+        return jsonify({'status': 'error', 'message': 'Artist and title required'}), 400
+    
+    try:
+        # Try to detect if track is likely instrumental based on metadata
+        is_instrumental = _is_likely_instrumental(title)
+        
+        if is_instrumental:
+            return jsonify({
+                'status': 'success',
+                'lyrics': None,
+                'message': f'🎼 Instrumental Track: "{title}" appears to be an instrumental piece. No lyrics available.'
+            })
+        
+        # Try multiple lyrics providers
+        lyrics = _try_lyrics_providers(artist, title)
+        
+        if lyrics:
+            return jsonify({
+                'status': 'success',
+                'lyrics': lyrics,
+                'artist': artist,
+                'title': title
+            })
+        
+        # No lyrics found
+        return jsonify({
+            'status': 'success',
+            'lyrics': None,
+            'message': 'No lyrics found. This track may be instrumental, a live recording, or not available in our database.'
+        })
+        
+    except Exception as e:
+        print(f"Error fetching lyrics: {e}")
+        return jsonify({
+            'status': 'success',
+            'lyrics': None,
+            'message': 'Could not retrieve lyrics at this time. Please try again later.'
+        })
+
+def _is_likely_instrumental(title: str) -> bool:
+    """
+    Check if track title suggests it's instrumental
+    """
+    instrumental_keywords = [
+        'instrumental',
+        'theme',
+        'interlude',
+        'intro',
+        'outro',
+        'remix',
+        'version',
+        'medley',
+        'suite',
+        'concerto',
+        'symphony',
+        'sonata',
+        'prelude',
+        'etude',
+        'fugue',
+        'nocturne',
+    ]
+    
+    title_lower = title.lower()
+    return any(keyword in title_lower for keyword in instrumental_keywords)
+
+def _try_lyrics_providers(artist: str, title: str) -> Optional[str]:
+    """
+    Try to fetch lyrics from available providers
+    Currently uses Genius web search + page scrape (no JS required).
+    """
+    try:
+        lyrics = _fetch_lyrics_genius(artist, title)
+        if lyrics:
+            return lyrics
+        return None
+    except Exception as e:
+        print(f"Lyrics provider error: {e}")
+        return None
+
+def _fetch_lyrics_genius(artist: str, title: str) -> Optional[str]:
+    """Search Genius and scrape lyrics from the first matching song page."""
+    try:
+        query = f"{artist} {title}".strip()
+        if not query:
+            return None
+
+        search_url = "https://genius.com/api/search/song"
+        params = {'q': query}
+        resp = requests.get(search_url, params=params, timeout=8, headers=DEFAULT_HTTP_HEADERS)
+        resp.raise_for_status()
+        data = resp.json()
+        sections = data.get('response', {}).get('sections', [])
+        song_section = next((s for s in sections if s.get('type') == 'song'), None)
+        hits = song_section.get('hits', []) if song_section else []
+
+        for hit in hits:
+            result = hit.get('result', {})
+            url = result.get('url') or ''
+            if not url:
+                continue
+            lyrics = _scrape_genius_page(url)
+            if lyrics:
+                return lyrics
+        return None
+    except Exception as e:
+        print(f"[Genius] search error: {e}")
+        return None
+
+def _scrape_genius_page(url: str) -> Optional[str]:
+    """Scrape lyrics text from a Genius song page."""
+    try:
+        resp = requests.get(url, timeout=8, headers=DEFAULT_HTTP_HEADERS)
+        resp.raise_for_status()
+        html_text = resp.text
+
+        # Lyrics live inside multiple <div data-lyrics-container="true"> blocks
+        containers = re.findall(r'<div[^>]*data-lyrics-container="true"[^>]*>(.*?)</div>', html_text, flags=re.DOTALL)
+        if not containers:
+            return None
+
+        parts = []
+        for block in containers:
+            block = block.replace('<br/>', '\n').replace('<br>', '\n')
+            block = re.sub(r'<[^>]+>', '', block)
+            block = html.unescape(block)
+            block = block.strip()
+            if block:
+                parts.append(block)
+
+        if not parts:
+            return None
+
+        lyrics = "\n\n".join(parts)
+        # Basic cleanup: collapse excess blank lines
+        lyrics = re.sub(r'\n{3,}', '\n\n', lyrics).strip()
+        return lyrics or None
+    except Exception as e:
+        print(f"[Genius] scrape error: {e}")
+        return None
+
+@app.route('/api/test_genius', methods=['POST'])
+def api_test_genius():
+    """Quick check that Genius search + scrape works."""
+    try:
+        artist = request.form.get('artist', 'The Beatles')
+        title = request.form.get('title', 'Hey Jude')
+        lyrics = _fetch_lyrics_genius(artist, title)
+        if lyrics:
+            snippet = (lyrics[:160] + '...') if len(lyrics) > 160 else lyrics
+            return jsonify({'status': 'success', 'message': 'Genius reachable and returned lyrics.', 'snippet': snippet})
+        return jsonify({'status': 'error', 'message': 'No lyrics returned. Verify track spelling or try another song.'}), 502
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Genius test failed: {e}'}), 502
+
 
 @app.route('/api/test_lastfm', methods=['POST'])
 def api_test_lastfm():

@@ -1207,9 +1207,10 @@
             </div>
         </div>
 
-        {# Charts Button #}
+        {# Lyrics Button #}
         <div class="controls mpd-actions-small" style="margin-top: 15px; padding: 8px; border-top: 1px solid #34495e;">
             <div class="small-actions" style="display: flex; justify-content: center; gap: 6px; flex-wrap: wrap;">
+                <button onclick="showLyrics()" class="small-btn" style="background-color:#9b59b6 !important; padding: 8px 16px !important; font-size: 1em !important;">🎵 Lyrics</button>
                 <a href="/charts" class="small-btn" style="background-color:#7f8c8d !important; padding: 8px 16px !important; font-size: 1em !important;">Charts</a>
             </div>
         </div>
@@ -1989,7 +1990,106 @@
                 muteBtn.classList.remove('muted');
             }
         }
+
+        // ========== LYRICS MODAL ==========
+        function showLyrics() {
+            const artistEl = document.getElementById('current-artist');
+            const titleEl = document.getElementById('current-title');
+            
+            const artist = artistEl ? artistEl.textContent.trim() : null;
+            const title = titleEl ? titleEl.textContent.trim() : null;
+            
+            if (!artist || !title || artist === 'N/A' || title === 'N/A') {
+                alert('No track is currently playing.');
+                return;
+            }
+            
+            // Show modal and loading state
+            const modal = document.getElementById('lyrics-modal');
+            const lyricsContent = document.getElementById('lyrics-content');
+            modal.style.display = 'block';
+            lyricsContent.innerHTML = '<p style="text-align: center; color: #95a5a6;"><em>Loading lyrics...</em></p>';
+            
+            // Fetch lyrics
+            fetch('/api/lyrics', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({artist: artist, title: title})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.lyrics) {
+                    // Format lyrics with line breaks
+                    const formattedLyrics = data.lyrics
+                        .replace(/\n/g, '<br>')
+                        .replace(/\r/g, '');
+                    lyricsContent.innerHTML = `
+                        <div style="text-align: center; margin-bottom: 20px; border-bottom: 1px solid #34495e; padding-bottom: 15px;">
+                            <p style="margin: 5px 0; font-size: 1.1em; font-weight: bold;">${data.title || title}</p>
+                            <p style="margin: 5px 0; color: #95a5a6;">${data.artist || artist}</p>
+                        </div>
+                        <div style="white-space: pre-wrap; line-height: 1.6; font-family: monospace;">${formattedLyrics}</div>
+                    `;
+                } else {
+                    // Show helpful message with search links
+                    const searchQuery = encodeURIComponent(`${artist} ${title} lyrics`);
+                    const geniusUrl = `https://genius.com/search?q=${searchQuery}`;
+                    const googleUrl = `https://www.google.com/search?q=${searchQuery}`;
+                    
+                    lyricsContent.innerHTML = `
+                        <div style="text-align: center;">
+                            <p style="font-size: 1.2em; margin: 20px 0;">🎵 Lyrics Not Available</p>
+                            <p style="color: #95a5a6; font-size: 0.95em; line-height: 1.6;">
+                                ${data.message || 'This track may be instrumental, a live recording, or not available in our database.'}
+                            </p>
+                            <div style="margin-top: 25px; border-top: 1px solid #34495e; padding-top: 20px;">
+                                <p style="color: #bdc3c7; margin-bottom: 12px; font-size: 0.9em;">Search for lyrics online:</p>
+                                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                                    <a href="${geniusUrl}" target="_blank" style="background-color: #f1c40f; color: #000; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-weight: bold; cursor: pointer;">🎶 Genius</a>
+                                    <a href="${googleUrl}" target="_blank" style="background-color: #4285f4; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-weight: bold; cursor: pointer;">🔍 Google</a>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            })
+            .catch(err => {
+                console.error('Lyrics fetch error:', err);
+                lyricsContent.innerHTML = `
+                    <div style="text-align: center;">
+                        <p style="color: #e74c3c;">Error loading lyrics</p>
+                        <p style="color: #95a5a6; font-size: 0.9em;">Please try again later.</p>
+                    </div>
+                `;
+            });
+        }
+
+        function closeLyricsModal() {
+            const modal = document.getElementById('lyrics-modal');
+            modal.style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('lyrics-modal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
     </script>
+
+    <!-- Lyrics Modal -->
+    <div id="lyrics-modal" style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); overflow: auto;">
+        <div style="background-color: #2c3e50; margin: 5% auto; padding: 20px; border: 1px solid #34495e; border-radius: 8px; width: 90%; max-width: 800px; max-height: 85vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #34495e; padding-bottom: 10px;">
+                <h2 style="margin: 0; color: #ecf0f1;">🎵 Lyrics</h2>
+                <button onclick="closeLyricsModal()" style="background-color: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold;">✕ Close</button>
+            </div>
+            <div id="lyrics-content" style="color: #ecf0f1; line-height: 1.8;">
+                <!-- Lyrics will be inserted here -->
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
