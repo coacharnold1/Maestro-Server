@@ -4,7 +4,7 @@
 
 ### The Ultimate Self-Hosted Music Server with an easy to use Web Interface
 
-[![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)](https://github.com/coacharnold1/Maestro-Server)
+[![Version](https://img.shields.io/badge/version-2.9.0-blue.svg)](https://github.com/coacharnold1/Maestro-Server)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![MPD](https://img.shields.io/badge/MPD-0.23+-orange.svg)](https://www.musicpd.org/)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/)
@@ -52,12 +52,12 @@ SCREENSHOT RECOMMENDATION #1: Hero Image
 
 **Maestro** is not just another MPD web interface - it's a complete music server ecosystem designed for audiophiles, self-hosters, and music enthusiasts who demand:
 
-✨ **Elite-grade features** - CD ripping, multi-disc detection, Last.fm scrobbling  
-🎨 **Beautiful UI** - 8 gorgeous themes, mobile-responsive, modern design  
+✨ **Elite-grade features** - Bandcamp streaming, internet radio, CD ripping, Last.fm scrobbling  
+🎨 **Beautiful UI** - 21 gorgeous themes, album art collage view, mobile-responsive  
 🔧 **Full system control** - NFS/SMB mounts, audio configuration, OS updates, real-time monitoring  
 🚀 **Zero-hassle setup** - One-command installation, automatic MPD detection, smart defaults  
-🎵 **Audiophile-ready** - Bit-perfect playback up to DSD512/384kHz, all formats supported, hardware device selection  
-📀 **Automatic CD ripping** - Insert disc → automatic rip → organized library  
+🎵 **Audiophile-ready** - Bit-perfect playback up to DSD512/384kHz, all formats supported  
+📀 **Smart features** - Search autocomplete, client-side filtering, interactive album discovery  
 
 <!-- 
 SCREENSHOT RECOMMENDATION #2: Theme Showcase
@@ -85,12 +85,15 @@ SCREENSHOT RECOMMENDATION #2: Theme Showcase
 - ⏱️ Track time display and seek
 
 #### Library Browsing
-- 📀 **Album browsing** with album art
+- 📀 **Album browsing** with album art and interactive collage view
 - 🎤 **Artist browsing** with smart letter jump navigation (shows when >50 artists)
 - 🎼 **Genre filtering** with letter jump navigation
 - 🆕 **Recent albums** page (tracks newly added/ripped music)
-- 🔍 **Smart search** across artists, albums, and tracks
+- 🔍 **Smart search** with instant autocomplete suggestions
 - 💿 **Multi-disc detection** with proper disc organization
+- 🖼️ **Album art collage** - Click album art to see 3x3 grid of artist's albums
+- 🎲 **Random album selection** - Discover 8 random albums from your collection
+- ⚡ **Client-side filtering** - Lightning fast search with keyboard navigation
 
 #### Queue Management
 - 📝 Current playlist view
@@ -99,11 +102,14 @@ SCREENSHOT RECOMMENDATION #2: Theme Showcase
 - 🎯 Play from queue position
 
 #### Advanced Features
-- 📈 **Playback charts** - track your listening stats
-- 🎨 **8 beautiful themes**: Dark, Light, High Contrast, Desert, Terminal, Sunset, Forest, Midnight
-- 📱 **Mobile-responsive** design
-- 🎵 **Last.fm integration** - scrobbling with on-screen toast notifications
-- 🔔 **Smart toasts** - database updates, scrobbles, now playing
+- � **Internet Radio** - Stream from 22 countries via Radio Browser API with station logos
+- 🎵 **Bandcamp Integration** - Stream Bandcamp purchases directly in Maestro
+- 📈 **Playback charts** - Track your listening stats with Last.fm
+- 🎨 **21 beautiful themes** - Multiple color schemes and visual styles
+- 📱 **Mobile-responsive** design with touch-optimized controls
+- 🎵 **Last.fm integration** - Scrobbling with on-screen toast notifications
+- 🔔 **Smart toasts** - Real-time feedback for all actions
+- 🎯 **Auto-fill playlists** - Radio mode with genre-based smart selection from 30 similar artists
 
 </details>
 
