@@ -665,6 +665,9 @@
                         <div class="artist"><a href="/search?query={{ item.get('artist', 'Unknown Artist')|urlencode }}&type=artist" style="color: inherit; text-decoration: none; border-bottom: 1px dotted currentColor;">{{ item.get('artist', 'Unknown Artist') }}</a></div>
                         <div class="title">{{ item.get('album', 'Unknown Album') }}</div>
                         <div class="album">Full Album</div>
+                        {% if item.get('genre') and item.get('genre') != 'Unknown Genre' %}
+                        <div style="font-size: 0.85em; color: #95a5a6; margin-top: 2px;">🎵 {{ item.get('genre') }}</div>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="song-actions">
@@ -682,6 +685,9 @@
                     <div class="title">{{ item.get('title', 'Unknown Title') }}</div>
                     <div class="artist">{{ item.get('artist', 'Unknown Artist') }}</div>
                     <div class="album">{{ item.get('album', 'Unknown Album') }}</div>
+                    {% if item.get('genre') and item.get('genre') != 'Unknown Genre' %}
+                    <div style="font-size: 0.85em; color: #95a5a6;">🎵 {{ item.get('genre') }}</div>
+                    {% endif %}
                     {% if item.get('time') and item.get('time') != '0' and item.get('time')|int > 0 %}
                     <div class="duration">⏱️ {{ '%d:%02d' | format((item.get('time')|int // 60), (item.get('time')|int %
                         60)) }}</div>

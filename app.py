@@ -1,8 +1,8 @@
 print("[DEBUG] app.py loaded and running", flush=True)
 
 # Application version information
-APP_VERSION = "2.9.0"
-APP_BUILD_DATE = "2026-01-21" 
+APP_VERSION = "2.9.2"
+APP_BUILD_DATE = "2026-01-27" 
 APP_NAME = "Maestro MPD Server"
 
 # Simple threading mode to avoid eventlet issues
@@ -102,6 +102,7 @@ except ImportError:
                     album_name = song.get('album', 'Unknown Album')
                     artist_name = song.get('artist', 'Unknown Artist')
                     song_file = song.get('file', '')
+                    genre = song.get('genre', 'Unknown Genre')
                     # Group by artist, album, AND directory to show each physical copy separately
                     album_dir = os.path.dirname(song_file) if song_file else ''
                     album_key = f"{artist_name}|||{album_name}|||{album_dir}"
@@ -111,6 +112,7 @@ except ImportError:
                             'item_type': 'album',
                             'artist': artist_name,
                             'album': album_name,
+                            'genre': genre,
                             'track_count': 0,
                             'sample_file': song_file  # First song file for album art
                         }
@@ -126,6 +128,7 @@ except ImportError:
                     'artist': song.get('artist', 'Unknown Artist'),
                     'title': song.get('title', 'Unknown Title'),
                     'album': song.get('album', 'Unknown Album'),
+                    'genre': song.get('genre', 'Unknown Genre'),
                     'file': song.get('file', ''),
                     'time': song.get('time', '0'),
                 })
@@ -2021,11 +2024,13 @@ def random_albums():
                         first_song = songs[0]
                         artist_name = first_song.get('artist', 'Unknown Artist')
                         song_file = first_song.get('file', '')
+                        genre = first_song.get('genre', 'Unknown Genre')
                         
                         albums_list.append({
                             'item_type': 'album',
                             'artist': artist_name,
                             'album': album_name,
+                            'genre': genre,
                             'track_count': len(songs),
                             'sample_file': song_file
                         })
@@ -4905,6 +4910,7 @@ def get_recent_albums_from_mpd(limit=25, force_refresh=False):
                             'artist': artist_name,
                             'original_artist': original_artist_name,  # Single artist for MPD search
                             'date': song.get('last-modified', ''),
+                            'genre': song.get('genre', 'Unknown Genre'),
                             'songs': [song],
                             'sample_file': song.get('file', ''),
                             'source_dir': directory
@@ -4964,6 +4970,7 @@ def get_recent_albums_from_mpd(limit=25, force_refresh=False):
                 'album': album_data['album'],
                 'artist': artist_display,           # For display in UI
                 'original_artist': album_data['original_artist'],  # Single artist for MPD searches
+                'genre': album_data.get('genre', 'Unknown Genre'),
                 'date': album_data['date'],
                 'file_count': len(album_data['songs']),
                 'duration': total_duration,

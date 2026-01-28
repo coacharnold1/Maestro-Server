@@ -6,6 +6,29 @@
     <h1 style="margin:6px 0 0; font-size:1.2em;">Settings</h1>
 </div>
 
+<div class="status-box" id="squeezebox-section" style="display:none;">
+    <h2 style="text-align:left;">Squeezebox Players</h2>
+    <div class="controls" style="border-top:none;">
+        <div style="margin-bottom:12px; padding:8px; background:rgba(52,152,219,0.1); border-radius:6px; font-size:0.9em; color:#bdc3c7;">
+            <strong>ℹ️ Multi-Room Audio:</strong> Stream Maestro's audio to Squeezebox devices around your home via Logitech Media Server.
+            Configure LMS settings in the <a href="javascript:window.location.href='http://' + window.location.hostname + ':5004/system'" style="color:#3498db;">Admin Panel → System</a>.
+        </div>
+        <div id="lms-not-configured" style="display:none; padding:12px; background:rgba(243,156,18,0.2); border-left:4px solid #f39c12; border-radius:4px; margin-bottom:12px;">
+            <strong style="color:#f39c12;">⚠️ LMS Not Configured</strong>
+            <div style="color:#ecf0f1; margin-top:5px; font-size:0.9em;">
+                Enable and configure Logitech Media Server in the <a href="javascript:window.location.href='http://' + window.location.hostname + ':5004/system'" style="color:#3498db;">Admin Panel</a>.
+            </div>
+        </div>
+        <div id="player-list" style="margin-top:10px;"></div>
+        <div style="margin-top:15px; display:flex; justify-content:center; flex-wrap:wrap; gap:8px;">
+            <button type="button" class="button" onclick="refreshPlayers()" style="background:#3498db; color:#ecf0f1;">🔄 Refresh Players</button>
+            <button type="button" class="button" onclick="syncSelectedPlayers()" style="background:#2ecc71; color:#1a1a1a;">▶️ Start Streaming</button>
+            <button type="button" class="button" onclick="unsyncSelectedPlayers()" style="background:#e74c3c; color:#ecf0f1;">⏹️ Stop Streaming</button>
+        </div>
+        <div id="lms-status-message" style="margin-top:12px; padding:10px; border-radius:6px; display:none;"></div>
+    </div>
+</div>
+
 <div class="status-box">
     <form method="POST" action="/settings" style="margin:0;">
         <h2 style="text-align:left;">Theme</h2>
@@ -104,29 +127,6 @@
             </div>
         </form>
     </div>
-
-<div class="status-box" id="squeezebox-section" style="display:none;">
-    <h2 style="text-align:left;">Squeezebox Players</h2>
-    <div class="controls" style="border-top:none;">
-        <div style="margin-bottom:12px; padding:8px; background:rgba(52,152,219,0.1); border-radius:6px; font-size:0.9em; color:#bdc3c7;">
-            <strong>ℹ️ Multi-Room Audio:</strong> Stream Maestro's audio to Squeezebox devices around your home via Logitech Media Server.
-            Configure LMS settings in the <a href="javascript:window.location.href='http://' + window.location.hostname + ':5004/system'" style="color:#3498db;">Admin Panel → System</a>.
-        </div>
-        <div id="lms-not-configured" style="display:none; padding:12px; background:rgba(243,156,18,0.2); border-left:4px solid #f39c12; border-radius:4px; margin-bottom:12px;">
-            <strong style="color:#f39c12;">⚠️ LMS Not Configured</strong>
-            <div style="color:#ecf0f1; margin-top:5px; font-size:0.9em;">
-                Enable and configure Logitech Media Server in the <a href="javascript:window.location.href='http://' + window.location.hostname + ':5004/system'" style="color:#3498db;">Admin Panel</a>.
-            </div>
-        </div>
-        <div id="player-list" style="margin-top:10px;"></div>
-        <div style="margin-top:15px; display:flex; justify-content:center; flex-wrap:wrap; gap:8px;">
-            <button type="button" class="button" onclick="refreshPlayers()" style="background:#3498db; color:#ecf0f1;">🔄 Refresh Players</button>
-            <button type="button" class="button" onclick="syncSelectedPlayers()" style="background:#2ecc71; color:#1a1a1a;">▶️ Start Streaming</button>
-            <button type="button" class="button" onclick="unsyncSelectedPlayers()" style="background:#e74c3c; color:#ecf0f1;">⏹️ Stop Streaming</button>
-        </div>
-        <div id="lms-status-message" style="margin-top:12px; padding:10px; border-radius:6px; display:none;"></div>
-    </div>
-</div>
 
 <script>
     // Last.fm functionality
