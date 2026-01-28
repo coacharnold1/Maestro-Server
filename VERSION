@@ -1,13 +1,13 @@
-Maestro MPD Server v2.9.2
-Release Date: Mon Jan 27 00:00:00 UTC 2026
-Version: 2.9.2
+Maestro MPD Server v2.9.3
+Release Date: Tue Jan 28 00:00:00 UTC 2026
+Version: 2.9.3
 
-🎵 BANDCAMP STREAMING INTEGRATION 🎵
+🎵 REPLACE PLAYLIST AUTO-PLAY & TRACK COUNT DISPLAY 🎵
 
-Latest Features (Jan 13, 2026 - v2.6.0):
-✅ NEW: Search Autocomplete - Instant suggestions as you type (artists, albums, titles)
-✅ NEW: Client-side Filtering - Lightning fast, no server delay, keyboard navigation
-✅ IMPROVED: Autofill Artist Variety - Now pulls tracks from all 30 similar artists
+Latest Features (Jan 28, 2026 - v2.9.3):
+✅ NEW: Replace Playlist Auto-Play - Music starts playing immediately when album is added
+✅ NEW: Track Count Display - Toast shows how many tracks were cleared from queue
+✅ IMPROVED: Single Toast Message - Combined clearing and now-playing in one notification
 ✅ IMPROVED: Better Music Discovery - Collects 3 tracks per artist for balanced variety
 ✅ NEW: Clickable Artist Links - Random album results link back to artist search
 ✅ ENHANCED: Debug Messages - Shows similar artist count and candidate pool size

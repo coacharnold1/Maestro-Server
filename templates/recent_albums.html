@@ -806,6 +806,9 @@
                                     </div>
                                 </div>
                                 <div class="album-actions">
+                                    <button class="btn btn-warning" onclick="clearAndAddAlbum('${safeAlbum.album.replace(/'/g, "\\'")}', '${safeAlbum.artist.replace(/'/g, "\\'")}', '${safeAlbum.original_artist.replace(/'/g, "\\'")}', null, '${safeAlbum.album_dir.replace(/'/g, "\\'")}')">
+                                        🔄 Replace Playlist
+                                    </button>
                                     <button class="btn btn-primary" onclick="addAlbumToPlaylist('${safeAlbum.album.replace(/'/g, "\\'")}', '${safeAlbum.artist.replace(/'/g, "\\'")}', '${safeAlbum.original_artist.replace(/'/g, "\\'")}', null, '${safeAlbum.album_dir.replace(/'/g, "\\'")}')">
                                         ➕ Add Album
                                     </button>
@@ -832,6 +835,69 @@
 
         // Track pending album additions to prevent duplicates
         const pendingAlbumAdditions = new Set();
+
+        function clearAndAddAlbum(albumName, artistDisplayName, originalArtistName, discNumber, albumDir) {
+            // Create unique key for this album/disc combination
+            const clearKey = `${originalArtistName}|||${albumName}|||${discNumber || 'all'}|||${albumDir || ''}`;
+            
+            // Check if this album is already being added
+            if (pendingAlbumAdditions.has(clearKey)) {
+                console.log('[Duplicate Prevention] Ignoring duplicate request for:', clearKey);
+                return;
+            }
+            
+            // Mark this album as pending
+            pendingAlbumAdditions.add(clearKey);
+            
+            const discText = discNumber ? ` (Disc ${discNumber})` : '';
+
+            // First, get the current playlist length (with cache-busting)
+            fetch('/get_mpd_status?_t=' + Date.now())
+                .then(response => response.json())
+                .then(statusData => {
+                    const tracksCleared = statusData.queue_length || 0;
+                    console.log('[clearAndAddAlbum] Current playlist length:', tracksCleared);
+                    
+                    const payload = {
+                        album: albumName,
+                        artist: artistDisplayName,
+                        original_artist: originalArtistName
+                    };
+                    
+                    if (albumDir) {
+                        payload.album_dir = albumDir;
+                    }
+
+                    fetch('/clear_and_add_album', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(payload)
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                showMessage(`▶️ ${tracksCleared} tracks cleared, now playing: ${artistDisplayName} - ${albumName}`, 'success');
+                                // Auto-play after a brief delay
+                                setTimeout(() => playbackAction('play'), 500);
+                            } else {
+                                showMessage(data.message || 'Failed to replace playlist', 'error');
+                            }
+                        })
+                        .catch(error => {
+                            showMessage('Network error: ' + error.message, 'error');
+                        })
+                        .finally(() => {
+                            // Remove from pending set after request completes
+                            pendingAlbumAdditions.delete(clearKey);
+                        });
+                })
+                .catch(error => {
+                    console.error('Error getting playlist status:', error);
+                    pendingAlbumAdditions.delete(clearKey);
+                });
+        }
 
         function addAlbumToPlaylist(albumName, artistDisplayName, originalArtistName, discNumber, albumDir) {
             // Create unique key for this album/disc combination

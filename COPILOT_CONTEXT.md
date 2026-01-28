@@ -176,7 +176,42 @@ Displays genre metadata (🎵 icon) below artist names in:
 
 ---
 
-**Last Updated**: January 27, 2026
+## 🔄 Replace Playlist Auto-Play Feature (Added v2.9.3, Jan 28, 2026)
+
+### What It Does
+When clicking "Replace Playlist" (🔄) button on browse_albums or recent_albums:
+1. Fetches current playlist length from `/get_mpd_status`
+2. Clears playlist and adds new album via `/clear_and_add_album`
+3. Shows single toast: "▶️ {number} tracks cleared, now playing: {artist} - {album}"
+4. Auto-plays after 500ms delay
+
+### Key Changes
+
+**Templates (browse_albums.html, recent_albums.html):**
+- Updated `clearAndAddAlbum()` function to:
+  - Call `/get_mpd_status?_t=Date.now()` with cache-busting
+  - Extract `queue_length` from status response
+  - Display track count in success message
+  - Call `playbackAction('play')` after 500ms delay
+
+**Backend (app.py):**
+- Enhanced `/get_mpd_status` endpoint with no-cache headers
+- Added cache control: `Cache-Control: no-cache, no-store, must-revalidate`
+
+### Files Modified
+- `/templates/browse_albums.html`: Updated `clearAndAddAlbum()` (lines 915-955)
+- `/templates/recent_albums.html`: Updated `clearAndAddAlbum()` (lines 839-895)
+- `/app.py`: Added cache headers to `/get_mpd_status` endpoint (line 4732)
+
+### Important Notes
+- Field name is `queue_length`, NOT `playlistlength`
+- Must use cache-busting (`?_t=Date.now()`) on frontend GET requests
+- Backend endpoints need `Cache-Control` headers for fresh data
+- Duplicate prevention still active (checks `pendingAlbumAdditions` Set)
+
+---
+
+**Last Updated**: January 28, 2026
 **Maintainer**: fausto
-**Current Version**: 2.9.2
+**Current Version**: 2.9.3
 **Environment**: Production Server (192.168.1.209)

@@ -853,13 +853,13 @@
                                 </div>
                                 <div class="album-actions">
                                     <button class="btn btn-warning" onclick="clearAndAddAlbum('${jsString(album.artist)}', '${jsString(album.album)}'${album.disc_number ? `, ${album.disc_number}` : ''})">
-                                        🔄 Replace
+                                        🔄 Replace Playlist
                                     </button>
                                     <button class="btn btn-primary" onclick="addAlbumToPlaylist('${jsString(album.artist)}', '${jsString(album.album)}'${album.disc_number ? `, ${album.disc_number}` : ''})">
                                         ➕ Add ${album.disc_number ? `Disc ${album.disc_number}` : 'Album'}
                                     </button>
                                     <button class="btn btn-secondary" onclick="toggleAlbumDetails('${jsString(album.album)}', '${jsString(album.artist)}', ${index})">
-                                        🔍 Show Tracks
+                                        🔍 View Tracks
                                     </button>
                                 </div>
                             </div>
@@ -914,28 +914,36 @@
 
         function clearAndAddAlbum(artistName, albumName, discNumber) {
             const discText = discNumber ? ` (Disc ${discNumber})` : '';
-            showMessage(`Clearing playlist and adding album${discText}...`, 'info');
 
-            const payload = {
-                album: albumName,
-                artist: artistName
-            };
-            
-            if (discNumber) {
-                payload.disc_number = discNumber;
-            }
-
-            fetch('/clear_and_add_album', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload)
-            })
+            // First, get the current playlist length (with cache-busting)
+            fetch('/get_mpd_status?_t=' + Date.now())
                 .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        showMessage(data.message, 'success');
+                .then(statusData => {
+                    const tracksCleared = statusData.queue_length || 0;
+                    console.log('[clearAndAddAlbum] Current playlist length:', tracksCleared);
+                    
+                    const payload = {
+                        album: albumName,
+                        artist: artistName
+                    };
+                    
+                    if (discNumber) {
+                        payload.disc_number = discNumber;
+                    }
+
+                    fetch('/clear_and_add_album', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(payload)
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                showMessage(`▶️ ${tracksCleared} tracks cleared, now playing: ${artistName} - ${albumName}`, 'success');
+                                // Auto-play after a brief delay
+                                setTimeout(() => playbackAction('play'), 500);
                     } else {
                         showMessage(data.message || 'Failed to replace playlist', 'error');
                     }

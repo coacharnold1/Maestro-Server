@@ -1,15 +1,15 @@
 print("[DEBUG] app.py loaded and running", flush=True)
 
 # Application version information
-APP_VERSION = "2.9.2"
-APP_BUILD_DATE = "2026-01-27" 
+APP_VERSION = "2.9.3"
+APP_BUILD_DATE = "2026-01-28" 
 APP_NAME = "Maestro MPD Server"
 
 # Simple threading mode to avoid eventlet issues
 import os
 os.environ["EVENTLET_THREADING"] = "1"
 
-from flask import Flask, render_template, redirect, url_for, request, send_from_directory, Response, jsonify, flash
+from flask import Flask, render_template, redirect, url_for, request, send_from_directory, Response, jsonify, flash, make_response
 from flask_socketio import SocketIO, emit
 from mpd import MPDClient, ConnectionError, CommandError
 from typing import Optional
@@ -3583,6 +3583,10 @@ def clear_and_add_album():
         try:
             print(f"[DEBUG] Clear+Add - Searching for album: artist='{artist}', album='{album}'" + 
                   (f", disc={disc_number}" if disc_number else ""), flush=True)
+            # Get current playlist size before clearing
+            current_playlist = client.playlist()
+            tracks_cleared = len(current_playlist)
+            
             # First, clear the current playlist
             client.clear()
             
@@ -3655,7 +3659,7 @@ def clear_and_add_album():
                 socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))
                 
                 if request.is_json:
-                    return jsonify({'status': 'success', 'message': f'Playlist replaced with {added_count} songs from album and started playing'})
+                    return jsonify({'status': 'success', 'message': f'Playlist replaced with {added_count} songs from album and started playing', 'tracks_cleared': tracks_cleared})
                 return redirect(url_for('index'))
             else:
                 if request.is_json:
@@ -4725,9 +4729,15 @@ def toggle_crossfade():
 def get_mpd_status():
     """API endpoint to get current MPD status."""
     status = get_mpd_status_for_display()
+    response = make_response(jsonify(status))
+    # Disable caching to ensure fresh playlist data
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    
     if status:
-        return jsonify(status)
-    return jsonify(last_mpd_status if last_mpd_status else {
+        return response
+    return make_response(jsonify(last_mpd_status if last_mpd_status else {
         'state': 'unknown', 
         'message': 'No status available', 
         'volume': 0, 
@@ -4736,7 +4746,7 @@ def get_mpd_status():
         'shuffle_mode': False,
         'crossfade_enabled': False,
         'crossfade_seconds': 0
-    })
+    }))
 
 @app.route('/recent_albums')
 def recent_albums():
