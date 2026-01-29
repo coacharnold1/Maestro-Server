@@ -205,6 +205,13 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .history-artist:hover {
+            color: #2ecc71;
+            text-decoration: underline;
         }
 
         .history-album {
@@ -213,6 +220,13 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .history-album:hover {
+            color: #bdc3c7;
+            text-decoration: underline;
         }
 
         .history-time {
@@ -496,8 +510,8 @@
                      onerror="this.src='/static/default-album.png'">
                 <div class="history-info">
                     <div class="history-title">{{ item.title }}</div>
-                    <div class="history-artist">{{ item.artist }}</div>
-                    <div class="history-album">{{ item.album }}</div>
+                    <div class="history-artist clickable-search" data-type="artist" data-query="{{ item.artist }}">{{ item.artist }}</div>
+                    <div class="history-album clickable-search" data-type="album" data-query="{{ item.album }}">{{ item.album }}</div>
                 </div>
                 <div class="history-time" data-timestamp="{{ item.timestamp }}"></div>
                 <div class="history-actions">
@@ -685,6 +699,24 @@
                 toast.remove();
             }, 3000);
         }
+
+        // Search for artist or album
+        function searchFor(type, query) {
+            // Open search page with the query
+            const searchUrl = `/search?query=${encodeURIComponent(query)}&type=${type}`;
+            window.location.href = searchUrl;
+        }
+
+        // Setup click handlers for clickable search elements
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.clickable-search').forEach(element => {
+                element.addEventListener('click', function(e) {
+                    const type = this.dataset.type;
+                    const query = this.dataset.query;
+                    searchFor(type, query);
+                });
+            });
+        });
 
         // Initialize timestamps
         updateTimestamps();
