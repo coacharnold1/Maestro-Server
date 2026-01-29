@@ -37,9 +37,17 @@
         }
 
         @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
         }
 
         /* Logo styling */
@@ -80,10 +88,22 @@
             font-weight: 500;
         }
 
-        .now-playing-bar .artist { color: #27ae60; }
-        .now-playing-bar .separator { color: #7f8c8d; margin: 0 8px; }
-        .now-playing-bar .track { color: #3498db; }
-        .now-playing-bar .album { color: #e67e22; }
+        .now-playing-bar .artist {
+            color: #27ae60;
+        }
+
+        .now-playing-bar .separator {
+            color: #7f8c8d;
+            margin: 0 8px;
+        }
+
+        .now-playing-bar .track {
+            color: #3498db;
+        }
+
+        .now-playing-bar .album {
+            color: #e67e22;
+        }
 
         /* Action buttons */
         .action-buttons {
@@ -317,6 +337,7 @@
                 transform: translateX(400px);
                 opacity: 0;
             }
+
             to {
                 transform: translateX(0);
                 opacity: 1;
@@ -377,81 +398,95 @@
             background-color: #f5f5f7;
             color: #1a1a1a;
         }
+
         body.light .container {
             background-color: #ffffff;
             color: #1a1a1a;
         }
+
         body.light .history-item {
             background-color: #f8f9fa;
             border-color: #dee2e6;
         }
+
         body.light .history-item:hover {
             background-color: #e9ecef;
         }
+
         body.light .stats {
             background-color: #f0f3f6;
             border-color: #d0d7de;
         }
+
         body.light .now-playing-bar {
             background-color: #f0f3f6;
         }
+
         body.light .btn {
             background-color: #e9ecef;
             color: #1a1a1a;
             border-color: #ced4da;
         }
-        
+
         body.high-contrast {
             background-color: #000000;
             color: #ffff00;
         }
+
         body.high-contrast .container {
             background-color: #000000;
             color: #ffff00;
             border: 2px solid #ffff00;
         }
+
         body.high-contrast .history-item {
             background-color: #000000;
             border: 2px solid #ffff00;
         }
-        
+
         body.desert {
             background-color: #2c1810;
             color: #f4e4bc;
         }
+
         body.desert .container {
             background-color: #3d2f20;
             color: #f4e4bc;
             border-color: #8b4513;
         }
+
         body.desert .history-item {
             background-color: #4a3b2a;
             border-color: #cd853f;
         }
-        
+
         body.terminal {
             background-color: #000000;
             color: #00ff00;
         }
+
         body.terminal .container {
             background-color: #0a0a0a;
             color: #00ff00;
             border-color: #00cc00;
         }
+
         body.terminal .history-item {
             background-color: #1a1a1a;
             border-color: #00cc00;
         }
-        
+
         body.sunset {
             background-color: #1a0f1f;
             color: #ffe4b5;
         }
+
         body.sunset .container {
             background-color: #2d1b2e;
             color: #ffe4b5;
             border-color: #ff6b35;
         }
+
         body.sunset .history-item {
             background-color: #3d2534;
             border-color: #ff6b35;
@@ -504,19 +539,23 @@
         <ul class="history-list" id="history-list">
             {% for item in history %}
             <li class="history-item">
-                <img class="history-thumbnail" 
-                     src="/album_art?artist={{ item.album_artist|urlencode if item.album_artist else item.artist|urlencode }}&album={{ item.album|urlencode }}&size=thumb&file={{ item.file|urlencode }}"
-                     alt="{{ item.album }}"
-                     onerror="this.src='/static/default-album.png'">
+                <img class="history-thumbnail"
+                    src="/album_art?artist={{ item.album_artist|urlencode if item.album_artist else item.artist|urlencode }}&album={{ item.album|urlencode }}&size=thumb&file={{ item.file|urlencode }}"
+                    alt="{{ item.album }}" onerror="this.src='/static/default-album.png'">
                 <div class="history-info">
                     <div class="history-title">{{ item.title }}</div>
-                    <div class="history-artist clickable-search" data-type="artist" data-query="{{ item.artist }}">{{ item.artist }}</div>
-                    <div class="history-album clickable-search" data-type="album" data-query="{{ item.album }}">{{ item.album }}</div>
+                    <div class="history-artist clickable-search" data-type="artist" data-query="{{ item.artist }}">{{
+                        item.artist }}</div>
+                    <div class="history-album clickable-search" data-type="album" data-query="{{ item.album }}">{{
+                        item.album }}</div>
                 </div>
                 <div class="history-time" data-timestamp="{{ item.timestamp }}"></div>
                 <div class="history-actions">
-                    <button class="btn-add" onclick="addToPlaylist('{{ item.file }}', '{{ item.artist }}', '{{ item.title }}')">➕ Add Song</button>
-                    <button class="btn-play" onclick="playNow('{{ item.file }}', '{{ item.artist }}', '{{ item.title }}')">▶️ Play</button>
+                    <button class="btn-add"
+                        onclick="addToPlaylist('{{ item.file }}', '{{ item.artist }}', '{{ item.title }}')">➕ Add
+                        Song</button>
+                    <button class="btn-play"
+                        onclick="playNow('{{ item.file }}', '{{ item.artist }}', '{{ item.title }}')">▶️ Play</button>
                 </div>
             </li>
             {% endfor %}
@@ -535,7 +574,7 @@
         const socket = io();
 
         // Update now playing bar with MPD status
-        socket.on('mpd_status', function(data) {
+        socket.on('mpd_status', function (data) {
             const nowPlayingBar = document.getElementById('now-playing-bar');
             const npArtist = document.getElementById('np-artist');
             const npAlbum = document.getElementById('np-album');
@@ -547,7 +586,7 @@
                 npArtist.textContent = data.artist || '-';
                 npAlbum.textContent = data.album || '-';
                 npTrack.textContent = data.song_title || '-';
-                
+
                 if (data.state === 'play' && maestroLogo) {
                     maestroLogo.src = "/static/logo.svg";
                 } else if (maestroLogo) {
@@ -598,22 +637,22 @@
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `file=${encodeURIComponent(file)}`
             })
-            .then(response => {
-                console.log('Add response:', response);
-                return response.json();
-            })
-            .then(data => {
-                console.log('Add data:', data);
-                if (data.status === 'success') {
-                    showToast(`✓ Added: ${title}`, 'success');
-                } else {
-                    showToast('Failed to add song', 'error');
-                }
-            })
-            .catch(err => {
-                console.error('Error adding song:', err);
-                showToast('Error adding song', 'error');
-            });
+                .then(response => {
+                    console.log('Add response:', response);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Add data:', data);
+                    if (data.status === 'success') {
+                        showToast(`✓ Added: ${title}`, 'success');
+                    } else {
+                        showToast('Failed to add song', 'error');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error adding song:', err);
+                    showToast('Error adding song', 'error');
+                });
         }
 
         // Play a song now
@@ -621,48 +660,48 @@
             console.log('playNow called:', file, artist, title);
             // First, clear the playlist
             fetch('/clear_playlist', { method: 'POST' })
-            .then(() => {
-                console.log('Playlist cleared');
-                // Add the song
-                return fetch('/add_song_to_playlist', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `file=${encodeURIComponent(file)}`
-                });
-            })
-            .then(response => {
-                console.log('Play add response:', response);
-                return response.json();
-            })
-            .then(data => {
-                console.log('Play add data:', data);
-                if (data.status === 'success') {
-                    // Play the first song in playlist (position 0)
-                    return fetch('/play_song_at_pos', {
+                .then(() => {
+                    console.log('Playlist cleared');
+                    // Add the song
+                    return fetch('/add_song_to_playlist', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: 'pos=0'
+                        body: `file=${encodeURIComponent(file)}`
                     });
-                } else {
-                    throw new Error('Failed to add song');
-                }
-            })
-            .then(response => {
-                console.log('Play response:', response);
-                return response.json();
-            })
-            .then(data => {
-                console.log('Play data:', data);
-                if (data.status === 'success') {
-                    showToast(`▶️ Playing: ${title}`, 'success');
-                } else {
-                    showToast('Failed to play song', 'error');
-                }
-            })
-            .catch(err => {
-                console.error('Error playing song:', err);
-                showToast('Error playing song', 'error');
-            });
+                })
+                .then(response => {
+                    console.log('Play add response:', response);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Play add data:', data);
+                    if (data.status === 'success') {
+                        // Play the first song in playlist (position 0)
+                        return fetch('/play_song_at_pos', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: 'pos=0'
+                        });
+                    } else {
+                        throw new Error('Failed to add song');
+                    }
+                })
+                .then(response => {
+                    console.log('Play response:', response);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Play data:', data);
+                    if (data.status === 'success') {
+                        showToast(`▶️ Playing: ${title}`, 'success');
+                    } else {
+                        showToast('Failed to play song', 'error');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error playing song:', err);
+                    showToast('Error playing song', 'error');
+                });
         }
 
         // Clear history
@@ -674,18 +713,18 @@
             fetch('/api/history/clear', {
                 method: 'POST'
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    location.reload();
-                } else {
-                    showToast('Failed to clear history', 'error');
-                }
-            })
-            .catch(err => {
-                console.error('Error clearing history:', err);
-                showToast('Error clearing history', 'error');
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        location.reload();
+                    } else {
+                        showToast('Failed to clear history', 'error');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error clearing history:', err);
+                    showToast('Error clearing history', 'error');
+                });
         }
 
         // Show toast notification
@@ -708,9 +747,9 @@
         }
 
         // Setup click handlers for clickable search elements
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('.clickable-search').forEach(element => {
-                element.addEventListener('click', function(e) {
+                element.addEventListener('click', function (e) {
                     const type = this.dataset.type;
                     const query = this.dataset.query;
                     searchFor(type, query);
