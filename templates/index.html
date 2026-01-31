@@ -672,13 +672,17 @@
             padding: 15px 0;
             border-top: 1px solid #34495e;
             border-bottom: 1px solid #34495e;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
         .nav-links a,
         .nav-links button {
             color: #3498db;
             text-decoration: none;
-            margin: 0 8px;
+            margin: 0;
             padding: 8px 16px;
             border: 1px solid #3498db;
             border-radius: 5px;
@@ -687,6 +691,8 @@
             cursor: pointer;
             font-size: 14px;
             display: inline-block;
+            white-space: nowrap;
+            line-height: 1.2;
         }
 
         .nav-links a:hover,
