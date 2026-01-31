@@ -153,6 +153,17 @@
             font-size: 1.1em;
         }
 
+        .chart-item-name.clickable-search {
+            cursor: pointer;
+            color: #3498db;
+            transition: all 0.2s ease;
+        }
+
+        .chart-item-name.clickable-search:hover {
+            color: #2ecc71;
+            text-decoration: underline;
+        }
+
         .chart-item-meta {
             color: #bdc3c7;
             font-size: 0.9em;
@@ -709,15 +720,10 @@
                 if (chartType === 'artists') {
                     const safeArtistJs = jsString(item.name || '');
                     const dropdownId = `artist-dropdown-${index}`;
-                    nameHtml = `<div class="chart-item-name">${escapeHtml(item.name)}</div>`;
+                    nameHtml = `<div class="chart-item-name clickable-search" data-type="artist" data-query="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>`;
                     metaHtml = `<div class="chart-item-playcount">${item.playcount} plays</div>`;
-                    // Primary action: Search; secondary actions in dropdown
+                    // Primary action: Add dropdown; artist search via clickable name
                     actionsHtml = `
-                        <form method="POST" action="/search" style="display:inline;">
-                            <input type="hidden" name="search_tag" value="artist">
-                            <input type="hidden" name="query" value="${escapeHtml(item.name)}">
-                            <button type="submit" class="btn btn-secondary">🔍 View in Search</button>
-                        </form>
                         <div class="dropdown-container" style="display:inline-block; position:relative;">
                             <button class="btn btn-primary" onclick="toggleDropdown('${dropdownId}'); event.stopPropagation();">
                                 ➕ Add… ▾
@@ -745,16 +751,12 @@
                 } else if (chartType === 'tracks') {
                     const safeArtistJs = jsString(item.artist || '');
                     const safeTrackJs = jsString(item.name || '');
-                    nameHtml = `<div class="chart-item-name">${escapeHtml(item.name)}</div>`;
+                    nameHtml = `<div class="chart-item-name clickable-search" data-type="title" data-query="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>`;
                     metaHtml = `
                         <div class="chart-item-meta">by ${escapeHtml(item.artist)}</div>
                         <div class="chart-item-playcount">${item.playcount} plays</div>
                     `;
-                    actionsHtml = `
-                        <button class="btn btn-secondary" onclick="searchAndAdd('${safeArtistJs}', '${safeTrackJs}')">
-                            🔍 Find & Add
-                        </button>
-                    `;
+                    actionsHtml = '';
                 }
 
                 listItem.innerHTML = `
@@ -922,6 +924,24 @@
                 section.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }
+
+        // Search function for clickable items
+        function searchFor(type, query) {
+            // Open search page with the query
+            const searchUrl = `/search?query=${encodeURIComponent(query)}&type=${type}`;
+            window.location.href = searchUrl;
+        }
+
+        // Setup click handlers for clickable search elements
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.clickable-search').forEach(element => {
+                element.addEventListener('click', function(e) {
+                    const type = this.dataset.type;
+                    const query = this.dataset.query;
+                    searchFor(type, query);
+                });
+            });
+        });
     </script>
 </body>
 
