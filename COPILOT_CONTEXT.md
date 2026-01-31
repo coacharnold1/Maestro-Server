@@ -111,6 +111,25 @@ sudo journalctl -u maestro-web.service -n 50
 
 ## ⚠️ Important Notes
 
+### 🚨 CRITICAL: Inline Scripts in Jinja2 Templates Don't Execute
+**ISSUE FOUND (Jan 31, 2026):**
+- Inline `<script>` tags in HTML templates DO NOT execute, even though they appear in served HTML
+- External `<script src="/static/file.js"></script>` files work perfectly
+- Root cause: Flask/Jinja2 rendering issue (possibly security-related)
+
+**SOLUTION:**
+- Move all JavaScript from inline `<script>` blocks to external `.js` files in `/static/`
+- Reference them with `<script src="/static/filename.js"></script>`
+- Example: `browse_albums.html` → `static/browse_albums.js`
+
+**FILES AFFECTED:**
+- `templates/browse_albums.html` - Fixed in v2.9.45 ✓
+- Check other pages if JavaScript doesn't work
+
+**WORKAROUND if you must use inline script:**
+- Use external file instead (always works)
+- If absolutely needed, try `<script nonce="">` but external is better
+
 ### NFS Mounts
 - Server: 192.168.1.110
 - Health monitoring enabled
@@ -118,6 +137,7 @@ sudo journalctl -u maestro-web.service -n 50
 
 ### Rate Limiting
 - Album art has 2-second rate limit per client
+
 - Prevents client loops from overwhelming NFS
 
 ### Python Environment
@@ -215,3 +235,52 @@ When clicking "Replace Playlist" (🔄) button on browse_albums or recent_albums
 **Maintainer**: fausto
 **Current Version**: 2.9.3
 **Environment**: Production Server (192.168.1.209)
+
+---
+
+## 📋 Feature Documentation (v2.9.45)
+
+### Browse Albums Feature
+**Files:**
+- Template: `templates/browse_albums.html` (699 lines, minimal logic)
+- JavaScript: `static/browse_albums.js` (500+ lines, all logic here)
+- API: `/api/browse/albums?artist=X&genre=Y`
+
+**Flow:**
+1. Browse → select Genre
+2. Genre page → list Artists
+3. Click Artist → Browse Albums page (loads via URL params)
+4. `browse_albums.js` extracts `artist` and `genre` from URL
+5. `loadAlbums()` fetches data from API
+6. Displays album list with cover art, tracks, and action buttons
+
+**Key Functions in static/browse_albums.js:**
+- `loadAlbums(artist)` - Main fetch function
+- `displayAlbums(albums)` - Renders album list
+- `toggleAlbumDetails()` - Load/show tracks for album
+- `displayMultiDiscTracks()` - Handle multi-disc albums
+- `addAlbumToPlaylist()` - Add to queue
+- `clearAndAddAlbum()` - Replace queue and auto-play
+
+**Common Issues & Fixes:**
+- If albums don't load: Check that `static/browse_albums.js` is deployed to `/home/fausto/maestro/web/static/`
+- If no albums appear: Check API endpoint `/api/browse/albums` returns data
+- Socket.io errors: Not critical - only for now-playing bar (disabled on test server in v2.9.45)
+- JavaScript not executing: Check if using inline `<script>` - use external file instead!
+
+**Important:** Remember inline scripts don't execute in Flask/Jinja2!
+
+---
+
+**Current Session (Jan 31, 2026):**
+- Fixed critical bug: Albums page stuck on loading spinner
+- Root cause: Inline scripts weren't executing in Jinja2 templates
+- Solution: Moved all JavaScript to `static/browse_albums.js`
+- Version bumped to 2.9.45
+- Changes deployed and tested ✓
+- Committed to GitHub ✓
+
+**Last Updated**: January 31, 2026
+**Maintainer**: fausto
+**Current Version**: 2.9.45
+**Environment**: Test Server (192.168.1.209)
