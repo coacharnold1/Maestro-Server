@@ -1,5 +1,13 @@
 # Copilot Context - READ THIS FIRST
 
+⚠️ **TL;DR - IF YOU ONLY READ ONE THING:**
+- Edit files in `/home/fausto/Maestro-Server` (git repo)
+- COPY files to `/home/fausto/maestro/web/` IMMEDIATELY (running app is here!)
+- Restart: `sudo systemctl restart maestro-web.service`
+- Test on http://192.168.1.209:5003
+- THEN commit to git and push
+- Without the copy+restart, your changes WILL NOT appear!
+
 ## 🚨 CRITICAL: Environment & Paths
 
 ### Current Machine
@@ -10,23 +18,70 @@
 - **Running Application**: `/home/fausto/maestro/web` (where systemd service runs from)
 - **Service Name**: `maestro-web.service`
 
-### After ANY code change:
-1. Edit file in `/home/fausto/Maestro-Server`
-2. **MUST** copy to `/home/fausto/maestro/web` (running directory)
-3. Restart service: `sudo systemctl restart maestro-web.service`
-4. Commit to git in `/home/fausto/Maestro-Server`
-5. Push to GitHub
+### ⚠️ CRITICAL DEPLOYMENT WORKFLOW (DO NOT SKIP STEPS)
+
+**Changes ONLY appear on the live server if you copy files to `/home/fausto/maestro/web/`**
+
+**MANDATORY for EVERY code change:**
+
+1. ✅ **Edit file in `/home/fausto/Maestro-Server`** (git repo)
+2. ✅ **MUST copy to `/home/fausto/maestro/web`** (REQUIRED - app runs from here, not git repo)
+3. ✅ **Restart service**: `sudo systemctl restart maestro-web.service`
+4. ✅ **Test the change** on http://192.168.1.209:5003
+5. ✅ **THEN commit to git** and push to GitHub
+
+### DANGER: Common Mistakes That Waste Time
+
+❌ **WRONG**: "I edited the file in git repo, why isn't it working?"
+- Because the running app serves from `/home/fausto/maestro/web/`, NOT the git repo!
+- You MUST copy the files after editing
+
+❌ **WRONG**: "The update-maestro.sh script reverted my changes!"
+- The script runs `git stash` which resets uncommitted changes
+- Always `git add` and `git commit` BEFORE running update script
+- OR: Make changes AFTER running the update script
+
+❌ **WRONG**: "I only deployed one template but others still have the old code"
+- ALWAYS copy ALL affected files to the running directory
+- Use wildcards: `sudo cp /home/fausto/Maestro-Server/templates/*.html /home/fausto/maestro/web/templates/`
+
+❌ **WRONG**: "I changed the code but service still shows old behavior"
+- You MUST restart the service after copying files
+- `sudo systemctl restart maestro-web.service` is NOT optional
 
 ### Quick Copy Commands
 ```bash
 # Python files
 sudo cp /home/fausto/Maestro-Server/app.py /home/fausto/maestro/web/app.py
 
-# Templates
+# All templates (recommended)
 sudo cp /home/fausto/Maestro-Server/templates/*.html /home/fausto/maestro/web/templates/
+
+# All static files (JS, CSS)
+sudo cp /home/fausto/Maestro-Server/static/* /home/fausto/maestro/web/static/
 
 # Admin files
 sudo cp /home/fausto/Maestro-Server/admin/*.py /home/fausto/maestro/web/admin/
+
+# After copying, ALWAYS restart:
+sudo systemctl restart maestro-web.service
+
+# Verify it worked:
+curl http://localhost:5003
+```
+
+### Safe Update Workflow
+```bash
+# ALWAYS commit changes first
+cd /home/fausto/Maestro-Server
+git add -A
+git commit -m "your message"
+
+# THEN run update script as fausto user (not root!)
+cd /home/fausto
+/home/fausto/Maestro-Server/update-maestro.sh
+
+# This will automatically copy files and restart services
 ```
 
 ## 📍 Other Environments
