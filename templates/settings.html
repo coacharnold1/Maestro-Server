@@ -68,13 +68,13 @@
             </div>
             <div style="margin:6px 0;">
                 <label for="lastfm_api_key" style="display:inline-block; min-width:140px; text-align:right; margin-right:6px;">API Key:</label>
-                <input type="text" id="lastfm_api_key" name="lastfm_api_key" placeholder="leave blank to keep current" value="" style="padding:6px 10px; border-radius:6px; width:60%;"/>
-                {% if lastfm_api_key_masked %}<small style="color:#bdc3c7; margin-left:6px;">(saved)</small>{% endif %}
+                <input type="text" id="lastfm_api_key" name="lastfm_api_key" placeholder="Enter new API key" value="{{ lastfm_api_key_masked }}" style="padding:6px 10px; border-radius:6px; width:60%;"/>
+                <small style="color:#bdc3c7; margin-left:6px;">Leave empty to keep current</small>
             </div>
             <div style="margin:6px 0;">
                 <label for="lastfm_shared_secret" style="display:inline-block; min-width:140px; text-align:right; margin-right:6px;">Shared Secret:</label>
-                <input type="password" id="lastfm_shared_secret" name="lastfm_shared_secret" placeholder="leave blank to keep current" value="" style="padding:6px 10px; border-radius:6px; width:60%;"/>
-                {% if lastfm_shared_secret_masked %}<small style="color:#bdc3c7; margin-left:6px;">(saved)</small>{% endif %}
+                <input type="password" id="lastfm_shared_secret" name="lastfm_shared_secret" placeholder="Enter new shared secret" value="{{ lastfm_shared_secret_masked }}" style="padding:6px 10px; border-radius:6px; width:60%;"/>
+                <small style="color:#bdc3c7; margin-left:6px;">Leave empty to keep current</small>
             </div>
             <div style="margin:10px 0; padding:8px; background:rgba(52,152,219,0.1); border-radius:6px; font-size:0.9em; color:#bdc3c7;">
                 <strong>Setup Steps:</strong> 1) Enter credentials above → 2) Click "Test Last.fm" (optional) → 3) Click "Save Settings" → 4) Click "Connect to Last.fm" → 5) Authorize on Last.fm website → 6) Click "Finalize Connection"

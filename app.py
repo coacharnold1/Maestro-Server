@@ -1161,15 +1161,23 @@ def settings_page():
         scrobbling_enabled = scrobble_flag
         current['show_scrobble_toasts'] = show_toasts_flag
         show_scrobble_toasts = show_toasts_flag
-        if lastfm_key:
+        
+        # Handle Last.fm API Key
+        # If user submitted a value that's not the masked placeholder, update it
+        masked_placeholder = '•' * 10
+        if lastfm_key and lastfm_key != masked_placeholder:
             current['lastfm_api_key'] = lastfm_key
             # Update runtime value only if not set via environment
             if not os.environ.get('LASTFM_API_KEY'):
                 LASTFM_API_KEY = lastfm_key
-        if lastfm_secret:
+            print(f"[Settings] Last.fm API key updated", flush=True)
+        
+        # Handle Last.fm Shared Secret
+        if lastfm_secret and lastfm_secret != masked_placeholder:
             current['lastfm_shared_secret'] = lastfm_secret
             if not os.environ.get('LASTFM_SHARED_SECRET'):
                 LASTFM_SHARED_SECRET = lastfm_secret
+            print(f"[Settings] Last.fm shared secret updated", flush=True)
 
         if save_settings(current):
             app.config['THEME'] = theme
