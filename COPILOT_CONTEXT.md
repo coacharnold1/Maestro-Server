@@ -54,8 +54,9 @@
 # Python files
 sudo cp /home/fausto/Maestro-Server/app.py /home/fausto/maestro/web/app.py
 
-# All templates (recommended)
+# ⚠️ IMPORTANT: Copy templates to BOTH locations (Flask uses /home/fausto/maestro/templates/)
 sudo cp /home/fausto/Maestro-Server/templates/*.html /home/fausto/maestro/web/templates/
+sudo cp /home/fausto/Maestro-Server/templates/*.html /home/fausto/maestro/templates/
 
 # All static files (JS, CSS)
 sudo cp /home/fausto/Maestro-Server/static/* /home/fausto/maestro/web/static/

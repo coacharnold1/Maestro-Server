@@ -4,7 +4,6 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Play History - Maestro MPD Control</title>
-    <script src="/static/version-loader.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -541,7 +540,7 @@
             {% for item in history %}
             <li class="history-item">
                 <img class="history-thumbnail"
-                    src="/album_art?artist={{ item.album_artist|urlencode if item.album_artist else item.artist|urlencode }}&album={{ item.album|urlencode }}&size=thumb&file={{ item.file|urlencode }}"
+                    src="/album_art?artist={{ (item.album_artist if item.album_artist else item.artist)|replace(' ', '+')|replace('&', '%26')|replace('#', '%23') }}&album={{ item.album|replace(' ', '+')|replace('&', '%26')|replace('#', '%23') }}&size=thumb&file={{ item.file|replace(' ', '+')|replace('&', '%26')|replace('#', '%23') }}"
                     alt="{{ item.album }}" onerror="this.src='/static/default-album.png'">
                 <div class="history-info">
                     <div class="history-title">{{ item.title }}</div>

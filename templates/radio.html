@@ -4,7 +4,6 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Radio - Maestro MPD Control</title>
-    <script src="/static/version-loader.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -24,7 +23,8 @@
             box-shadow: 0 5px 18px rgba(0, 0, 0, 0.4);
         }
 
-        h1, h2 {
+        h1,
+        h2 {
             color: #ecf0f1;
             text-align: center;
             margin-bottom: 20px;
@@ -59,6 +59,7 @@
             text-align: center;
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
         }
+
         .now-playing-bar .label {
             font-size: 0.8em;
             color: #95a5a6;
@@ -66,18 +67,38 @@
             margin-bottom: 5px;
             letter-spacing: 1px;
         }
+
         .now-playing-bar .info {
             font-size: 1.1em;
             color: #ecf0f1;
             font-weight: 500;
         }
-        .now-playing-bar .artist { color: #27ae60; }
-        .now-playing-bar .separator { color: #7f8c8d; margin: 0 8px; }
-        .now-playing-bar .track { color: #3498db; }
-        .now-playing-bar .album { color: #e67e22; }
+
+        .now-playing-bar .artist {
+            color: #27ae60;
+        }
+
+        .now-playing-bar .separator {
+            color: #7f8c8d;
+            margin: 0 8px;
+        }
+
+        .now-playing-bar .track {
+            color: #3498db;
+        }
+
+        .now-playing-bar .album {
+            color: #e67e22;
+        }
+
         @media (max-width: 600px) {
-            .now-playing-bar .info { font-size: 0.9em; }
-            .now-playing-bar .separator { margin: 0 4px; }
+            .now-playing-bar .info {
+                font-size: 0.9em;
+            }
+
+            .now-playing-bar .separator {
+                margin: 0 4px;
+            }
         }
 
         .nav-links {
@@ -136,414 +157,476 @@
             color: white;
         }
 
-    .radio-tabs {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 20px;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
+        .radio-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
 
-    .radio-tab {
-        padding: 10px 20px;
-        background-color: #34495e;
-        border: none;
-        border-radius: 8px;
-        color: #ecf0f1;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
+        .radio-tab {
+            padding: 10px 20px;
+            background-color: #34495e;
+            border: none;
+            border-radius: 8px;
+            color: #ecf0f1;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
 
-    .radio-tab:hover {
-        background-color: #2c3e50;
-    }
+        .radio-tab:hover {
+            background-color: #2c3e50;
+        }
 
-    .radio-tab.active {
-        background-color: #3498db;
-        font-weight: bold;
-    }
+        .radio-tab.active {
+            background-color: #3498db;
+            font-weight: bold;
+        }
 
-    .radio-content {
-        display: none;
-    }
+        .radio-content {
+            display: none;
+        }
 
-    .radio-content.active {
-        display: block;
-    }
+        .radio-content.active {
+            display: block;
+        }
 
-    .location-selector {
-        text-align: center;
-        margin-bottom: 20px;
-        padding: 15px;
-        background-color: #34495e;
-        border-radius: 8px;
-    }
-
-    .location-selector select {
-        padding: 8px 15px;
-        border-radius: 5px;
-        border: 1px solid #2c3e50;
-        background-color: #2c3e50;
-        color: #ecf0f1;
-        font-size: 1em;
-        cursor: pointer;
-    }
-
-    .search-box {
-        margin-bottom: 20px;
-    }
-
-    .search-box input {
-        width: 100%;
-        padding: 12px;
-        border-radius: 8px;
-        border: 1px solid #34495e;
-        background-color: #2c3e50;
-        color: #ecf0f1;
-        font-size: 1em;
-        box-sizing: border-box;
-    }
-
-    .station-list {
-        display: grid;
-        gap: 15px;
-    }
-
-    .station-card {
-        display: flex;
-        align-items: center;
-        padding: 15px;
-        background-color: #34495e;
-        border-radius: 8px;
-        transition: all 0.3s;
-    }
-
-    .station-card:hover {
-        background-color: #2c3e50;
-        transform: translateY(-2px);
-    }
-
-    .station-logo {
-        width: 60px;
-        height: 60px;
-        min-width: 60px;
-        min-height: 60px;
-        border-radius: 8px;
-        margin-right: 15px;
-        object-fit: cover;
-        background-color: #2c3e50;
-        flex-shrink: 0;
-        display: block;
-    }
-
-    .station-info {
-        flex: 1;
-    }
-
-    .station-name {
-        font-weight: bold;
-        font-size: 1.1em;
-        margin-bottom: 5px;
-        color: #3498db;
-    }
-
-    .station-details {
-        font-size: 0.9em;
-        color: #95a5a6;
-    }
-
-    .station-actions {
-        display: flex;
-        gap: 8px;
-    }
-
-    .station-actions button {
-        padding: 8px 15px;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: all 0.3s;
-        font-size: 0.9em;
-    }
-
-    .btn-play {
-        background-color: #27ae60;
-        color: white;
-    }
-
-    .btn-play:hover {
-        background-color: #229954;
-    }
-
-    .btn-favorite {
-        background-color: #e67e22;
-        color: white;
-    }
-
-    .btn-favorite:hover {
-        background-color: #d35400;
-    }
-
-    .btn-favorite.active {
-        background-color: #e74c3c;
-    }
-
-    .manual-add {
-        background-color: #34495e;
-        padding: 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-    }
-
-    .manual-add input {
-        width: 100%;
-        padding: 12px;
-        margin-bottom: 10px;
-        border-radius: 5px;
-        border: 1px solid #2c3e50;
-        background-color: #2c3e50;
-        color: #ecf0f1;
-        box-sizing: border-box;
-    }
-
-    .manual-add button {
-        width: 100%;
-        padding: 12px;
-        background-color: #3498db;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        font-size: 1em;
-    }
-
-    .manual-add button:hover {
-        background-color: #2980b9;
-    }
-
-    .loading {
-        text-align: center;
-        padding: 40px;
-        font-size: 1.2em;
-        color: #95a5a6;
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 40px;
-        color: #95a5a6;
-    }
-
-    .genre-filter {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 15px;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-
-    .genre-tag {
-        padding: 6px 12px;
-        background-color: #34495e;
-        border-radius: 15px;
-        font-size: 0.85em;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-
-    .genre-tag:hover {
-        background-color: #3498db;
-    }
-
-    .genre-tag.active {
-        background-color: #3498db;
-        font-weight: bold;
-    }
-
-    @media (max-width: 768px) {
-        .station-card {
-            flex-direction: column;
+        .location-selector {
             text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #34495e;
+            border-radius: 8px;
+        }
+
+        .location-selector select {
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: 1px solid #2c3e50;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            font-size: 1em;
+            cursor: pointer;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #34495e;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+
+        .station-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .station-card {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background-color: #34495e;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .station-card:hover {
+            background-color: #2c3e50;
+            transform: translateY(-2px);
         }
 
         .station-logo {
-            margin-right: 0;
-            margin-bottom: 10px;
+            width: 60px;
+            height: 60px;
+            min-width: 60px;
+            min-height: 60px;
+            border-radius: 8px;
+            margin-right: 15px;
+            object-fit: cover;
+            background-color: #2c3e50;
+            flex-shrink: 0;
+            display: block;
+        }
+
+        .station-info {
+            flex: 1;
+        }
+
+        .station-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+            color: #3498db;
+        }
+
+        .station-details {
+            font-size: 0.9em;
+            color: #95a5a6;
         }
 
         .station-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .station-actions button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9em;
+        }
+
+        .btn-play {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .btn-play:hover {
+            background-color: #229954;
+        }
+
+        .btn-favorite {
+            background-color: #e67e22;
+            color: white;
+        }
+
+        .btn-favorite:hover {
+            background-color: #d35400;
+        }
+
+        .btn-favorite.active {
+            background-color: #e74c3c;
+        }
+
+        .manual-add {
+            background-color: #34495e;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .manual-add input {
             width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #2c3e50;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            box-sizing: border-box;
+        }
+
+        .manual-add button {
+            width: 100%;
+            padding: 12px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+
+        .manual-add button:hover {
+            background-color: #2980b9;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+            color: #95a5a6;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #95a5a6;
+        }
+
+        .genre-filter {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
             justify-content: center;
         }
-    }
 
-    /* Minimal theme overrides to honor Settings theme */
-    body.light {
-        background-color: #f5f5f7;
-        color: #1a1a1a;
-    }
-    body.light .container {
-        background-color: #ffffff;
-        color: #1a1a1a;
-    }
-    body.light .playback-controls,
-    body.light .location-selector,
-    body.light .station-card,
-    body.light .manual-add {
-        background-color: #f0f3f6;
-        border-color: #d0d7de;
-    }
-    body.high-contrast {
-        background-color: #000000;
-        color: #ffff00;
-    }
-    body.high-contrast .container {
-        background-color: #000000;
-        color: #ffff00;
-        border: 2px solid #ffff00;
-    }
-    body.high-contrast .playback-controls,
-    body.high-contrast .location-selector,
-    body.high-contrast .station-card,
-    body.high-contrast .manual-add {
-        background-color: #000000;
-        border: 2px solid #ffff00;
-    }
+        .genre-tag {
+            padding: 6px 12px;
+            background-color: #34495e;
+            border-radius: 15px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
 
-    /* Desert theme */
-    body.desert {
-        background-color: #2c1810;
-        color: #f4e4bc;
-    }
-    body.desert .container {
-        background-color: #3d2f20;
-        color: #f4e4bc;
-        border-color: #8b4513;
-    }
-    body.desert .playback-controls,
-    body.desert .location-selector,
-    body.desert .station-card,
-    body.desert .manual-add {
-        background-color: #4a3b2a;
-        border-color: #cd853f;
-    }
+        .genre-tag:hover {
+            background-color: #3498db;
+        }
 
-    /* Terminal theme */
-    body.terminal {
-        background-color: #000000;
-        color: #00ff00;
-    }
-    body.terminal .container {
-        background-color: #0a0a0a;
-        color: #00ff00;
-        border-color: #00cc00;
-    }
-    body.terminal .playback-controls,
-    body.terminal .location-selector,
-    body.terminal .station-card,
-    body.terminal .manual-add {
-        background-color: #1a1a1a;
-        border-color: #00cc00;
-    }
+        .genre-tag.active {
+            background-color: #3498db;
+            font-weight: bold;
+        }
 
-    /* Sunset theme */
-    body.sunset {
-        background-color: #1a0f1f;
-        color: #ffe4b5;
-    }
-    body.sunset .container {
-        background-color: #2d1b2e;
-        color: #ffe4b5;
-        border-color: #ff6b35;
-    }
-    body.sunset .playback-controls,
-    body.sunset .location-selector,
-    body.sunset .station-card,
-    body.sunset .manual-add {
-        background-color: #3d2534;
-        border-color: #ff6b35;
-    }
+        @media (max-width: 768px) {
+            .station-card {
+                flex-direction: column;
+                text-align: center;
+            }
 
-    /* Forest theme */
-    body.forest {
-        background-color: #0d1b0d;
-        color: #c9e4c5;
-    }
-    body.forest .container {
-        background-color: #1a2e1a;
-        color: #c9e4c5;
-        border-color: #4a7c4e;
-    }
-    body.forest .playback-controls,
-    body.forest .location-selector,
-    body.forest .station-card,
-    body.forest .manual-add {
-        background-color: #233d23;
-        border-color: #4a7c4e;
-    }
+            .station-logo {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
 
-    /* Midnight theme */
-    body.midnight {
-        background-color: #0f0a1e;
-        color: #e0d4f7;
-    }
-    body.midnight .container {
-        background-color: #1e1435;
-        color: #e0d4f7;
-        border-color: #6a4c93;
-    }
-    body.midnight .playback-controls,
-    body.midnight .location-selector,
-    body.midnight .station-card,
-    body.midnight .manual-add {
-        background-color: #2a1f4a;
-        border-color: #6a4c93;
-    }
+            .station-actions {
+                width: 100%;
+                justify-content: center;
+            }
+        }
 
-    /* Toast notification styles */
-    #toast-container {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 9999;
-        max-width: 350px;
-    }
-    .toast {
-        background-color: #333;
-        color: #fff;
-        padding: 16px 20px;
-        margin-bottom: 10px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        animation: slideIn 0.3s ease-out;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        opacity: 0.95;
-    }
-    .toast.success { background-color: #2ecc71; color: #fff; }
-    .toast.error { background-color: #e74c3c; color: #fff; }
-    .toast.warning { background-color: #f39c12; color: #fff; }
-    .toast.info { background-color: #3498db; color: #fff; }
-    
-    @keyframes slideIn {
-        from { transform: translateX(400px); opacity: 0; }
-        to { transform: translateX(0); opacity: 0.95; }
-    }
-    @keyframes slideOut {
-        from { transform: translateX(0); opacity: 0.95; }
-        to { transform: translateX(400px); opacity: 0; }
-    }
-    .toast.removing {
-        animation: slideOut 0.3s ease-in forwards;
-    }
-    
-    /* Theme overrides for toasts */
-    body.light .toast { background-color: #555; }
-    body.light .toast.success { background-color: #27ae60; }
-    body.light .toast.error { background-color: #c0392b; }
-    body.light .toast.warning { background-color: #d68910; }
-    body.light .toast.info { background-color: #2980b9; }
+        /* Minimal theme overrides to honor Settings theme */
+        body.light {
+            background-color: #f5f5f7;
+            color: #1a1a1a;
+        }
+
+        body.light .container {
+            background-color: #ffffff;
+            color: #1a1a1a;
+        }
+
+        body.light .playback-controls,
+        body.light .location-selector,
+        body.light .station-card,
+        body.light .manual-add {
+            background-color: #f0f3f6;
+            border-color: #d0d7de;
+        }
+
+        body.high-contrast {
+            background-color: #000000;
+            color: #ffff00;
+        }
+
+        body.high-contrast .container {
+            background-color: #000000;
+            color: #ffff00;
+            border: 2px solid #ffff00;
+        }
+
+        body.high-contrast .playback-controls,
+        body.high-contrast .location-selector,
+        body.high-contrast .station-card,
+        body.high-contrast .manual-add {
+            background-color: #000000;
+            border: 2px solid #ffff00;
+        }
+
+        /* Desert theme */
+        body.desert {
+            background-color: #2c1810;
+            color: #f4e4bc;
+        }
+
+        body.desert .container {
+            background-color: #3d2f20;
+            color: #f4e4bc;
+            border-color: #8b4513;
+        }
+
+        body.desert .playback-controls,
+        body.desert .location-selector,
+        body.desert .station-card,
+        body.desert .manual-add {
+            background-color: #4a3b2a;
+            border-color: #cd853f;
+        }
+
+        /* Terminal theme */
+        body.terminal {
+            background-color: #000000;
+            color: #00ff00;
+        }
+
+        body.terminal .container {
+            background-color: #0a0a0a;
+            color: #00ff00;
+            border-color: #00cc00;
+        }
+
+        body.terminal .playback-controls,
+        body.terminal .location-selector,
+        body.terminal .station-card,
+        body.terminal .manual-add {
+            background-color: #1a1a1a;
+            border-color: #00cc00;
+        }
+
+        /* Sunset theme */
+        body.sunset {
+            background-color: #1a0f1f;
+            color: #ffe4b5;
+        }
+
+        body.sunset .container {
+            background-color: #2d1b2e;
+            color: #ffe4b5;
+            border-color: #ff6b35;
+        }
+
+        body.sunset .playback-controls,
+        body.sunset .location-selector,
+        body.sunset .station-card,
+        body.sunset .manual-add {
+            background-color: #3d2534;
+            border-color: #ff6b35;
+        }
+
+        /* Forest theme */
+        body.forest {
+            background-color: #0d1b0d;
+            color: #c9e4c5;
+        }
+
+        body.forest .container {
+            background-color: #1a2e1a;
+            color: #c9e4c5;
+            border-color: #4a7c4e;
+        }
+
+        body.forest .playback-controls,
+        body.forest .location-selector,
+        body.forest .station-card,
+        body.forest .manual-add {
+            background-color: #233d23;
+            border-color: #4a7c4e;
+        }
+
+        /* Midnight theme */
+        body.midnight {
+            background-color: #0f0a1e;
+            color: #e0d4f7;
+        }
+
+        body.midnight .container {
+            background-color: #1e1435;
+            color: #e0d4f7;
+            border-color: #6a4c93;
+        }
+
+        body.midnight .playback-controls,
+        body.midnight .location-selector,
+        body.midnight .station-card,
+        body.midnight .manual-add {
+            background-color: #2a1f4a;
+            border-color: #6a4c93;
+        }
+
+        /* Toast notification styles */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 350px;
+        }
+
+        .toast {
+            background-color: #333;
+            color: #fff;
+            padding: 16px 20px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0.95;
+        }
+
+        .toast.success {
+            background-color: #2ecc71;
+            color: #fff;
+        }
+
+        .toast.error {
+            background-color: #e74c3c;
+            color: #fff;
+        }
+
+        .toast.warning {
+            background-color: #f39c12;
+            color: #fff;
+        }
+
+        .toast.info {
+            background-color: #3498db;
+            color: #fff;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 0.95;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 0.95;
+            }
+
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .toast.removing {
+            animation: slideOut 0.3s ease-in forwards;
+        }
+
+        /* Theme overrides for toasts */
+        body.light .toast {
+            background-color: #555;
+        }
+
+        body.light .toast.success {
+            background-color: #27ae60;
+        }
+
+        body.light .toast.error {
+            background-color: #c0392b;
+        }
+
+        body.light .toast.warning {
+            background-color: #d68910;
+        }
+
+        body.light .toast.info {
+            background-color: #2980b9;
+        }
     </style>
     <!-- Include Socket.IO client library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
@@ -581,305 +664,326 @@
             <a href="/radio" class="current-page" data-i18n="radio">📻 Radio</a>
         </div>
 
-<!-- Playback Controls -->
-<div class="playback-controls">
-    <h2 data-i18n="playback_controls">Playback Controls</h2>
-    <button onclick="previousTrack()" style="background-color: #9b59b6; color: white;" data-i18n="previous">⏮️ Previous</button>
-    <button onclick="playMusic()" style="background-color: #27ae60; color: white;" data-i18n="play">▶️ Play</button>
-    <button onclick="stopMusic()" style="background-color: #f39c12; color: white;" data-i18n="stop">⏹️ Stop</button>
-    <button onclick="pauseMusic()" style="background-color: #e74c3c; color: white;" data-i18n="pause">⏸️ Pause</button>
-    <button onclick="nextTrack()" style="background-color: #3498db; color: white;" data-i18n="next">⏭️ Next</button>
-</div>
-
-<h2>📻 Internet Radio</h2>
-
-<!-- Location Selector -->
-<div class="location-selector">
-    <span>🌍 <span data-i18n="your_region">Your Region</span>:</span>
-    <select id="country-selector">
-        <option value="">Loading...</option>
-    </select>
-    <button onclick="refreshStations()" style="margin-left: 10px; padding: 8px 15px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;" title="Refresh station list from API">
-        🔄 <span data-i18n="refresh">Refresh</span>
-    </button>
-    <button onclick="showBackupDialog()" style="margin-left: 10px; padding: 8px 15px; background: #9b59b6; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;" title="Manage backup database">
-        💾 <span data-i18n="backup_db">Backup DB</span>
-    </button>
-</div>
-
-<!-- Backup Database Dialog -->
-<div id="backup-dialog" style="display:none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #34495e; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1001; max-width: 500px; width: 90%;">
-    <h3 style="margin-top:0; color: #ecf0f1;">📦 Radio Database Backup</h3>
-    <div id="backup-status" style="margin: 20px 0; padding: 15px; background: #2c3e50; border-radius: 8px; font-size: 0.9em;">
-        <div style="text-align: center;">🔄 Checking...</div>
-    </div>
-    <div style="text-align: center; margin-top: 20px;">
-        <button onclick="downloadBackup()" style="padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; font-size: 0.95em;">
-            ⬇️ Download Latest Backup
-        </button>
-        <button onclick="closeBackupDialog()" style="padding: 10px 20px; background: #7f8c8d; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; font-size: 0.95em;">
-            Close
-        </button>
-    </div>
-</div>
-<div id="backup-overlay" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000;" onclick="closeBackupDialog()"></div>
-
-<!-- Tabs -->
-<div class="radio-tabs">
-    <button class="radio-tab active" data-tab="discover" data-i18n="discover">🔍 Discover</button>
-    <button class="radio-tab" data-tab="favorites" data-i18n="favorites">⭐ Favorites</button>
-    <button class="radio-tab" data-tab="manual" data-i18n="manual">📝 Manual</button>
-</div>
-
-<!-- Discover Tab -->
-<div class="radio-content active" id="discover-content">
-    <div class="search-box">
-        <input type="text" id="station-search" placeholder="Search stations..." data-i18n-placeholder="search_stations">
-    </div>
-
-    <div class="genre-filter" id="genre-filter">
-        <!-- Populated by JS -->
-    </div>
-
-    <div id="station-list" class="station-list">
-        <div class="loading">🔄 <span data-i18n="loading_stations">Loading stations</span>...</div>
-    </div>
-</div>
-
-<!-- Favorites Tab -->
-<div class="radio-content" id="favorites-content">
-    <div id="favorites-list" class="station-list">
-        <div class="empty-state">
-            ⭐ <span data-i18n="no_favorites">No favorite stations yet</span><br>
-            <small data-i18n="add_favorites_hint">Click the ⭐ button on any station to save it</small>
+        <!-- Playback Controls -->
+        <div class="playback-controls">
+            <h2 data-i18n="playback_controls">Playback Controls</h2>
+            <button onclick="previousTrack()" style="background-color: #9b59b6; color: white;" data-i18n="previous">⏮️
+                Previous</button>
+            <button onclick="playMusic()" style="background-color: #27ae60; color: white;" data-i18n="play">▶️
+                Play</button>
+            <button onclick="stopMusic()" style="background-color: #f39c12; color: white;" data-i18n="stop">⏹️
+                Stop</button>
+            <button onclick="pauseMusic()" style="background-color: #e74c3c; color: white;" data-i18n="pause">⏸️
+                Pause</button>
+            <button onclick="nextTrack()" style="background-color: #3498db; color: white;" data-i18n="next">⏭️
+                Next</button>
         </div>
-    </div>
-</div>
 
-<!-- Manual Tab -->
-<div class="radio-content" id="manual-content">
-    <div class="manual-add">
-        <h3 data-i18n="add_custom_stream">Add Custom Stream</h3>
-        <input type="text" id="manual-name" placeholder="Station Name" data-i18n-placeholder="station_name">
-        <input type="text" id="manual-url" placeholder="Stream URL (http://...)" data-i18n-placeholder="stream_url">
-        <button onclick="playManualStream()" data-i18n="play_stream">▶️ Play Stream</button>
-    </div>
+        <h2>📻 Internet Radio</h2>
 
-    <div class="manual-add" style="margin-top: 15px;">
-        <h4 data-i18n="example_streams">Example Streams:</h4>
-        <div style="text-align: left; color: #95a5a6; font-size: 0.9em;">
-            <p><strong>SomaFM Groove Salad:</strong><br>
-            <code style="background: #2c3e50; padding: 4px 8px; border-radius: 3px;">https://ice1.somafm.com/groovesalad-128-mp3</code></p>
-            <p><strong>KEXP 90.3 FM Seattle:</strong><br>
-            <code style="background: #2c3e50; padding: 4px 8px; border-radius: 3px;">https://kexp-mp3-128.streamguys1.com/kexp128.mp3</code></p>
+        <!-- Location Selector -->
+        <div class="location-selector">
+            <span>🌍 <span data-i18n="your_region">Your Region</span>:</span>
+            <select id="country-selector">
+                <option value="">Loading...</option>
+            </select>
+            <button onclick="refreshStations()"
+                style="margin-left: 10px; padding: 8px 15px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;"
+                title="Refresh station list from API">
+                🔄 <span data-i18n="refresh">Refresh</span>
+            </button>
+            <button onclick="showBackupDialog()"
+                style="margin-left: 10px; padding: 8px 15px; background: #9b59b6; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;"
+                title="Manage backup database">
+                💾 <span data-i18n="backup_db">Backup DB</span>
+            </button>
         </div>
-    </div>
-</div>
 
-<!-- Toast notification container -->
-<div id="toast-container"></div>
+        <!-- Backup Database Dialog -->
+        <div id="backup-dialog"
+            style="display:none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #34495e; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1001; max-width: 500px; width: 90%;">
+            <h3 style="margin-top:0; color: #ecf0f1;">📦 Radio Database Backup</h3>
+            <div id="backup-status"
+                style="margin: 20px 0; padding: 15px; background: #2c3e50; border-radius: 8px; font-size: 0.9em;">
+                <div style="text-align: center;">🔄 Checking...</div>
+            </div>
+            <div style="text-align: center; margin-top: 20px;">
+                <button onclick="downloadBackup()"
+                    style="padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; font-size: 0.95em;">
+                    ⬇️ Download Latest Backup
+                </button>
+                <button onclick="closeBackupDialog()"
+                    style="padding: 10px 20px; background: #7f8c8d; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; font-size: 0.95em;">
+                    Close
+                </button>
+            </div>
+        </div>
+        <div id="backup-overlay"
+            style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000;"
+            onclick="closeBackupDialog()"></div>
 
-<script>
-    let currentCountry = 'US'; // Default
-    let allStations = [];
-    let favorites = [];
-    let socket = null;
+        <!-- Tabs -->
+        <div class="radio-tabs">
+            <button class="radio-tab active" data-tab="discover" data-i18n="discover">🔍 Discover</button>
+            <button class="radio-tab" data-tab="favorites" data-i18n="favorites">⭐ Favorites</button>
+            <button class="radio-tab" data-tab="manual" data-i18n="manual">📝 Manual</button>
+        </div>
 
-    // Initialize
-    document.addEventListener('DOMContentLoaded', function() {
-        loadFavorites();
-        detectLocation();
-        setupTabs();
-        setupSearch();
-        initializeSocket();
-    });
+        <!-- Discover Tab -->
+        <div class="radio-content active" id="discover-content">
+            <div class="search-box">
+                <input type="text" id="station-search" placeholder="Search stations..."
+                    data-i18n-placeholder="search_stations">
+            </div>
 
-    // Initialize SocketIO connection
-    function initializeSocket() {
-        socket = io();
-        
-        // Now Playing Bar Elements
-        const nowPlayingBar = document.getElementById('now-playing-bar');
-        const npArtist = document.getElementById('np-artist');
-        const npAlbum = document.getElementById('np-album');
-        const npTrack = document.getElementById('np-track');
-        const maestroLogo = document.getElementById('maestro-logo-radio');
+            <div class="genre-filter" id="genre-filter">
+                <!-- Populated by JS -->
+            </div>
 
-        // Update now playing bar with MPD status
-        socket.on('mpd_status', function(data) {
-            if (data.state === 'play' || data.state === 'pause') {
-                // Show now playing bar and update content
-                if (data.artist && data.artist !== 'N/A' && data.song_title && data.song_title !== 'N/A') {
-                    nowPlayingBar.style.display = 'block';
-                    npArtist.textContent = data.artist;
-                    npAlbum.textContent = data.album || 'Unknown Album';
-                    npTrack.textContent = data.song_title;
-                } else {
-                    nowPlayingBar.style.display = 'none';
-                }
-                
-                // Update logo - animate only when playing
-                if (maestroLogo) {
-                    if (data.state === 'play') {
-                        maestroLogo.src = "{{ url_for('static', filename='logo.svg') }}";
+            <div id="station-list" class="station-list">
+                <div class="loading">🔄 <span data-i18n="loading_stations">Loading stations</span>...</div>
+            </div>
+        </div>
+
+        <!-- Favorites Tab -->
+        <div class="radio-content" id="favorites-content">
+            <div id="favorites-list" class="station-list">
+                <div class="empty-state">
+                    ⭐ <span data-i18n="no_favorites">No favorite stations yet</span><br>
+                    <small data-i18n="add_favorites_hint">Click the ⭐ button on any station to save it</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manual Tab -->
+        <div class="radio-content" id="manual-content">
+            <div class="manual-add">
+                <h3 data-i18n="add_custom_stream">Add Custom Stream</h3>
+                <input type="text" id="manual-name" placeholder="Station Name" data-i18n-placeholder="station_name">
+                <input type="text" id="manual-url" placeholder="Stream URL (http://...)"
+                    data-i18n-placeholder="stream_url">
+                <button onclick="playManualStream()" data-i18n="play_stream">▶️ Play Stream</button>
+            </div>
+
+            <div class="manual-add" style="margin-top: 15px;">
+                <h4 data-i18n="example_streams">Example Streams:</h4>
+                <div style="text-align: left; color: #95a5a6; font-size: 0.9em;">
+                    <p><strong>SomaFM Groove Salad:</strong><br>
+                        <code
+                            style="background: #2c3e50; padding: 4px 8px; border-radius: 3px;">https://ice1.somafm.com/groovesalad-128-mp3</code>
+                    </p>
+                    <p><strong>KEXP 90.3 FM Seattle:</strong><br>
+                        <code
+                            style="background: #2c3e50; padding: 4px 8px; border-radius: 3px;">https://kexp-mp3-128.streamguys1.com/kexp128.mp3</code>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast notification container -->
+        <div id="toast-container"></div>
+
+        <script>
+            let currentCountry = 'US'; // Default
+            let allStations = [];
+            let favorites = [];
+            let socket = null;
+
+            // Initialize
+            document.addEventListener('DOMContentLoaded', function () {
+                loadFavorites();
+                detectLocation();
+                setupTabs();
+                setupSearch();
+                initializeSocket();
+            });
+
+            // Initialize SocketIO connection
+            function initializeSocket() {
+                socket = io();
+
+                // Now Playing Bar Elements
+                const nowPlayingBar = document.getElementById('now-playing-bar');
+                const npArtist = document.getElementById('np-artist');
+                const npAlbum = document.getElementById('np-album');
+                const npTrack = document.getElementById('np-track');
+                const maestroLogo = document.getElementById('maestro-logo-radio');
+
+                // Update now playing bar with MPD status
+                socket.on('mpd_status', function (data) {
+                    if (data.state === 'play' || data.state === 'pause') {
+                        // Show now playing bar and update content
+                        if (data.artist && data.artist !== 'N/A' && data.song_title && data.song_title !== 'N/A') {
+                            nowPlayingBar.style.display = 'block';
+                            npArtist.textContent = data.artist;
+                            npAlbum.textContent = data.album || 'Unknown Album';
+                            npTrack.textContent = data.song_title;
+                        } else {
+                            nowPlayingBar.style.display = 'none';
+                        }
+
+                        // Update logo - animate only when playing
+                        if (maestroLogo) {
+                            if (data.state === 'play') {
+                                maestroLogo.src = "{{ url_for('static', filename='logo.svg') }}";
+                            } else {
+                                maestroLogo.src = "{{ url_for('static', filename='logo-static.svg') }}";
+                            }
+                        }
                     } else {
-                        maestroLogo.src = "{{ url_for('static', filename='logo-static.svg') }}";
+                        // Hide now playing bar when stopped
+                        nowPlayingBar.style.display = 'none';
+                        // Use static logo when not playing
+                        if (maestroLogo) {
+                            maestroLogo.src = "{{ url_for('static', filename='logo-static.svg') }}";
+                        }
+                    }
+                });
+
+                // Fetch initial state to set logo correctly on page load
+                fetch('/api/version')
+                    .then(() => fetch('/get_mpd_status'))
+                    .then(r => r.json())
+                    .then(data => {
+                        if (maestroLogo && data.state === 'play') {
+                            maestroLogo.src = "{{ url_for('static', filename='logo.svg') }}";
+                        } else if (maestroLogo) {
+                            maestroLogo.src = "{{ url_for('static', filename='logo-static.svg') }}";
+                        }
+                        if (data.state === 'play' || data.state === 'pause') {
+                            if (data.artist && data.artist !== 'N/A' && data.song_title && data.song_title !== 'N/A') {
+                                nowPlayingBar.style.display = 'block';
+                                npArtist.textContent = data.artist;
+                                npAlbum.textContent = data.album || 'Unknown Album';
+                                npTrack.textContent = data.song_title;
+                            }
+                        }
+                    })
+                    .catch(err => console.error('Error fetching initial state:', err));
+
+                socket.on('connect', function () {
+                    console.log('Connected to server via SocketIO');
+                });
+
+                socket.on('disconnect', function () {
+                    console.log('Disconnected from server');
+                });
+
+                // Listen for MPD status updates
+                socket.on('mpd_status_update', function (data) {
+                    console.log('MPD status update:', data);
+                });
+            }
+
+            // Toast notification system
+            function showToast(message, type = 'info', duration = 3000) {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+
+                const icons = {
+                    success: '✓',
+                    error: '✕',
+                    warning: '⚠',
+                    info: 'ℹ'
+                };
+
+                toast.innerHTML = `<span style="font-size: 1.2em;">${icons[type] || 'ℹ'}</span><span>${message}</span>`;
+                container.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.classList.add('removing');
+                    setTimeout(() => toast.remove(), 300);
+                }, duration);
+            }
+
+            // Tab switching
+            function setupTabs() {
+                document.querySelectorAll('.radio-tab').forEach(tab => {
+                    tab.addEventListener('click', function () {
+                        const targetTab = this.dataset.tab;
+
+                        // Update active tab
+                        document.querySelectorAll('.radio-tab').forEach(t => t.classList.remove('active'));
+                        this.classList.add('active');
+
+                        // Update content
+                        document.querySelectorAll('.radio-content').forEach(c => c.classList.remove('active'));
+                        document.getElementById(targetTab + '-content').classList.add('active');
+
+                        // Load content if needed
+                        if (targetTab === 'favorites') {
+                            renderFavorites();
+                        }
+                    });
+                });
+            }
+
+            // Location detection
+            async function detectLocation() {
+                // Try to load saved preference
+                const saved = localStorage.getItem('maestro_radio_country');
+                if (saved) {
+                    currentCountry = saved;
+                } else {
+                    // Auto-detect from IP
+                    try {
+                        const response = await fetch('/api/radio/detect-country');
+                        const data = await response.json();
+                        if (data.country) {
+                            currentCountry = data.country;
+                        }
+                    } catch (error) {
+                        console.error('Could not detect country:', error);
                     }
                 }
-            } else {
-                // Hide now playing bar when stopped
-                nowPlayingBar.style.display = 'none';
-                // Use static logo when not playing
-                if (maestroLogo) {
-                    maestroLogo.src = "{{ url_for('static', filename='logo-static.svg') }}";
-                }
-            }
-        });
-        
-        // Fetch initial state to set logo correctly on page load
-        fetch('/api/version')
-            .then(() => fetch('/get_mpd_status'))
-            .then(r => r.json())
-            .then(data => {
-                if (maestroLogo && data.state === 'play') {
-                    maestroLogo.src = "{{ url_for('static', filename='logo.svg') }}";
-                } else if (maestroLogo) {
-                    maestroLogo.src = "{{ url_for('static', filename='logo-static.svg') }}";
-                }
-                if (data.state === 'play' || data.state === 'pause') {
-                    if (data.artist && data.artist !== 'N/A' && data.song_title && data.song_title !== 'N/A') {
-                        nowPlayingBar.style.display = 'block';
-                        npArtist.textContent = data.artist;
-                        npAlbum.textContent = data.album || 'Unknown Album';
-                        npTrack.textContent = data.song_title;
-                    }
-                }
-            })
-            .catch(err => console.error('Error fetching initial state:', err));
-        
-        socket.on('connect', function() {
-            console.log('Connected to server via SocketIO');
-        });
-        
-        socket.on('disconnect', function() {
-            console.log('Disconnected from server');
-        });
-        
-        // Listen for MPD status updates
-        socket.on('mpd_status_update', function(data) {
-            console.log('MPD status update:', data);
-        });
-    }
 
-    // Toast notification system
-    function showToast(message, type = 'info', duration = 3000) {
-        const container = document.getElementById('toast-container');
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        
-        const icons = {
-            success: '✓',
-            error: '✕',
-            warning: '⚠',
-            info: 'ℹ'
-        };
-        
-        toast.innerHTML = `<span style="font-size: 1.2em;">${icons[type] || 'ℹ'}</span><span>${message}</span>`;
-        container.appendChild(toast);
-        
-        setTimeout(() => {
-            toast.classList.add('removing');
-            setTimeout(() => toast.remove(), 300);
-        }, duration);
-    }
-
-    // Tab switching
-    function setupTabs() {
-        document.querySelectorAll('.radio-tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                const targetTab = this.dataset.tab;
-                
-                // Update active tab
-                document.querySelectorAll('.radio-tab').forEach(t => t.classList.remove('active'));
-                this.classList.add('active');
-                
-                // Update content
-                document.querySelectorAll('.radio-content').forEach(c => c.classList.remove('active'));
-                document.getElementById(targetTab + '-content').classList.add('active');
-                
-                // Load content if needed
-                if (targetTab === 'favorites') {
-                    renderFavorites();
-                }
-            });
-        });
-    }
-
-    // Location detection
-    async function detectLocation() {
-        // Try to load saved preference
-        const saved = localStorage.getItem('maestro_radio_country');
-        if (saved) {
-            currentCountry = saved;
-        } else {
-            // Auto-detect from IP
-            try {
-                const response = await fetch('/api/radio/detect-country');
-                const data = await response.json();
-                if (data.country) {
-                    currentCountry = data.country;
-                }
-            } catch (error) {
-                console.error('Could not detect country:', error);
-            }
-        }
-        
-        await loadCountries();
-        loadStations();
-    }
-
-    // Refresh stations (bypass cache)
-    function refreshStations() {
-        console.log('Refreshing stations (bypass cache)');
-        loadStations(true);
-    }
-
-    // Load countries list
-    async function loadCountries() {
-        try {
-            const response = await fetch('/api/radio/countries');
-            const countries = await response.json();
-            
-            const selector = document.getElementById('country-selector');
-            selector.innerHTML = countries.map(c => 
-                `<option value="${c.code}" ${c.code === currentCountry ? 'selected' : ''}>${c.flag} ${c.name}</option>`
-            ).join('');
-            
-            selector.addEventListener('change', function() {
-                currentCountry = this.value;
-                localStorage.setItem('maestro_radio_country', currentCountry);
+                await loadCountries();
                 loadStations();
-            });
-        } catch (error) {
-            console.error('Failed to load countries:', error);
-        }
-    }
+            }
 
-    // Load stations for current country
-    async function loadStations(bypassCache = false) {
-        const container = document.getElementById('station-list');
-        container.innerHTML = '<div class="loading">🔄 <span data-i18n="loading_stations">Loading stations</span>...</div>';
-        
-        try {
-            // Add cache-busting parameter if refresh requested
-            const cacheBuster = bypassCache ? `&nocache=${Date.now()}` : '';
-            const response = await fetch(`/api/radio/stations?country=${currentCountry}&limit=50${cacheBuster}`);
-            
-            // Check if API returned error status
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                const errorMsg = errorData.message || 'API servers unavailable';
-                container.innerHTML = `
+            // Refresh stations (bypass cache)
+            function refreshStations() {
+                console.log('Refreshing stations (bypass cache)');
+                loadStations(true);
+            }
+
+            // Load countries list
+            async function loadCountries() {
+                try {
+                    const response = await fetch('/api/radio/countries');
+                    const countries = await response.json();
+
+                    const selector = document.getElementById('country-selector');
+                    selector.innerHTML = countries.map(c =>
+                        `<option value="${c.code}" ${c.code === currentCountry ? 'selected' : ''}>${c.flag} ${c.name}</option>`
+                    ).join('');
+
+                    selector.addEventListener('change', function () {
+                        currentCountry = this.value;
+                        localStorage.setItem('maestro_radio_country', currentCountry);
+                        loadStations();
+                    });
+                } catch (error) {
+                    console.error('Failed to load countries:', error);
+                }
+            }
+
+            // Load stations for current country
+            async function loadStations(bypassCache = false) {
+                const container = document.getElementById('station-list');
+                container.innerHTML = '<div class="loading">🔄 <span data-i18n="loading_stations">Loading stations</span>...</div>';
+
+                try {
+                    // Add cache-busting parameter if refresh requested
+                    const cacheBuster = bypassCache ? `&nocache=${Date.now()}` : '';
+                    const response = await fetch(`/api/radio/stations?country=${currentCountry}&limit=50${cacheBuster}`);
+
+                    // Check if API returned error status
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        const errorMsg = errorData.message || 'API servers unavailable';
+                        container.innerHTML = `
                     <div class="empty-state">
                         ❌ Failed to load stations<br>
                         <small>${errorMsg}</small><br><br>
@@ -888,15 +992,15 @@
                         </button>
                     </div>
                 `;
-                console.error('API error:', errorMsg);
-                return;
-            }
-            
-            allStations = await response.json();
-            
-            // Check if it's an error object (legacy handling)
-            if (allStations.error) {
-                container.innerHTML = `
+                        console.error('API error:', errorMsg);
+                        return;
+                    }
+
+                    allStations = await response.json();
+
+                    // Check if it's an error object (legacy handling)
+                    if (allStations.error) {
+                        container.innerHTML = `
                     <div class="empty-state">
                         ❌ Failed to load stations<br>
                         <small>${allStations.message || 'API error'}</small><br><br>
@@ -905,12 +1009,12 @@
                         </button>
                     </div>
                 `;
-                return;
-            }
-            
-            renderStations(allStations);
-        } catch (error) {
-            container.innerHTML = `
+                        return;
+                    }
+
+                    renderStations(allStations);
+                } catch (error) {
+                    container.innerHTML = `
                 <div class="empty-state">
                     ❌ Failed to load stations<br>
                     <small>Network error or timeout</small><br><br>
@@ -919,26 +1023,26 @@
                     </button>
                 </div>
             `;
-            console.error('Failed to load stations:', error);
-        }
-    }
+                    console.error('Failed to load stations:', error);
+                }
+            }
 
-    // Render stations
-    function renderStations(stations) {
-        const container = document.getElementById('station-list');
-        
-        if (stations.length === 0) {
-            container.innerHTML = '<div class="empty-state">No stations found</div>';
-            return;
-        }
-        
-        container.innerHTML = stations.map(station => {
-            // Use placeholder by default, only try favicon if it looks valid
-            const logoSrc = (station.favicon && station.favicon.startsWith('http')) 
-                ? station.favicon 
-                : '/static/placeholder-radio.png';
-            
-            return `
+            // Render stations
+            function renderStations(stations) {
+                const container = document.getElementById('station-list');
+
+                if (stations.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No stations found</div>';
+                    return;
+                }
+
+                container.innerHTML = stations.map(station => {
+                    // Use placeholder by default, only try favicon if it looks valid
+                    const logoSrc = (station.favicon && station.favicon.startsWith('http'))
+                        ? station.favicon
+                        : '/static/placeholder-radio.png';
+
+                    return `
             <div class="station-card">
                 <img class="station-logo" src="${logoSrc}" 
                      onerror="this.onerror=null; this.src='/static/placeholder-radio.png';" 
@@ -961,170 +1065,170 @@
                 </div>
             </div>
         `;
-        }).join('');
-    }
+                }).join('');
+            }
 
-    // Search stations
-    let searchTimeout = null;
-    function setupSearch() {
-        const searchBox = document.getElementById('station-search');
-        searchBox.addEventListener('input', function() {
-            const query = this.value.trim().toLowerCase();
-            
-            // Clear previous timeout
-            if (searchTimeout) {
-                clearTimeout(searchTimeout);
-            }
-            
-            // If empty, show all stations
-            if (!query) {
-                renderStations(allStations);
-                return;
-            }
-            
-            // Debounce search - wait 300ms after user stops typing
-            searchTimeout = setTimeout(() => {
-                // Filter already-loaded stations locally (instant)
-                const filtered = allStations.filter(station => {
-                    const name = (station.name || '').toLowerCase();
-                    const tags = (station.tags || '').toLowerCase();
-                    const country = (station.country || '').toLowerCase();
-                    return name.includes(query) || tags.includes(query) || country.includes(query);
+            // Search stations
+            let searchTimeout = null;
+            function setupSearch() {
+                const searchBox = document.getElementById('station-search');
+                searchBox.addEventListener('input', function () {
+                    const query = this.value.trim().toLowerCase();
+
+                    // Clear previous timeout
+                    if (searchTimeout) {
+                        clearTimeout(searchTimeout);
+                    }
+
+                    // If empty, show all stations
+                    if (!query) {
+                        renderStations(allStations);
+                        return;
+                    }
+
+                    // Debounce search - wait 300ms after user stops typing
+                    searchTimeout = setTimeout(() => {
+                        // Filter already-loaded stations locally (instant)
+                        const filtered = allStations.filter(station => {
+                            const name = (station.name || '').toLowerCase();
+                            const tags = (station.tags || '').toLowerCase();
+                            const country = (station.country || '').toLowerCase();
+                            return name.includes(query) || tags.includes(query) || country.includes(query);
+                        });
+
+                        if (filtered.length === 0) {
+                            const container = document.getElementById('station-list');
+                            container.innerHTML = `<div class="empty-state">❌ No stations found for "${this.value}"<br><small>Try a different search or change country</small></div>`;
+                        } else {
+                            renderStations(filtered);
+                        }
+                    }, 300);
                 });
-                
-                if (filtered.length === 0) {
-                    const container = document.getElementById('station-list');
-                    container.innerHTML = `<div class="empty-state">❌ No stations found for "${this.value}"<br><small>Try a different search or change country</small></div>`;
+            }
+
+            // Play station
+            async function playStation(url, name, favicon = '') {
+                // Check if something is currently playing
+                try {
+                    const statusResponse = await fetch('/get_mpd_status');
+                    const statusData = await statusResponse.json();
+
+                    // If there's an active playlist/song playing, ask for confirmation
+                    if (statusData.state === 'play' && statusData.queue_length > 0) {
+                        const confirmed = confirm(`This will clear your current playlist and play the radio station "${name}".\n\nAre you sure you want to continue?`);
+                        if (!confirmed) {
+                            return; // User cancelled
+                        }
+                    }
+                } catch (error) {
+                    console.error('Could not check MPD status:', error);
+                    // Continue anyway if status check fails
+                }
+
+                // Proceed with playing the station
+                try {
+                    const response = await fetch('/api/radio/play', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url: url, name: name, favicon: favicon })
+                    });
+
+                    if (response.ok) {
+                        showToast(`📻 Now playing: ${name}`, 'success');
+                    } else {
+                        showToast('Failed to play station', 'error');
+                    }
+                } catch (error) {
+                    showToast('Error playing station', 'error');
+                }
+            }
+
+            // Manual stream
+            function playManualStream() {
+                const name = document.getElementById('manual-name').value || 'Custom Stream';
+                const url = document.getElementById('manual-url').value;
+
+                if (!url) {
+                    showToast('Please enter a stream URL', 'warning');
+                    return;
+                }
+
+                playStation(url, name);
+            }
+
+            // Favorites management
+            function loadFavorites() {
+                const saved = localStorage.getItem('maestro_radio_favorites');
+                favorites = saved ? JSON.parse(saved) : [];
+            }
+
+            function saveFavorites() {
+                localStorage.setItem('maestro_radio_favorites', JSON.stringify(favorites));
+            }
+
+            function isFavorite(url) {
+                return favorites.some(f => f.url === url);
+            }
+
+            function toggleFavorite(stationJson) {
+                const station = JSON.parse(stationJson);
+                const index = favorites.findIndex(f => f.url === station.url);
+
+                if (index >= 0) {
+                    favorites.splice(index, 1);
+                    showToast('Removed from favorites', 'info');
                 } else {
-                    renderStations(filtered);
+                    favorites.push(station);
+                    showToast('Added to favorites ⭐', 'success');
                 }
-            }, 300);
-        });
-    }
 
-    // Play station
-    async function playStation(url, name, favicon = '') {
-        // Check if something is currently playing
-        try {
-            const statusResponse = await fetch('/get_mpd_status');
-            const statusData = await statusResponse.json();
-            
-            // If there's an active playlist/song playing, ask for confirmation
-            if (statusData.state === 'play' && statusData.queue_length > 0) {
-                const confirmed = confirm(`This will clear your current playlist and play the radio station "${name}".\n\nAre you sure you want to continue?`);
-                if (!confirmed) {
-                    return; // User cancelled
+                saveFavorites();
+                renderStations(allStations); // Refresh to update star icons
+
+                // Refresh favorites tab if it's active
+                if (document.querySelector('.radio-tab[data-tab="favorites"]').classList.contains('active')) {
+                    renderFavorites();
                 }
             }
-        } catch (error) {
-            console.error('Could not check MPD status:', error);
-            // Continue anyway if status check fails
-        }
-        
-        // Proceed with playing the station
-        try {
-            const response = await fetch('/api/radio/play', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: url, name: name, favicon: favicon })
-            });
-            
-            if (response.ok) {
-                showToast(`📻 Now playing: ${name}`, 'success');
-            } else {
-                showToast('Failed to play station', 'error');
-            }
-        } catch (error) {
-            showToast('Error playing station', 'error');
-        }
-    }
 
-    // Manual stream
-    function playManualStream() {
-        const name = document.getElementById('manual-name').value || 'Custom Stream';
-        const url = document.getElementById('manual-url').value;
-        
-        if (!url) {
-            showToast('Please enter a stream URL', 'warning');
-            return;
-        }
-        
-        playStation(url, name);
-    }
+            function renderFavorites() {
+                const container = document.getElementById('favorites-list');
 
-    // Favorites management
-    function loadFavorites() {
-        const saved = localStorage.getItem('maestro_radio_favorites');
-        favorites = saved ? JSON.parse(saved) : [];
-    }
-
-    function saveFavorites() {
-        localStorage.setItem('maestro_radio_favorites', JSON.stringify(favorites));
-    }
-
-    function isFavorite(url) {
-        return favorites.some(f => f.url === url);
-    }
-
-    function toggleFavorite(stationJson) {
-        const station = JSON.parse(stationJson);
-        const index = favorites.findIndex(f => f.url === station.url);
-        
-        if (index >= 0) {
-            favorites.splice(index, 1);
-            showToast('Removed from favorites', 'info');
-        } else {
-            favorites.push(station);
-            showToast('Added to favorites ⭐', 'success');
-        }
-        
-        saveFavorites();
-        renderStations(allStations); // Refresh to update star icons
-        
-        // Refresh favorites tab if it's active
-        if (document.querySelector('.radio-tab[data-tab="favorites"]').classList.contains('active')) {
-            renderFavorites();
-        }
-    }
-
-    function renderFavorites() {
-        const container = document.getElementById('favorites-list');
-        
-        if (favorites.length === 0) {
-            container.innerHTML = `
+                if (favorites.length === 0) {
+                    container.innerHTML = `
                 <div class="empty-state">
                     ⭐ <span data-i18n="no_favorites">No favorite stations yet</span><br>
                     <small data-i18n="add_favorites_hint">Click the ⭐ button on any station to save it</small>
                 </div>
             `;
-            return;
-        }
-        
-        renderStations(favorites);
-        container.innerHTML = document.getElementById('station-list').innerHTML;
-    }
+                    return;
+                }
 
-    // Backup database management
-    function showBackupDialog() {
-        document.getElementById('backup-dialog').style.display = 'block';
-        document.getElementById('backup-overlay').style.display = 'block';
-        checkBackupStatus();
-    }
+                renderStations(favorites);
+                container.innerHTML = document.getElementById('station-list').innerHTML;
+            }
 
-    function closeBackupDialog() {
-        document.getElementById('backup-dialog').style.display = 'none';
-        document.getElementById('backup-overlay').style.display = 'none';
-    }
+            // Backup database management
+            function showBackupDialog() {
+                document.getElementById('backup-dialog').style.display = 'block';
+                document.getElementById('backup-overlay').style.display = 'block';
+                checkBackupStatus();
+            }
 
-    function checkBackupStatus() {
-        const statusDiv = document.getElementById('backup-status');
-        statusDiv.innerHTML = '<div style="text-align: center;">🔄 Checking...</div>';
-        
-        fetch('/api/radio/backup/status')
-            .then(response => response.json())
-            .then(data => {
-                if (data.exists) {
-                    statusDiv.innerHTML = `
+            function closeBackupDialog() {
+                document.getElementById('backup-dialog').style.display = 'none';
+                document.getElementById('backup-overlay').style.display = 'none';
+            }
+
+            function checkBackupStatus() {
+                const statusDiv = document.getElementById('backup-status');
+                statusDiv.innerHTML = '<div style="text-align: center;">🔄 Checking...</div>';
+
+                fetch('/api/radio/backup/status')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.exists) {
+                            statusDiv.innerHTML = `
                         <div style="color: #2ecc71;">✅ Backup database available</div>
                         <div style="margin-top: 10px; font-size: 0.85em; color: #bdc3c7;">
                             <div>📊 Stations: ${data.stations_count.toLocaleString()}</div>
@@ -1133,92 +1237,93 @@
                             ${data.age_days > 7 ? '<div style="color: #e67e22; margin-top: 5px;">⚠️ Backup is older than 7 days. Consider updating.</div>' : ''}
                         </div>
                     `;
-                } else {
-                    statusDiv.innerHTML = `
+                        } else {
+                            statusDiv.innerHTML = `
                         <div style="color: #e74c3c;">❌ No backup database found</div>
                         <div style="margin-top: 10px; font-size: 0.85em; color: #bdc3c7;">
                             Download a backup to enable offline radio station access when the API is down.
                         </div>
                     `;
+                        }
+                    })
+                    .catch(error => {
+                        statusDiv.innerHTML = '<div style="color: #e74c3c;">❌ Error checking backup status</div>';
+                        console.error('Backup status error:', error);
+                    });
+            }
+
+            function downloadBackup() {
+                const statusDiv = document.getElementById('backup-status');
+                statusDiv.innerHTML = '<div style="text-align: center;">⏳ Downloading backup (~5.6 MB)...<br><small>This may take a minute</small></div>';
+
+                fetch('/api/radio/backup/download', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            showToast('✅ Backup downloaded successfully!', 'success', 3000);
+                            checkBackupStatus();
+                        } else {
+                            showToast('❌ Download failed: ' + data.message, 'error', 5000);
+                            checkBackupStatus();
+                        }
+                    })
+                    .catch(error => {
+                        showToast('❌ Error downloading backup', 'error', 5000);
+                        console.error('Download error:', error);
+                        checkBackupStatus();
+                    });
+            }
+
+            // Utility functions
+            function escapeHtml(unsafe) {
+                if (typeof unsafe === 'object') {
+                    unsafe = JSON.stringify(unsafe);
                 }
-            })
-            .catch(error => {
-                statusDiv.innerHTML = '<div style="color: #e74c3c;">❌ Error checking backup status</div>';
-                console.error('Backup status error:', error);
-            });
-    }
+                return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
 
-    function downloadBackup() {
-        const statusDiv = document.getElementById('backup-status');
-        statusDiv.innerHTML = '<div style="text-align: center;">⏳ Downloading backup (~5.6 MB)...<br><small>This may take a minute</small></div>';
-        
-        fetch('/api/radio/backup/download', { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    showToast('✅ Backup downloaded successfully!', 'success', 3000);
-                    checkBackupStatus();
-                } else {
-                    showToast('❌ Download failed: ' + data.message, 'error', 5000);
-                    checkBackupStatus();
-                }
-            })
-            .catch(error => {
-                showToast('❌ Error downloading backup', 'error', 5000);
-                console.error('Download error:', error);
-                checkBackupStatus();
-            });
-    }
+            // Playback control functions
+            function playMusic() {
+                fetch('/play?ajax=1', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => showToast(data.message || 'Play', 'success', 2000))
+                    .catch(error => showToast('Error playing music', 'error'));
+            }
 
-    // Utility functions
-    function escapeHtml(unsafe) {
-        if (typeof unsafe === 'object') {
-            unsafe = JSON.stringify(unsafe);
-        }
-        return unsafe
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
+            function pauseMusic() {
+                fetch('/pause?ajax=1', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => showToast(data.message || 'Paused', 'info', 2000))
+                    .catch(error => showToast('Error pausing music', 'error'));
+            }
 
-    // Playback control functions
-    function playMusic() {
-        fetch('/play?ajax=1', { method: 'POST' })
-            .then(response => response.json())
-            .then(data => showToast(data.message || 'Play', 'success', 2000))
-            .catch(error => showToast('Error playing music', 'error'));
-    }
+            function stopMusic() {
+                fetch('/stop?ajax=1', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => showToast(data.message || 'Stopped', 'info', 2000))
+                    .catch(error => showToast('Error stopping music', 'error'));
+            }
 
-    function pauseMusic() {
-        fetch('/pause?ajax=1', { method: 'POST' })
-            .then(response => response.json())
-            .then(data => showToast(data.message || 'Paused', 'info', 2000))
-            .catch(error => showToast('Error pausing music', 'error'));
-    }
+            function nextTrack() {
+                fetch('/next?ajax=1', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => showToast('Next track ⏭', 'success', 2000))
+                    .catch(error => showToast('Error skipping track', 'error'));
+            }
 
-    function stopMusic() {
-        fetch('/stop?ajax=1', { method: 'POST' })
-            .then(response => response.json())
-            .then(data => showToast(data.message || 'Stopped', 'info', 2000))
-            .catch(error => showToast('Error stopping music', 'error'));
-    }
-
-    function nextTrack() {
-        fetch('/next?ajax=1', { method: 'POST' })
-            .then(response => response.json())
-            .then(data => showToast('Next track ⏭', 'success', 2000))
-            .catch(error => showToast('Error skipping track', 'error'));
-    }
-
-    function previousTrack() {
-        fetch('/previous?ajax=1', { method: 'POST' })
-            .then(response => response.json())
-            .then(data => showToast('Previous track ⏮', 'success', 2000))
-            .catch(error => showToast('Error going back', 'error'));
-    }
-</script>
+            function previousTrack() {
+                fetch('/previous?ajax=1', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => showToast('Previous track ⏮', 'success', 2000))
+                    .catch(error => showToast('Error going back', 'error'));
+            }
+        </script>
     </div>
 </body>
+
 </html>

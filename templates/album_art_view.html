@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ artist }} - {{ album }}</title>
-    <script src="/static/version-loader.js"></script>
     <style>
         * {
             margin: 0;
@@ -144,9 +144,11 @@
             0% {
                 background-position: 0% 50%;
             }
+
             50% {
                 background-position: 100% 50%;
             }
+
             100% {
                 background-position: 0% 50%;
             }
@@ -189,6 +191,7 @@
             .art-info h1 {
                 font-size: 1.5em;
             }
+
             .art-info h2 {
                 font-size: 1.2em;
             }
@@ -197,13 +200,13 @@
     <script>
         function closeWindow() {
             window.close();
-            setTimeout(function() {
+            setTimeout(function () {
                 alert('Please close this tab manually (Ctrl+W or click the X)');
             }, 100);
         }
 
         function loadImage(img) {
-            img.onload = function() {
+            img.onload = function () {
                 img.classList.add('loaded');
             };
             if (img.complete) {
@@ -215,32 +218,32 @@
             try {
                 const response = await fetch('/api/artist_images?artist=' + encodeURIComponent('{{ artist }}'));
                 const data = await response.json();
-                
+
                 if (data.albums && data.albums.length > 0) {
                     const photoSlots = document.querySelectorAll('.artist-photo');
-                    
+
                     photoSlots.forEach((slot, index) => {
                         if (index < data.albums.length) {
                             const album = data.albums[index];
                             const img = slot.querySelector('img');
-                            
+
                             // Get album art URL
-                            const artUrl = '/album_art?artist=' + encodeURIComponent(album.artist) + 
-                                          '&album=' + encodeURIComponent(album.album) +
-                                          (album.file ? '&file=' + encodeURIComponent(album.file) : '');
-                            
+                            const artUrl = '/album_art?artist=' + encodeURIComponent(album.artist) +
+                                '&album=' + encodeURIComponent(album.album) +
+                                (album.file ? '&file=' + encodeURIComponent(album.file) : '');
+
                             img.src = artUrl;
                             loadImage(img);
-                            
+
                             // Add album label
                             const label = document.createElement('div');
                             label.className = 'album-label';
                             label.textContent = album.album;
                             slot.appendChild(label);
-                            
+
                             // Make clickable - opens search for this album
                             slot.style.cursor = 'pointer';
-                            slot.onclick = function() {
+                            slot.onclick = function () {
                                 const searchUrl = '/search?query=' + encodeURIComponent(album.album) + '&search_tag=album';
                                 window.opener.location.href = searchUrl;
                                 window.close();  // Close this tab after opening search
@@ -253,39 +256,41 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Load album art
             const albumImg = document.querySelector('.album-center img');
             loadImage(albumImg);
-            
+
             // Load artist photos if LastFM is configured
             loadArtistPhotos();
         });
     </script>
 </head>
+
 <body>
     <button class="close-btn" onclick="closeWindow()">✕ Close</button>
-    
+
     <div class="collage-container">
         <!-- Top row -->
         <div class="collage-item artist-photo"><img src="" alt="Artist"></div>
         <div class="collage-item artist-photo"><img src="" alt="Artist"></div>
         <div class="collage-item artist-photo"><img src="" alt="Artist"></div>
-        
+
         <!-- Middle row -->
         <div class="collage-item artist-photo"><img src="" alt="Artist"></div>
         <div class="collage-item album-center"><img src="{{ album_art_url }}" alt="Album Art"></div>
         <div class="collage-item artist-photo"><img src="" alt="Artist"></div>
-        
+
         <!-- Bottom row -->
         <div class="collage-item artist-photo"><img src="" alt="Artist"></div>
         <div class="collage-item artist-photo"><img src="" alt="Artist"></div>
         <div class="collage-item artist-photo"><img src="" alt="Artist"></div>
     </div>
-    
+
     <div class="art-info">
         <h2>{{ artist }}</h2>
         <h1>{{ album }}</h1>
     </div>
 </body>
+
 </html>
