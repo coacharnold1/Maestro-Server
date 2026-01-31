@@ -154,14 +154,26 @@
         }
 
         .chart-item-name.clickable-search {
+            display: inline-block;
             cursor: pointer;
             color: #3498db;
             transition: all 0.2s ease;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            padding: 8px 4px;
+            margin: -8px -4px;
+            border-radius: 4px;
         }
 
         .chart-item-name.clickable-search:hover {
             color: #2ecc71;
-            text-decoration: underline;
+            background-color: rgba(46, 204, 113, 0.1);
+            text-decoration: underline 2px;
+        }
+
+        .chart-item-name.clickable-search:active {
+            color: #27ae60;
+            background-color: rgba(46, 204, 113, 0.2);
         }
 
         .chart-item-meta {
@@ -730,7 +742,7 @@
                     const safeArtistJs = jsString(item.name || '');
                     const dropdownId = `artist-dropdown-${index}`;
                     const searchUrl = `/search?query=${encodeURIComponent(item.name)}&type=artist`;
-                    nameHtml = `<a href="${searchUrl}" class="chart-item-name clickable-search" style="text-decoration: none; color: inherit;">${escapeHtml(item.name)}</a>`;
+                    nameHtml = `<a href="${searchUrl}" class="chart-item-name clickable-search">${escapeHtml(item.name)}</a>`;
                     metaHtml = `<div class="chart-item-playcount">${item.playcount} plays</div>`;
                     // Primary action: Add dropdown
                     actionsHtml = `
@@ -762,7 +774,7 @@
                     const safeArtistJs = jsString(item.artist || '');
                     const safeTrackJs = jsString(item.name || '');
                     const searchUrl = `/search?query=${encodeURIComponent(item.name)}&type=title`;
-                    nameHtml = `<a href="${searchUrl}" class="chart-item-name clickable-search" style="text-decoration: none; color: inherit;">${escapeHtml(item.name)}</a>`;
+                    nameHtml = `<a href="${searchUrl}" class="chart-item-name clickable-search">${escapeHtml(item.name)}</a>`;
                     metaHtml = `
                         <div class="chart-item-meta">by ${escapeHtml(item.artist)}</div>
                         <div class="chart-item-playcount">${item.playcount} plays</div>
