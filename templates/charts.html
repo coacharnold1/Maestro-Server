@@ -633,6 +633,15 @@
 
         let currentPeriod = '7day';
 
+        // Search function for clickable items (defined early so it can be called from inline onclick)
+        function searchFor(type, query) {
+            console.log('[DEBUG] searchFor called with:', { type, query });
+            // Open search page with the query
+            const searchUrl = `/search?query=${encodeURIComponent(query)}&type=${type}`;
+            console.log('[DEBUG] Navigating to:', searchUrl);
+            window.location.href = searchUrl;
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             // Check if Last.fm is connected
             checkLastfmConnection();
@@ -720,9 +729,10 @@
                 if (chartType === 'artists') {
                     const safeArtistJs = jsString(item.name || '');
                     const dropdownId = `artist-dropdown-${index}`;
-                    nameHtml = `<div class="chart-item-name clickable-search" data-type="artist" data-query="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>`;
+                    const searchUrl = `/search?query=${encodeURIComponent(item.name)}&type=artist`;
+                    nameHtml = `<a href="${searchUrl}" class="chart-item-name clickable-search" style="text-decoration: none; color: inherit;">${escapeHtml(item.name)}</a>`;
                     metaHtml = `<div class="chart-item-playcount">${item.playcount} plays</div>`;
-                    // Primary action: Add dropdown; artist search via clickable name
+                    // Primary action: Add dropdown
                     actionsHtml = `
                         <div class="dropdown-container" style="display:inline-block; position:relative;">
                             <button class="btn btn-primary" onclick="toggleDropdown('${dropdownId}'); event.stopPropagation();">
@@ -751,7 +761,8 @@
                 } else if (chartType === 'tracks') {
                     const safeArtistJs = jsString(item.artist || '');
                     const safeTrackJs = jsString(item.name || '');
-                    nameHtml = `<div class="chart-item-name clickable-search" data-type="title" data-query="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>`;
+                    const searchUrl = `/search?query=${encodeURIComponent(item.name)}&type=title`;
+                    nameHtml = `<a href="${searchUrl}" class="chart-item-name clickable-search" style="text-decoration: none; color: inherit;">${escapeHtml(item.name)}</a>`;
                     metaHtml = `
                         <div class="chart-item-meta">by ${escapeHtml(item.artist)}</div>
                         <div class="chart-item-playcount">${item.playcount} plays</div>
@@ -924,24 +935,6 @@
                 section.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }
-
-        // Search function for clickable items
-        function searchFor(type, query) {
-            // Open search page with the query
-            const searchUrl = `/search?query=${encodeURIComponent(query)}&type=${type}`;
-            window.location.href = searchUrl;
-        }
-
-        // Setup click handlers for clickable search elements
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.clickable-search').forEach(element => {
-                element.addEventListener('click', function(e) {
-                    const type = this.dataset.type;
-                    const query = this.dataset.query;
-                    searchFor(type, query);
-                });
-            });
-        });
     </script>
 </body>
 

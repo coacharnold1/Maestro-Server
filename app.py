@@ -1,8 +1,8 @@
 print("[DEBUG] app.py loaded and running", flush=True)
 
 # Application version information
-APP_VERSION = "2.9.3"
-APP_BUILD_DATE = "2026-01-28" 
+APP_VERSION = "2.9.4"
+APP_BUILD_DATE = "2026-01-30" 
 APP_NAME = "Maestro MPD Server"
 
 # Simple threading mode to avoid eventlet issues
@@ -917,6 +917,46 @@ def _add_album_songs_to_playlist_with_client(client, artist: str, album: str) ->
             except Exception as e:
                 print(f"[DEBUG] Artist search failed for '{album}' by '{artist}': {e}")
                 songs = []
+
+        # If still no results, try fuzzy matching on album names
+        if not songs:
+            try:
+                # Get all albums by this artist and find similar ones
+                all_albums_by_artist = client.find('albumartist', artist)
+                if not all_albums_by_artist:
+                    all_albums_by_artist = client.find('artist', artist)
+                
+                # Build set of unique album names
+                available_albums = set()
+                for song in all_albums_by_artist:
+                    if song.get('album'):
+                        available_albums.add(song.get('album'))
+                
+                # Try to find a fuzzy match
+                album_lower = album.lower().strip()
+                matching_album = None
+                
+                for avail_album in available_albums:
+                    avail_lower = avail_album.lower().strip()
+                    # Check if Last.fm album name is a substring or vice versa, or if base names match
+                    if (album_lower in avail_lower or avail_lower in album_lower or
+                        avail_lower.split('(')[0].strip() == album_lower.split('(')[0].strip()):
+                        matching_album = avail_album
+                        print(f"[DEBUG] Fuzzy matched '{album}' → '{matching_album}'")
+                        break
+                
+                # If found a fuzzy match, search for it
+                if matching_album:
+                    try:
+                        songs = client.find('albumartist', artist, 'album', matching_album)
+                        if not songs:
+                            songs = client.find('artist', artist, 'album', matching_album)
+                        print(f"[DEBUG] Fuzzy search found {len(songs)} songs in '{matching_album}'")
+                    except Exception as e:
+                        print(f"[DEBUG] Fuzzy match search failed: {e}")
+                        songs = []
+            except Exception as e:
+                print(f"[DEBUG] Fuzzy album search failed: {e}")
 
         for song in songs:
             file_path = song.get('file')
