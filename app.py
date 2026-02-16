@@ -300,6 +300,72 @@ def save_genre_stations(stations):
         print(f"Error saving genre stations: {e}")
         return False
 
+# Manual Radio Stations Management
+MANUAL_STATIONS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'manual_radio_stations.json')
+
+def load_manual_stations():
+    """Load manually added radio stations from persistent storage"""
+    try:
+        if os.path.exists(MANUAL_STATIONS_FILE):
+            with open(MANUAL_STATIONS_FILE, 'r') as f:
+                return json.load(f)
+        return []
+    except (json.JSONDecodeError, IOError) as e:
+        print(f"Error loading manual stations: {e}")
+        return []
+
+def save_manual_stations(stations):
+    """Save manually added stations to persistent storage"""
+    try:
+        with open(MANUAL_STATIONS_FILE, 'w') as f:
+            json.dump(stations, f, indent=2)
+        print(f"Saved {len(stations)} manual radio stations")
+        return True
+    except IOError as e:
+        print(f"Error saving manual stations: {e}")
+        return False
+
+def add_manual_station(name, url, favicon=''):
+    """Add a new manually added radio station"""
+    try:
+        stations = load_manual_stations()
+        
+        # Check if URL already exists
+        if any(s['url'] == url for s in stations):
+            return False, "Station URL already exists"
+        
+        from datetime import datetime
+        station = {
+            'name': name.strip(),
+            'url': url.strip(),
+            'favicon': favicon.strip() if favicon else '',
+            'added_date': datetime.now().isoformat(),
+            'manual': True
+        }
+        
+        stations.append(station)
+        if save_manual_stations(stations):
+            return True, "Station added successfully"
+        return False, "Failed to save station"
+    except Exception as e:
+        print(f"Error adding manual station: {e}")
+        return False, str(e)
+
+def remove_manual_station(url):
+    """Remove a manually added station by URL"""
+    try:
+        stations = load_manual_stations()
+        original_count = len(stations)
+        stations = [s for s in stations if s['url'] != url]
+        
+        if len(stations) < original_count:
+            save_manual_stations(stations)
+            return True, "Station removed successfully"
+        return False, "Station not found"
+    except Exception as e:
+        print(f"Error removing manual station: {e}")
+        return False, str(e)
+
 # --- API endpoint for application version info ---
 @app.route('/api/version')
 def get_version_info():
@@ -3027,6 +3093,65 @@ def play_radio_station():
             return jsonify({'status': 'error', 'message': f'MPD error: {str(e)}'}), 500
             
     except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# --- Manual Radio Stations API ---
+@app.route('/api/radio/manual/list', methods=['GET'])
+def get_manual_stations():
+    """Get list of manually added radio stations"""
+    try:
+        stations = load_manual_stations()
+        return jsonify(stations)
+    except Exception as e:
+        print(f"Error listing manual stations: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/radio/manual/save', methods=['POST'])
+def save_manual_station():
+    """Save a manually added radio station"""
+    try:
+        data = request.get_json()
+        name = data.get('name', '').strip()
+        url = data.get('url', '').strip()
+        favicon = data.get('favicon', '').strip()
+        
+        if not name:
+            return jsonify({'status': 'error', 'message': 'Station name required'}), 400
+        if not url:
+            return jsonify({'status': 'error', 'message': 'Station URL required'}), 400
+        
+        # Validate URL format
+        if not url.startswith(('http://', 'https://')):
+            return jsonify({'status': 'error', 'message': 'Invalid URL - must start with http:// or https://'}), 400
+        
+        success, message = add_manual_station(name, url, favicon)
+        if success:
+            return jsonify({'status': 'success', 'message': message})
+        else:
+            return jsonify({'status': 'error', 'message': message}), 400
+            
+    except Exception as e:
+        print(f"Error saving manual station: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/radio/manual/remove', methods=['POST'])
+def remove_manual_station_endpoint():
+    """Remove a manually added station by URL"""
+    try:
+        data = request.get_json()
+        url = data.get('url', '').strip()
+        
+        if not url:
+            return jsonify({'status': 'error', 'message': 'URL required'}), 400
+        
+        success, message = remove_manual_station(url)
+        if success:
+            return jsonify({'status': 'success', 'message': message})
+        else:
+            return jsonify({'status': 'error', 'message': message}), 404
+            
+    except Exception as e:
+        print(f"Error removing manual station: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # --- Safer actions for Last.fm artist items (Charts page) ---

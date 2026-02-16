@@ -342,6 +342,19 @@
             background-color: #2980b9;
         }
 
+        /* Button container for side-by-side buttons */
+        .manual-button-group {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .manual-button-group button {
+            flex: 1;
+            width: auto !important;
+            padding: 12px !important;
+        }
+
         .loading {
             text-align: center;
             padding: 40px;
@@ -762,7 +775,19 @@
                 <input type="text" id="manual-name" placeholder="Station Name" data-i18n-placeholder="station_name">
                 <input type="text" id="manual-url" placeholder="Stream URL (http://...)"
                     data-i18n-placeholder="stream_url">
-                <button onclick="playManualStream()" data-i18n="play_stream">▶️ Play Stream</button>
+                <input type="text" id="manual-favicon" placeholder="Favicon URL (optional)"
+                    data-i18n-placeholder="favicon_url">
+                <div class="manual-button-group">
+                    <button onclick="playAndSaveManualStream()" style="background-color: #27ae60;">💾 Save & Play</button>
+                    <button onclick="playManualStream()" style="background-color: #3498db;">▶️ Play Now</button>
+                </div>
+            </div>
+
+            <div id="saved-stations-container">
+                <h3>📼 Saved Manual Stations</h3>
+                <div id="saved-stations-list" class="station-list">
+                    <div class="loading">🔄 Loading saved stations...</div>
+                </div>
             </div>
 
             <div class="manual-add" style="margin-top: 15px;">
@@ -787,11 +812,13 @@
             let currentCountry = 'US'; // Default
             let allStations = [];
             let favorites = [];
+            let manualStations = [];
             let socket = null;
 
             // Initialize
             document.addEventListener('DOMContentLoaded', function () {
                 loadFavorites();
+                loadManualStations();
                 detectLocation();
                 setupTabs();
                 setupSearch();
@@ -914,6 +941,8 @@
                         // Load content if needed
                         if (targetTab === 'favorites') {
                             renderFavorites();
+                        } else if (targetTab === 'manual') {
+                            loadManualStations();
                         }
                     });
                 });
@@ -1154,6 +1183,139 @@
                 }
 
                 playStation(url, name);
+            }
+
+            // Play and save manual stream
+            async function playAndSaveManualStream() {
+                const name = document.getElementById('manual-name').value || 'Custom Stream';
+                const url = document.getElementById('manual-url').value;
+                const favicon = document.getElementById('manual-favicon').value || '';
+
+                if (!url) {
+                    showToast('Please enter a stream URL', 'warning');
+                    return;
+                }
+
+                // Validate URL
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    showToast('URL must start with http:// or https://', 'warning');
+                    return;
+                }
+
+                // Save the station
+                try {
+                    const response = await fetch('/api/radio/manual/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: name, url: url, favicon: favicon })
+                    });
+
+                    const data = await response.json();
+                    if (response.ok) {
+                        showToast(`✅ Station saved: ${name}`, 'success');
+                        // Reload manual stations
+                        await loadManualStations();
+                        // Clear the form
+                        document.getElementById('manual-name').value = '';
+                        document.getElementById('manual-url').value = '';
+                        document.getElementById('manual-favicon').value = '';
+                    } else {
+                        showToast(`❌ Failed to save: ${data.message}`, 'error');
+                    }
+                } catch (error) {
+                    showToast('Error saving station', 'error');
+                    console.error('Save error:', error);
+                    return;
+                }
+
+                // Now play it
+                playStation(url, name, favicon);
+            }
+
+            // Load manual stations from server
+            async function loadManualStations() {
+                try {
+                    const response = await fetch('/api/radio/manual/list');
+                    if (response.ok) {
+                        manualStations = await response.json();
+                        renderSavedStations();
+                    } else {
+                        manualStations = [];
+                    }
+                } catch (error) {
+                    console.error('Error loading manual stations:', error);
+                    manualStations = [];
+                }
+            }
+
+            // Render saved manual stations
+            function renderSavedStations() {
+                const container = document.getElementById('saved-stations-list');
+
+                if (!manualStations || manualStations.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            📝 <span data-i18n="no_manual_stations">No saved manual stations yet</span><br>
+                            <small>Add and save a custom stream above to keep it for later</small>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = manualStations.map(station => {
+                    const logoSrc = (station.favicon && station.favicon.startsWith('http'))
+                        ? station.favicon
+                        : '/static/placeholder-radio.png';
+
+                    return `
+                        <div class="station-card">
+                            <img class="station-logo" src="${logoSrc}" 
+                                 onerror="this.onerror=null; this.src='/static/placeholder-radio.png';" 
+                                 alt="${escapeHtml(station.name)}">
+                            <div class="station-info">
+                                <div class="station-name">${escapeHtml(station.name)}</div>
+                                <div class="station-details">
+                                    📻 Manual Station
+                                    ${station.added_date ? ` • Added: ${new Date(station.added_date).toLocaleDateString()}` : ''}
+                                </div>
+                            </div>
+                            <div class="station-actions">
+                                <button class="btn-play" onclick="playStation('${escapeHtml(station.url)}', '${escapeHtml(station.name)}', '${escapeHtml(station.favicon || '')}')">
+                                    ▶️ Play
+                                </button>
+                                <button class="btn-favorite" onclick="deleteManualStation('${escapeHtml(station.url)}', '${escapeHtml(station.name)}')" style="background-color: #e74c3c;">
+                                    🗑️ Delete
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Delete a manual station
+            async function deleteManualStation(url, name) {
+                if (!confirm(`Are you sure you want to delete "${name}"?`)) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/radio/manual/remove', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url: url })
+                    });
+
+                    const data = await response.json();
+                    if (response.ok) {
+                        showToast(`✅ Station deleted`, 'success');
+                        await loadManualStations();
+                    } else {
+                        showToast(`❌ Failed to delete: ${data.message}`, 'error');
+                    }
+                } catch (error) {
+                    showToast('Error deleting station', 'error');
+                    console.error('Delete error:', error);
+                }
             }
 
             // Favorites management
