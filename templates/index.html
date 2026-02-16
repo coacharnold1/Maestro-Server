@@ -1094,7 +1094,7 @@
                 <p class="status-item"><span>Artist:</span> <span id="current-artist"><a href="/search?query={{ mpd_info.artist|strip_location|urlencode }}&type=artist" style="color:#27ae60; text-decoration:underline;">{{ mpd_info.artist }}</a></span></p>
                 <p class="status-item"><span>Title:</span> <span id="current-title">{{ mpd_info.song_title }}</span></p>
                 <p class="status-item"><span>Album:</span> <span id="current-album">{{ mpd_info.album }}</span></p>
-                <p class="status-item"><span>Genre:</span> <span id="current-genre">{{ mpd_info.get('genre') if mpd_info.get('genre') else 'N/A' }}</span></p>
+                <p class="status-item"><span>Genre:</span> <span id="current-genre"><a href="/browse/artists?genre={{ mpd_info.get('genre')|urlencode }}" style="color:#27ae60; text-decoration:underline;">{{ mpd_info.get('genre') if mpd_info.get('genre') else 'N/A' }}</a></span></p>
                 <p class="status-item"><span>Format:</span> <span id="current-format">{% if mpd_info.get('file_format') or mpd_info.get('sample_rate') or mpd_info.get('bit_depth') %}{% if mpd_info.get('file_format') %}{{ mpd_info.get('file_format') }}{% endif %}{% if mpd_info.get('sample_rate') %}{% if mpd_info.get('file_format') %} • {% endif %}{{ (mpd_info.get('sample_rate') / 1000.0)|float|round(1, 'common') }} kHz{% endif %}{% if mpd_info.get('bit_depth') %}{% if mpd_info.get('file_format') or mpd_info.get('sample_rate') %} • {% endif %}{{ mpd_info.get('bit_depth') }}-bit{% endif %}{% else %}N/A{% endif %}</span></p>
                 <p class="status-item"><span>Playback:</span> <span id="playback-summary">Vol {{ mpd_info.volume }}% • {{ mpd_info.elapsed_time }} / {{ mpd_info.total_time }}</span></p>
             </div>
@@ -1524,7 +1524,7 @@
                     currentArtistSpan.innerHTML = `<a href="/search?query=${encodeURIComponent(strippedArtist)}&type=artist" style="color:#27ae60; text-decoration:underline;">${data.artist}</a>`;
                     currentTitleSpan.textContent = data.song_title;
                     currentAlbumSpan.textContent = data.album;
-                    if (currentGenreSpan) currentGenreSpan.textContent = data.genre || 'N/A';
+                    if (currentGenreSpan) currentGenreSpan.innerHTML = `<a href="/browse/artists?genre=${encodeURIComponent(data.genre || 'N/A')}" style="color:#27ae60; text-decoration:underline;">${data.genre || 'N/A'}</a>`;
                     if (currentFormatSpan) currentFormatSpan.textContent = formatAudioFormat(data.sample_rate, data.bit_depth, data.file_format);
 
                     // Update playback summary and volume controls display
