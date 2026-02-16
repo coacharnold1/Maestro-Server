@@ -12,6 +12,8 @@
  * Skipped when typing in input/textarea fields
  */
 
+console.log('[Keyboard Shortcuts] Script loaded!');
+
 // Global state variable - will be updated by Socket.IO mpd_status events
 window.currentMPDState = null;
 
@@ -97,44 +99,53 @@ function initializeKeyboardShortcuts() {
             return;
         }
 
+        console.log('[Keyboard Shortcuts] Shortcut detected:', event.code || event.key);
+
         // Don't trigger shortcuts if user is typing in an input or textarea
         const activeElement = document.activeElement;
         const isTyping = activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA';
         
         if (isTyping) {
+            console.log('[Keyboard Shortcuts] Skipping - typing in input');
             return;
         }
 
         // PREVENT DEFAULT FIRST - this stops scrolling/jumping
         event.preventDefault();
         event.stopPropagation();
+        console.log('[Keyboard Shortcuts] preventDefault called');
 
         // Spacebar: Toggle play/pause
         if (event.code === 'Space') {
+            console.log('[Keyboard Shortcuts] Spacebar pressed');
             togglePlayPause();
             return;
         }
 
         // Right Arrow: Next track
         if (event.key === 'ArrowRight') {
+            console.log('[Keyboard Shortcuts] Right arrow pressed');
             handleNextTrack();
             return;
         }
 
         // Left Arrow: Previous track
         if (event.key === 'ArrowLeft') {
+            console.log('[Keyboard Shortcuts] Left arrow pressed');
             handlePreviousTrack();
             return;
         }
 
         // Up Arrow: Volume +2%
         if (event.key === 'ArrowUp') {
+            console.log('[Keyboard Shortcuts] Up arrow pressed');
             handleVolumeIncrease();
             return;
         }
 
         // Down Arrow: Volume -2%
         if (event.key === 'ArrowDown') {
+            console.log('[Keyboard Shortcuts] Down arrow pressed');
             handleVolumeDecrease();
             return;
         }
@@ -146,24 +157,41 @@ function initializeKeyboardShortcuts() {
  */
 function togglePlayPause() {
     try {
-        // Use global state if available, otherwise default to play
-        if (window.currentMPDState && window.currentMPDState.state === 'play') {
-            // Currently playing - pause
-            if (typeof pauseMusic === 'function') {
-                pauseMusic();
-                showKeyboardToast('⏸️ Paused');
-            } else {
-                console.warn('[Keyboard Shortcuts] pauseMusic() function not available');
-            }
-        } else {
-            // Stopped, paused, or state unknown - play
-            if (typeof playMusic === 'function') {
-                playMusic();
-                showKeyboardToast('▶️ Playing');
-            } else {
-                console.warn('[Keyboard Shortcuts] playMusic() function not available');
+        // Look for pause button and check if it's actually visible using computed styles
+        let pauseButtonVisible = false;
+        const allButtons = document.querySelectorAll('button');
+        
+        for (const btn of allButtons) {
+            const hasIcon = btn.textContent.includes('⏸');
+            const hasAttr = btn.getAttribute('data-i18n') === 'pause';
+            
+            if (hasIcon || hasAttr) {
+                // Found a pause button - check if it's visible using computed styles
+                const computedStyle = window.getComputedStyle(btn);
+                const isVisible = computedStyle.display !== 'none' && 
+                                 computedStyle.visibility !== 'hidden' && 
+                                 btn.offsetParent !== null;
+                
+                if (isVisible) {
+                    pauseButtonVisible = true;
+                    break;
+                }
             }
         }
+        
+        if (pauseButtonVisible) {
+            // Pause button IS visible → music IS playing → PAUSE it
+            if (typeof pauseMusic === 'function') {
+                pauseMusic();
+            }
+        } else {
+            // Pause button NOT visible → music is NOT playing → PLAY it
+            if (typeof playMusic === 'function') {
+                playMusic();
+            }
+        }
+        // Let pauseMusic/playMusic functions handle their own toast messages
+        
     } catch (e) {
         console.error('[Keyboard Shortcuts] Error toggling play/pause:', e);
     }

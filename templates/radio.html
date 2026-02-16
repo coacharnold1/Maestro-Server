@@ -1453,14 +1453,14 @@
             function playMusic() {
                 fetch('/play?ajax=1', { method: 'POST' })
                     .then(response => response.json())
-                    .then(data => showToast(data.message || 'Play', 'success', 2000))
+                    .then(data => showToast('▶️ Play/Pause toggled', 'success', 2000))
                     .catch(error => showToast('Error playing music', 'error'));
             }
 
             function pauseMusic() {
                 fetch('/pause?ajax=1', { method: 'POST' })
                     .then(response => response.json())
-                    .then(data => showToast(data.message || 'Paused', 'info', 2000))
+                    .then(data => showToast('⏸️ Play/Pause toggled', 'info', 2000))
                     .catch(error => showToast('Error pausing music', 'error'));
             }
 
@@ -1486,6 +1486,11 @@
             }
         </script>
     </div>
+
+    <!-- Keyboard Shortcuts -->
+    <!-- Playback Controls -->
+    <script src="/static/playback-controls.js"></script>
+    <script src="/static/keyboard-shortcuts.js"></script>
 </body>
 
 </html>

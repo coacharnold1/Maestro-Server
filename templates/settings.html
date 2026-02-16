@@ -46,6 +46,19 @@
             </select>
         </div>
 
+        <h2 style="text-align:left; margin-top:14px;">Player Settings</h2>
+        <div class="controls" style="border-top:none;">
+            <div style="margin:6px 0; text-align:left;">
+                <label>
+                    <input type="checkbox" name="hide_volume_controls" id="hide_volume_controls" {% if hide_volume_controls %}checked{% endif %}>
+                    Hide volume controls on main page
+                </label>
+                <div style="margin-top:4px; color:#bdc3c7; font-size:0.9em;">
+                    Enable this if you use a fixed DAC volume or have hardware volume control
+                </div>
+            </div>
+        </div>
+
         <h2 style="text-align:left; margin-top:14px;">Last.fm</h2>
         <div class="controls" style="border-top:none;">
             <div style="margin:6px 0; text-align:left;">
@@ -87,8 +100,10 @@
             </div>
         </div>
 
-        <div class="controls" style="border-top:none;">
-            <button type="submit" class="button" style="background:#2ecc71; color:#1a1a1a;">Save Settings</button>
+        <div style="border-top: 2px solid #34495e; margin-top: 20px; padding-top: 20px;">
+            <div class="controls" style="border-top:none;">
+                <button type="submit" class="button" style="background:#2ecc71; color:#1a1a1a; padding: 12px 30px; font-size: 1.05em; font-weight: bold;">💾 Save All Settings</button>
+            </div>
         </div>
     </form>
 </div>

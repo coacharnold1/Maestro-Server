@@ -384,7 +384,8 @@ def get_settings_info():
         'bandcamp_enabled': settings.get('bandcamp_enabled', False),
         'bandcamp_username': settings.get('bandcamp_username', ''),
         'bandcamp_identity_token': bool(settings.get('bandcamp_identity_token', '').strip()),  # Just return if it exists
-        'lms_enabled': settings.get('lms_enabled', False)
+        'lms_enabled': settings.get('lms_enabled', False),
+        'hide_volume_controls': settings.get('hide_volume_controls', False)
     })
 
 # --- API endpoint for auto-fill status (for Add Music page) ---
@@ -1220,6 +1221,7 @@ def settings_page():
         lastfm_secret = request.form.get('lastfm_shared_secret', '').strip()
         scrobble_flag = request.form.get('enable_scrobbling') == 'on'
         show_toasts_flag = request.form.get('show_scrobble_toasts') == 'on'
+        hide_volume_flag = request.form.get('hide_volume_controls') == 'on'
 
         # Update in-memory and persisted settings. Environment variables still take precedence at runtime
         current['theme'] = theme
@@ -1227,6 +1229,7 @@ def settings_page():
         scrobbling_enabled = scrobble_flag
         current['show_scrobble_toasts'] = show_toasts_flag
         show_scrobble_toasts = show_toasts_flag
+        current['hide_volume_controls'] = hide_volume_flag
         
         # Handle Last.fm API Key
         # If user submitted a value that's not the masked placeholder, update it
@@ -1260,6 +1263,7 @@ def settings_page():
                            enable_scrobbling=bool(current.get('enable_scrobbling', False)),
                            lastfm_connected=bool(current.get('lastfm_session_key')),
                            show_scrobble_toasts=bool(current.get('show_scrobble_toasts', True)),
+                           hide_volume_controls=bool(current.get('hide_volume_controls', False)),
                            lastfm_api_key_masked=masked_key,
                            lastfm_shared_secret_masked=masked_secret,
                            genius_client_id=current.get('genius_client_id', ''),

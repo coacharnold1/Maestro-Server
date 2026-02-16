@@ -1322,6 +1322,19 @@
         }
 
         document.addEventListener('DOMContentLoaded', function () {
+            // Check if volume controls should be hidden
+            fetch('/api/settings')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.hide_volume_controls) {
+                        const volumeSection = document.querySelector('.volume-controls-simple');
+                        if (volumeSection) {
+                            volumeSection.style.display = 'none';
+                        }
+                    }
+                })
+                .catch(error => console.error('Error loading settings:', error));
+
             // Connect to Socket.IO server
             const socket = io();
 
@@ -1910,7 +1923,7 @@
             fetch('/play?ajax=1', { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
-                    displayMessage('info', data.message || 'Play command sent');
+                    displayMessage('info', '▶️ Play/Pause toggled');
                 })
                 .catch(error => {
                     console.error('Play error:', error); // Debug log
@@ -1922,7 +1935,7 @@
             fetch('/pause?ajax=1', { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
-                    displayMessage('info', data.message || 'Pause command sent');
+                    displayMessage('info', '⏸️ Play/Pause toggled');
                 })
                 .catch(error => {
                     displayMessage('error', 'Error pausing music: ' + error.message);
@@ -2097,6 +2110,11 @@
             </div>
         </div>
     </div>
+
+    <!-- Keyboard Shortcuts -->
+    <!-- Playback Controls -->
+    <script src="/static/playback-controls.js"></script>
+    <script src="/static/keyboard-shortcuts.js"></script>
 </body>
 
 </html>
