@@ -85,6 +85,18 @@ function initializeKeyboardShortcuts() {
     }
 
     document.addEventListener('keydown', function(event) {
+        // Check for our shortcut keys FIRST before checking if we're typing
+        const isShortcutKey = event.code === 'Space' || 
+                             event.key === 'ArrowRight' || 
+                             event.key === 'ArrowLeft' || 
+                             event.key === 'ArrowUp' || 
+                             event.key === 'ArrowDown';
+        
+        // If it's not one of our shortcuts, don't interfere
+        if (!isShortcutKey) {
+            return;
+        }
+
         // Don't trigger shortcuts if user is typing in an input or textarea
         const activeElement = document.activeElement;
         const isTyping = activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA';
@@ -93,41 +105,40 @@ function initializeKeyboardShortcuts() {
             return;
         }
 
+        // PREVENT DEFAULT FIRST - this stops scrolling/jumping
+        event.preventDefault();
+        event.stopPropagation();
+
         // Spacebar: Toggle play/pause
         if (event.code === 'Space') {
-            event.preventDefault();
             togglePlayPause();
             return;
         }
 
         // Right Arrow: Next track
         if (event.key === 'ArrowRight') {
-            event.preventDefault();
             handleNextTrack();
             return;
         }
 
         // Left Arrow: Previous track
         if (event.key === 'ArrowLeft') {
-            event.preventDefault();
             handlePreviousTrack();
             return;
         }
 
         // Up Arrow: Volume +2%
         if (event.key === 'ArrowUp') {
-            event.preventDefault();
             handleVolumeIncrease();
             return;
         }
 
         // Down Arrow: Volume -2%
         if (event.key === 'ArrowDown') {
-            event.preventDefault();
             handleVolumeDecrease();
             return;
         }
-    });
+    }, { passive: false });  // Important: passive: false allows preventDefault to work
 }
 
 /**
