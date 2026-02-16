@@ -12,10 +12,68 @@
  * Skipped when typing in input/textarea fields
  */
 
+// Global state variable - will be updated by Socket.IO mpd_status events
+window.currentMPDState = null;
+
+// Hook into existing Socket.IO mpd_status updates if available
+if (typeof window.addEventListener !== 'undefined') {
+    // Store reference to original socket if it exists
+    const originalAddEventListener = window.addEventListener;
+    let hookInstalled = false;
+    
+    // Try to hook into Socket.IO when it's available
+    const checkForSocket = setInterval(() => {
+        if (typeof io !== 'undefined' && !hookInstalled) {
+            hookInstalled = true;
+            clearInterval(checkForSocket);
+        }
+    }, 100);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize keyboard shortcuts
     initializeKeyboardShortcuts();
+    
+    // Try to hook into Socket.IO updates for MPD state
+    // Wait a moment for socket to be created
+    setTimeout(() => {
+        hookIntoSocketIO();
+    }, 500);
 });
+
+function hookIntoSocketIO() {
+    // Look for any Socket.IO socket instances in the global scope
+    // This handles cases where socket might be global or in window
+    const tryHookSocket = () => {
+        // The socket is typically created as: const socket = io();
+        // We need to find it and hook the mpd_status event
+        
+        // Try to access through window object
+        for (let key in window) {
+            if (window[key] && typeof window[key].on === 'function') {
+                try {
+                    // Try to register our mpd_status listener
+                    const originalOn = window[key].on;
+                    window[key].on = function(event, callback) {
+                        if (event === 'mpd_status') {
+                            // Wrap the callback to also update our global state
+                            const wrappedCallback = function(data) {
+                                window.currentMPDState = data;
+                                callback(data);
+                            };
+                            return originalOn.call(this, event, wrappedCallback);
+                        }
+                        return originalOn.call(this, event, callback);
+                    };
+                } catch (e) {
+                    // Ignore errors, just try the next one
+                }
+            }
+        }
+    };
+    
+    tryHookSocket();
+}
 
 function initializeKeyboardShortcuts() {
     // Check if we're on the settings page - disable shortcuts there
@@ -76,71 +134,108 @@ function initializeKeyboardShortcuts() {
  * Toggle play/pause - plays if stopped, pauses if playing
  */
 function togglePlayPause() {
-    // Get current MPD status to determine if we should play or pause
-    fetch('/get_mpd_status')
-        .then(response => response.json())
-        .then(data => {
-            if (data.state === 'play') {
-                // Currently playing - pause
+    try {
+        // Use global state if available, otherwise default to play
+        if (window.currentMPDState && window.currentMPDState.state === 'play') {
+            // Currently playing - pause
+            if (typeof pauseMusic === 'function') {
                 pauseMusic();
+                showKeyboardToast('⏸️ Paused');
             } else {
-                // Stopped or paused - play
-                playMusic();
+                console.warn('[Keyboard Shortcuts] pauseMusic() function not available');
             }
-        })
-        .catch(error => {
-            console.error('Error checking MPD status:', error);
-            // Fallback: try to play
-            playMusic();
-        });
+        } else {
+            // Stopped, paused, or state unknown - play
+            if (typeof playMusic === 'function') {
+                playMusic();
+                showKeyboardToast('▶️ Playing');
+            } else {
+                console.warn('[Keyboard Shortcuts] playMusic() function not available');
+            }
+        }
+    } catch (e) {
+        console.error('[Keyboard Shortcuts] Error toggling play/pause:', e);
+    }
 }
 
 /**
  * Next track handler
  */
 function handleNextTrack() {
-    nextTrack();
-    showKeyboardToast('⏭️ Next track');
+    try {
+        if (typeof nextTrack === 'function') {
+            nextTrack();
+            showKeyboardToast('⏭️ Next track');
+        } else {
+            console.warn('[Keyboard Shortcuts] nextTrack() function not available');
+        }
+    } catch (e) {
+        console.error('[Keyboard Shortcuts] Error calling nextTrack:', e);
+    }
 }
 
 /**
  * Previous track handler
  */
 function handlePreviousTrack() {
-    previousTrack();
-    showKeyboardToast('⏮️ Previous track');
+    try {
+        if (typeof previousTrack === 'function') {
+            previousTrack();
+            showKeyboardToast('⏮️ Previous track');
+        } else {
+            console.warn('[Keyboard Shortcuts] previousTrack() function not available');
+        }
+    } catch (e) {
+        console.error('[Keyboard Shortcuts] Error calling previousTrack:', e);
+    }
 }
 
 /**
  * Volume increase handler - respects hidden volume setting
  */
 function handleVolumeIncrease() {
-    // Check if volume controls are hidden
-    const volumeSection = document.querySelector('.volume-controls-simple');
-    if (volumeSection && volumeSection.style.display === 'none') {
-        // Volume controls are hidden, don't allow volume adjustment
-        showKeyboardToast('⚠️ Volume controls hidden', 'warning', 1500);
-        return;
-    }
+    try {
+        // Check if volume controls are hidden
+        const volumeSection = document.querySelector('.volume-controls-simple');
+        if (volumeSection && volumeSection.style.display === 'none') {
+            // Volume controls are hidden, don't allow volume adjustment
+            showKeyboardToast('⚠️ Volume controls hidden', 'warning', 1500);
+            return;
+        }
 
-    adjustVolume(2);
-    showKeyboardToast('🔊 Volume +2%');
+        if (typeof adjustVolume === 'function') {
+            adjustVolume(2);
+            showKeyboardToast('🔊 Volume +2%');
+        } else {
+            console.warn('[Keyboard Shortcuts] adjustVolume() function not available');
+        }
+    } catch (e) {
+        console.error('[Keyboard Shortcuts] Error adjusting volume:', e);
+    }
 }
 
 /**
  * Volume decrease handler - respects hidden volume setting
  */
 function handleVolumeDecrease() {
-    // Check if volume controls are hidden
-    const volumeSection = document.querySelector('.volume-controls-simple');
-    if (volumeSection && volumeSection.style.display === 'none') {
-        // Volume controls are hidden, don't allow volume adjustment
-        showKeyboardToast('⚠️ Volume controls hidden', 'warning', 1500);
-        return;
-    }
+    try {
+        // Check if volume controls are hidden
+        const volumeSection = document.querySelector('.volume-controls-simple');
+        if (volumeSection && volumeSection.style.display === 'none') {
+            // Volume controls are hidden, don't allow volume adjustment
+            showKeyboardToast('⚠️ Volume controls hidden', 'warning', 1500);
+            return;
+        }
 
-    adjustVolume(-2);
-    showKeyboardToast('🔉 Volume -2%');
+        if (typeof adjustVolume === 'function') {
+            adjustVolume(-2);
+            showKeyboardToast('🔉 Volume -2%');
+        } else {
+            console.warn('[Keyboard Shortcuts] adjustVolume() function not available');
+        }
+    } catch (e) {
+        console.error('[Keyboard Shortcuts] Error adjusting volume:', e);
+    }
 }
 
 /**
