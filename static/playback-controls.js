@@ -64,15 +64,33 @@ function previousTrack() {
 }
 
 function adjustVolume(change) {
+    // Get current volume from the display
+    const volumeDisplay = document.getElementById('volume-percentage-display');
+    if (!volumeDisplay) {
+        console.warn('Volume display element not found');
+        return;
+    }
+    
+    let currentVolume = parseInt(volumeDisplay.textContent) || 0;
+    let newVolume = currentVolume + change;
+    
+    // Clamp between 0 and 100
+    newVolume = Math.max(0, Math.min(100, newVolume));
+    
+    // Send as form data (not JSON) to match backend expectations
+    const formData = new FormData();
+    formData.append('volume', newVolume);
+    
     fetch('/set_volume', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ change: change })
+        body: formData
     })
-        .then(response => response.json())
-        .then(data => {
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             // Volume adjustment is silent - no toast
-            console.log('Volume adjusted:', change);
+            console.log('Volume adjusted to:', newVolume);
         })
         .catch(error => {
             console.error('Volume error:', error);

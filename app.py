@@ -2344,17 +2344,45 @@ def get_history():
 
 @app.route('/set_volume', methods=['POST'])
 def set_volume():
-    volume = request.form.get('volume', type=int, default=0) 
+    """Set volume on MPD
     
-    if not (0 <= volume <= 100):
-        print(f"Invalid volume value received: {volume}")
-        return 'Error: Invalid volume value', 400
-
+    Supports two modes:
+    1. Absolute: volume=<0-100>
+    2. Relative: change=<+/- value> (will fetch current and adjust)
+    """
+    volume = request.form.get('volume', type=int, default=None)
+    change = request.form.get('change', type=int, default=None)
+    
+    # If using relative change, fetch current volume first
+    if change is not None and volume is None:
+        try:
+            client = connect_mpd_client()
+            if client:
+                status = client.status()
+                current_vol = int(status.get('volume', '0'))
+                client.disconnect()
+                volume = current_vol + change
+            else:
+                print("Failed to connect to MPD for relative volume adjustment.")
+                return 'Error: MPD connection failed', 500
+        except Exception as e:
+            print(f"Error fetching current volume for relative adjustment: {e}")
+            return f'Error: {e}', 500
+    
+    # Validate volume is set
+    if volume is None:
+        print("No volume or change parameter provided")
+        return 'Error: Missing volume or change parameter', 400
+    
+    # Clamp volume between 0 and 100
+    volume = max(0, min(100, volume))
+    
     try:
         client = connect_mpd_client()
         if client:
             client.setvol(volume)
             client.disconnect()
+            print(f"[Volume Control] Set volume to {volume}%")
             # After setting volume, immediately trigger an update
             socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))
             return 'OK', 200
@@ -2363,6 +2391,7 @@ def set_volume():
             return 'Error: MPD connection failed', 500
     except Exception as e:
         print(f"Error setting volume: {e}")
+        return f'Error setting volume: {e}', 500
         return f'Error setting volume: {e}', 500
 
 @app.route('/restart_mpd')
