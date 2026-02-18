@@ -3902,31 +3902,24 @@ def get_album_songs():
         try:
             print(f"[DEBUG] /get_album_songs - Searching for album='{album}', artist='{artist}'", flush=True)
             
-            # Try exact match first
-            songs = client.find('album', album)
-            print(f"[DEBUG] /get_album_songs - Exact album search for '{album}' returned {len(songs) if songs else 0} tracks", flush=True)
-            
-            # If no results, try with trailing space (handles MPD tags with trailing spaces)
-            if not songs:
-                songs = client.find('album', album + ' ')
-                print(f"[DEBUG] /get_album_songs - Album search with trailing space returned {len(songs) if songs else 0} tracks", flush=True)
-            
-            # If still no results, try a broader search to find the album
-            if not songs:
-                songs = client.search('album', album)
-                print(f"[DEBUG] /get_album_songs - Broader album search returned {len(songs) if songs else 0} tracks", flush=True)
-            
-            # If artist specified, try more precise search as well
-            if artist and songs:
-                songs_with_artist = client.find('album', album, 'artist', artist)
-                print(f"[DEBUG] /get_album_songs - Album+Artist search returned {len(songs_with_artist) if songs_with_artist else 0} tracks", flush=True)
+            # If artist specified, search by both artist and album for exact match
+            if artist:
+                songs = client.find('album', album, 'artist', artist)
+                print(f"[DEBUG] /get_album_songs - Album+Artist exact search returned {len(songs) if songs else 0} tracks", flush=True)
                 
-                # Use the search that returned MORE results (handles Various Artists vs single artist and tag issues)
-                if len(songs_with_artist) < len(songs):
-                    print(f"[DEBUG] /get_album_songs - Using album-only results ({len(songs)} tracks) - likely Various Artists or tag mismatch", flush=True)
-                else:
-                    print(f"[DEBUG] /get_album_songs - Using album+artist results ({len(songs_with_artist)} tracks)", flush=True)
-                    songs = songs_with_artist
+                # If no exact match, try with trailing space
+                if not songs:
+                    songs = client.find('album', album + ' ', 'artist', artist)
+                    print(f"[DEBUG] /get_album_songs - Album+Artist search with trailing space returned {len(songs) if songs else 0} tracks", flush=True)
+            else:
+                # No artist specified, search by album only
+                songs = client.find('album', album)
+                print(f"[DEBUG] /get_album_songs - Album-only exact search returned {len(songs) if songs else 0} tracks", flush=True)
+                
+                # If no results, try with trailing space
+                if not songs:
+                    songs = client.find('album', album + ' ')
+                    print(f"[DEBUG] /get_album_songs - Album-only search with trailing space returned {len(songs) if songs else 0} tracks", flush=True)
             
             # Format the songs for the frontend
             formatted_songs = []
@@ -5758,34 +5751,24 @@ def api_album_tracks():
         return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
 
     try:
-        # Try exact match first
-        tracks_album_only = client.find('album', album)
-        print(f"[DEBUG] Exact album search for '{album}' returned {len(tracks_album_only) if tracks_album_only else 0} tracks")
-        
-        # If no results, try with trailing space (handles MPD tags with trailing spaces)
-        if not tracks_album_only:
-            tracks_album_only = client.find('album', album + ' ')
-            print(f"[DEBUG] Album search with trailing space returned {len(tracks_album_only) if tracks_album_only else 0} tracks")
-        
-        # If still no results, try a broader search
-        if not tracks_album_only:
-            tracks_album_only = client.search('album', album)
-            print(f"[DEBUG] Broader album search returned {len(tracks_album_only) if tracks_album_only else 0} tracks")
-        
-        # If artist specified, try more precise search as well
+        # If artist specified, search by both artist and album for exact match
         if artist:
-            tracks_with_artist = client.find('album', album, 'artist', artist)
-            print(f"[DEBUG] Album+Artist search returned {len(tracks_with_artist) if tracks_with_artist else 0} tracks")
+            tracks = client.find('album', album, 'artist', artist)
+            print(f"[DEBUG] Album+Artist exact search returned {len(tracks) if tracks else 0} tracks")
             
-            # Use the search that returned MORE results (handles Various Artists vs single artist)
-            if len(tracks_with_artist) < len(tracks_album_only):
-                print(f"[DEBUG] Using album-only results ({len(tracks_album_only)} tracks) - likely Various Artists")
-                tracks = tracks_album_only
-            else:
-                print(f"[DEBUG] Using album+artist results ({len(tracks_with_artist)} tracks)")
-                tracks = tracks_with_artist
+            # If no exact match, try with trailing space
+            if not tracks:
+                tracks = client.find('album', album + ' ', 'artist', artist)
+                print(f"[DEBUG] Album+Artist search with trailing space returned {len(tracks) if tracks else 0} tracks")
         else:
-            tracks = tracks_album_only
+            # No artist specified, search by album only
+            tracks = client.find('album', album)
+            print(f"[DEBUG] Album-only exact search returned {len(tracks) if tracks else 0} tracks")
+            
+            # If no results, try with trailing space
+            if not tracks:
+                tracks = client.find('album', album + ' ')
+                print(f"[DEBUG] Album-only search with trailing space returned {len(tracks) if tracks else 0} tracks")
         
         print(f"[DEBUG] Final track count: {len(tracks) if tracks else 0}", flush=True)
         
