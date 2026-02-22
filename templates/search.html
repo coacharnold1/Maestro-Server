@@ -58,9 +58,13 @@
             border-radius: 8px;
             padding: 10px 15px;
             margin: 15px 0;
-            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 12px;
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
         }
+        .now-playing-bar .np-art { width: 50px; height: 50px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background-color: #2c3e50; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); }
+        .now-playing-bar .np-content { flex: 1; text-align: center; min-width: 0; }
         .now-playing-bar .label { font-size: 0.8em; color: #95a5a6; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 1px; }
         .now-playing-bar .info { font-size: 1.1em; color: #ecf0f1; font-weight: 500; }
         .now-playing-bar .artist { color: #27ae60; }
@@ -68,6 +72,7 @@
         .now-playing-bar .track { color: #3498db; }
         .now-playing-bar .album { color: #e67e22; }
         @media (max-width: 600px) {
+            .now-playing-bar .np-art { width: 40px; height: 40px; }
             .now-playing-bar .info { font-size: 0.9em; }
             .now-playing-bar .separator { margin: 0 4px; }
         }
@@ -468,13 +473,16 @@
 
         <!-- Now Playing Bar -->
         <div class="now-playing-bar" id="now-playing-bar" style="display: none;">
-            <div class="label">♪ Now Playing</div>
-            <div class="info">
-                <span class="artist" id="np-artist">-</span>
-                <span class="separator">•</span>
-                <span class="album" id="np-album">-</span>
-                <span class="separator">•</span>
-                <span class="track" id="np-track">-</span>
+            <img class="np-art" id="np-art" src="/static_placeholder_art" alt="Album Art" onerror="this.src='/static_placeholder_art'">
+            <div class="np-content">
+                <div class="label">♪ Now Playing</div>
+                <div class="info">
+                    <span class="artist" id="np-artist">-</span>
+                    <span class="separator">•</span>
+                    <span class="album" id="np-album">-</span>
+                    <span class="separator">•</span>
+                    <span class="track" id="np-track">-</span>
+                </div>
             </div>
         </div>
 
@@ -554,16 +562,30 @@
             const npArtist = document.getElementById('np-artist');
             const npAlbum = document.getElementById('np-album');
             const npTrack = document.getElementById('np-track');
+            const npArt = document.getElementById('np-art');
             const maestroLogo = document.getElementById('maestro-logo-search');
+
+            // Track current art to avoid unnecessary reloads
+            let currentNpArtKey = '';
+
+            // Helper to update album art
+            function updateNowPlayingArt(artist, album) {
+                const artKey = `${artist}-${album}`;
+                if (artKey !== currentNpArtKey && npArt) {
+                    currentNpArtKey = artKey;
+                    npArt.src = `/album_art?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}&size=thumb&_t=${Date.now()}`;
+                }
+            }
 
             // Update now playing bar with MPD status
             socket.on('mpd_status', function(data) {
                 if (data.state === 'play' || data.state === 'pause') {
                     if (data.artist && data.artist !== 'N/A' && data.song_title && data.song_title !== 'N/A') {
-                        nowPlayingBar.style.display = 'block';
+                        nowPlayingBar.style.display = 'flex';
                         npArtist.textContent = data.artist;
                         npAlbum.textContent = data.album || 'Unknown Album';
                         npTrack.textContent = data.song_title;
+                        updateNowPlayingArt(data.artist, data.album || 'Unknown Album');
                     } else {
                         nowPlayingBar.style.display = 'none';
                     }
@@ -588,10 +610,11 @@
                     }
                     if (data.state === 'play' || data.state === 'pause') {
                         if (data.artist && data.artist !== 'N/A' && data.song_title && data.song_title !== 'N/A') {
-                            nowPlayingBar.style.display = 'block';
+                            nowPlayingBar.style.display = 'flex';
                             npArtist.textContent = data.artist;
                             npAlbum.textContent = data.album || 'Unknown Album';
                             npTrack.textContent = data.song_title;
+                            updateNowPlayingArt(data.artist, data.album || 'Unknown Album');
                         }
                     }
                 })

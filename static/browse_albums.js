@@ -31,6 +31,19 @@ document.addEventListener('DOMContentLoaded', function () {
     const npArtist = document.getElementById('np-artist');
     const npAlbum = document.getElementById('np-album');
     const npTrack = document.getElementById('np-track');
+    const npArt = document.getElementById('np-art');
+
+    // Track current art to avoid unnecessary reloads
+    let currentNpArtKey = '';
+
+    // Helper to update album art
+    function updateNowPlayingArt(artist, album) {
+        const artKey = `${artist}-${album}`;
+        if (artKey !== currentNpArtKey && npArt) {
+            currentNpArtKey = artKey;
+            npArt.src = `/album_art?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}&size=thumb&_t=${Date.now()}`;
+        }
+    }
 
     // Fetch initial state to set logo correctly on page load
     fetch('/api/version')
@@ -45,10 +58,11 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             if (data.state === 'play' || data.state === 'pause') {
                 if (data.artist && data.artist !== 'N/A' && data.song_title && data.song_title !== 'N/A') {
-                    nowPlayingBar.style.display = 'block';
+                    nowPlayingBar.style.display = 'flex';
                     npArtist.textContent = data.artist;
                     npAlbum.textContent = data.album || 'Unknown Album';
                     npTrack.textContent = data.song_title;
+                    updateNowPlayingArt(data.artist, data.album || 'Unknown Album');
                 }
             }
         })
