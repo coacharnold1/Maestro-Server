@@ -1038,13 +1038,14 @@
                 const header = document.querySelector(`#section-${sectionId} .accordion-header`);
                 const content = document.getElementById(`content-${sectionId}`);
                 
-                if (state === 'collapsed') {
+                if (state === 'expanded') {
+                    // Only expand if explicitly set to expanded
+                    content.style.maxHeight = 'none';
+                } else {
+                    // Default to collapsed
                     content.classList.add('collapsed');
                     header.classList.add('collapsed');
                     content.style.maxHeight = '0';
-                } else {
-                    // Default to expanded
-                    content.style.maxHeight = 'none';
                 }
             });
         })();
