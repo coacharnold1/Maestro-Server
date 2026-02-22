@@ -1206,7 +1206,7 @@
             <div class="button-row">
                 <button id="lastfm-artist-btn">Last.fm (Artist)</button>
                 <button id="wikipedia-artist-search-btn">Wikipedia (Artist)</button>
-                <button id="musicbrainz-album-search-btn">MusicBrainz (Album)</button>
+                <button id="musicbrainz-album-search-btn">Discogs (Album)</button>
             </div>
             <div class="button-row">
                 <button id="allmusic-artist-search-btn">AllMusic (Artist)</button>
@@ -1690,7 +1690,7 @@
                 const artist = currentArtistSpan.textContent || currentArtistSpan.innerText;
                 if (artist !== 'N/A') {
                     const query = encodeURIComponent(stripLocation(artist));
-                    window.open(`https://www.allmusic.com/search/all/${query}`, '_blank');
+                    window.open(`https://www.allmusic.com/search/artists/${query}`, '_blank');
                 }
             });
 
@@ -1708,9 +1708,10 @@
                 const artist = currentArtistSpan.textContent || currentArtistSpan.innerText;
                 const album = currentAlbumSpan.textContent;
                 if (artist !== 'N/A' && album !== 'N/A') {
-                    // MusicBrainz search - simpler format that works better
-                    const query = encodeURIComponent(`${album} ${stripLocation(artist)}`);
-                    window.open(`https://musicbrainz.org/search?query=${query}&type=release`, '_blank');
+                    // Discogs search - cleaner album pages
+                    const cleanArtist = stripLocation(artist);
+                    const query = encodeURIComponent(`${cleanArtist} ${album}`);
+                    window.open(`https://www.discogs.com/search?q=${query}&type=release`, '_blank');
                 }
             });
 
