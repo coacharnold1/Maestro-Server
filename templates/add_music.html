@@ -39,6 +39,99 @@
             font-size: 1.5em;
         }
 
+        /* Accordion Styles */
+        .accordion-section {
+            margin-bottom: 15px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .accordion-header {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            padding: 12px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: none;
+            width: 100%;
+            text-align: left;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: background 0.3s ease;
+            border-radius: 10px;
+        }
+
+        .accordion-header:hover {
+            background: linear-gradient(135deg, #2980b9 0%, #1a5276 100%);
+        }
+
+        .accordion-header .accordion-icon {
+            font-size: 1.2em;
+            transition: transform 0.3s ease;
+        }
+
+        .accordion-header.collapsed .accordion-icon {
+            transform: rotate(-90deg);
+        }
+
+        .accordion-content {
+            background-color: #34495e;
+            padding: 15px 20px;
+            border-radius: 0 0 10px 10px;
+            transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
+            overflow: hidden;
+        }
+
+        .accordion-content.collapsed {
+            max-height: 0 !important;
+            padding-top: 0;
+            padding-bottom: 0;
+            opacity: 0;
+        }
+
+        .accordion-content:not(.collapsed) {
+            opacity: 1;
+        }
+
+        /* Different colors for different sections */
+        .accordion-header.playback {
+            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+        }
+        .accordion-header.playback:hover {
+            background: linear-gradient(135deg, #8e44ad 0%, #6c3483 100%);
+        }
+
+        .accordion-header.genre {
+            background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+        }
+        .accordion-header.genre:hover {
+            background: linear-gradient(135deg, #d35400 0%, #a04000 100%);
+        }
+
+        .accordion-header.manual {
+            background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);
+        }
+        .accordion-header.manual:hover {
+            background: linear-gradient(135deg, #16a085 0%, #0e6655 100%);
+        }
+
+        .accordion-header.autofill {
+            background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);
+            color: #2c3e50;
+        }
+        .accordion-header.autofill:hover {
+            background: linear-gradient(135deg, #f39c12 0%, #d68910 100%);
+        }
+
+        /* Accordion section buttons - taller */
+        .accordion-content button {
+            padding: 12px 20px !important;
+            font-size: 1em !important;
+            min-height: 44px;
+        }
+
         /* Logo styling */
         .logo-container {
             text-align: center;
@@ -756,125 +849,141 @@
 
         <div id="message-area"></div>
 
-        <div class="controls playback-controls">
+        <!-- Playback Controls (always visible) -->
+        <div class="controls playback-controls" style="margin-bottom: 15px;">
             <h2>🎵 Playback Controls</h2>
-            <button onclick="playbackAction('previous')" style="background-color: #9b59b6; color: white;">⏮️
-                Previous</button>
+            <button onclick="playbackAction('previous')" style="background-color: #9b59b6; color: white;">⏮️ Previous</button>
             <button onclick="playbackAction('play')" style="background-color: #27ae60; color: white;">▶️ Play</button>
             <button onclick="playbackAction('stop')" style="background-color: #f39c12; color: white;">⏹️ Stop</button>
             <button onclick="playbackAction('pause')" style="background-color: #e74c3c; color: white;">⏸️ Pause</button>
             <button onclick="playbackAction('next')" style="background-color: #3498db; color: white;">⏭️ Next</button>
         </div>
 
-        {# Genre Stations Section - Moved to top #}
-        <div class="controls auto-fill-buttons">
-            <h2>🎛️ Genre Stations</h2>
-            <p style="text-align: center; margin-bottom: 15px; color: #bdc3c7;">
-                Save your current genre selections as genre station presets
-            </p>
+        <!-- Accordion: Genre-Based Music (Stations + Random by Genre) -->
+        <div class="accordion-section" id="section-genre">
+            <button class="accordion-header genre" onclick="toggleAccordion('genre')">
+                <span>🎛️ Genre Based Music Addition</span>
+                <span class="accordion-icon">▼</span>
+            </button>
+            <div class="accordion-content" id="content-genre">
+                {# Genre Stations Sub-Section #}
+                <div style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #4a6279;">
+                    <h3 style="color: #f1c40f; margin-bottom: 15px; text-align: center;">📡 Genre Stations</h3>
+                    <p style="text-align: center; margin-bottom: 15px; color: #bdc3c7; font-size: 0.9em;">
+                        Save your current genre selections as reusable presets
+                    </p>
 
-            <div class="form-group">
-                <label for="station-name-input">Station Name:</label>
-                <input type="text" id="station-name-input" placeholder="e.g., Rock Classics, Chill Mix, etc."
-                    style="width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #34495e; box-sizing: border-box;">
-            </div>
+                    <div class="form-group">
+                        <label for="station-name-input">Station Name:</label>
+                        <input type="text" id="station-name-input" placeholder="e.g., Rock Classics, Chill Mix, etc."
+                            style="width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #34495e; box-sizing: border-box;">
+                    </div>
 
-            <div class="form-group" style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <button id="save-station-btn" style="flex: 1;">💾 Save Current Genres as Station</button>
-                <button id="manage-stations-btn" style="flex: 1;">⚙️ Manage Stations</button>
-            </div>
+                    <div class="form-group" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button id="save-station-btn" style="flex: 1; background-color: #f1c40f; color: #2c3e50;">💾 Save Current Genres as Station</button>
+                        <button id="manage-stations-btn" style="flex: 1; background-color: #95a5a6; color: #2c3e50;">⚙️ Manage Stations</button>
+                    </div>
 
-            <div class="form-group" style="text-align: center;">
-                <label for="stations-select" style="display: block; text-align: center; margin-bottom: 8px;">Load Saved
-                    Station:</label>
-                <div style="display: inline-flex; gap: 8px; align-items: center; justify-content: center;">
-                    <select id="stations-select"
-                        style="width: 300px; padding: 8px; border-radius: 5px; border: 1px solid #34495e;">
-                        <option value="">-- Select a station --</option>
-                    </select>
-                    <button id="load-station-btn" style="padding: 8px 16px;">📡 Load</button>
+                    <div class="form-group" style="text-align: center;">
+                        <label for="stations-select" style="display: block; text-align: center; margin-bottom: 8px;">Load Saved Station:</label>
+                        <div style="display: inline-flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap;">
+                            <select id="stations-select"
+                                style="width: 300px; padding: 8px; border-radius: 5px; border: 1px solid #34495e; background: #34495e; color: #ecf0f1;">
+                                <option value="">-- Select a station --</option>
+                            </select>
+                            <button id="load-station-btn" style="padding: 8px 16px; background-color: #3498db; color: white;">📡 Load</button>
+                        </div>
+                    </div>
+
+                    <div id="stations-list" style="margin-top: 15px; max-height: 200px; overflow-y: auto; display: none;">
+                        <h4 style="color: #bdc3c7;">Manage Stations:</h4>
+                        <div id="stations-container"></div>
+                    </div>
+                </div>
+
+                {# Genre Selection + Add Random Sub-Section #}
+                <div>
+                    <h3 style="color: #e67e22; margin-bottom: 15px; text-align: center;">🎲 Add Random Songs by Genre</h3>
+                    <div class="form-group">
+                        <label for="genre-select">Select Genres:</label>
+                        <select multiple id="genre-select"
+                            style="width: 100%; height: 150px; background: #2c3e50; color: #ecf0f1; border: 1px solid #3498db; border-radius: 5px; padding: 5px;">
+                            <option value="">Loading genres...</option>
+                        </select>
+                        <small style="color: #bdc3c7; margin-top: 5px; display: block;">Hold Ctrl (Cmd on Mac) to select multiple genres</small>
+                    </div>
+                    <p style="color: #bdc3c7; font-size: 0.9em; margin: 10px 0;">
+                        Track count will use Auto-Fill settings below (Min-Max range)
+                    </p>
+                    <button id="add-random-by-genre-btn" style="background-color: #e67e22; color: white; width: 100%;">🎲 Add Random Songs from Selected Genres</button>
                 </div>
             </div>
+        </div>
 
-            <div id="stations-list" style="margin-top: 15px; max-height: 200px; overflow-y: auto; display: none;">
-                <h3>Manage Stations:</h3>
-                <div id="stations-container"></div>
+        <!-- Accordion: Manual Track Addition -->
+        <div class="accordion-section" id="section-manual">
+            <button class="accordion-header manual" onclick="toggleAccordion('manual')">
+                <span>🎲 Random Track Addition</span>
+                <span class="accordion-icon">▼</span>
+            </button>
+            <div class="accordion-content" id="content-manual">
+                <div class="form-group">
+                    <label for="artist-input">Artist:</label>
+                    <input type="text" id="artist-input" value="{{ current_artist }}" placeholder="e.g., Motorhead">
+                </div>
+                <div class="form-group">
+                    <label for="num-tracks-input">Number of Tracks to Add:</label>
+                    <input type="number" id="num-tracks-input" value="25" min="1" max="50">
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="clear-playlist-checkbox"> Clear current playlist before adding
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="filter-by-genre-checkbox"> Filter by current genre - <span style="color: #3498db; font-style: italic; font-weight: bold;">{{ current_genre if current_genre != 'N/A' else 'N/A' }}</span>
+                    </label>
+                </div>
+                <button id="add-random-btn" style="background-color: #1abc9c; color: white; width: 100%;">➕ Add Random Tracks</button>
             </div>
         </div>
 
-        {# Genre-Based Random Music Section - Moved to top #}
-        <div class="controls">
-            <h2>Add Random Songs by Genre</h2>
-            <div class="form-group">
-                <label for="genre-select">Select Genres:</label>
-                <select multiple id="genre-select"
-                    style="width: 100%; height: 150px; background: #34495e; color: #ecf0f1; border: 1px solid #3498db; border-radius: 5px; padding: 5px;">
-                    <option value="">Loading genres...</option>
-                </select>
-                <small style="color: #bdc3c7; margin-top: 5px; display: block;">Hold Ctrl (Cmd on Mac) to select
-                    multiple genres</small>
-            </div>
-            <p style="color: #bdc3c7; font-size: 0.9em; margin: 10px 0;">
-                Track count will use Auto-Fill settings below (Min-Max range)
-            </p>
-            <button id="add-random-by-genre-btn">Add Random Songs from Selected Genres</button>
-        </div>
+        <!-- Accordion: Auto-Fill Settings -->
+        <div class="accordion-section" id="section-autofill">
+            <button class="accordion-header autofill" onclick="toggleAccordion('autofill')">
+                <span>🔄 Auto-Fill Playlist</span>
+                <span class="accordion-icon">▼</span>
+            </button>
+            <div class="accordion-content" id="content-autofill">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-size: 1.1em;">
+                        <input type="checkbox" id="auto-fill-toggle" style="width: 18px; height: 18px; margin-right: 10px;"> Enable Auto-Fill
+                    </label>
+                </div>
+                <p style="margin-bottom: 15px;">Current Status: <span id="auto-fill-status-display" style="font-weight: bold;">Loading...</span></p>
 
-        <div class="controls action-buttons">
-            <h2>Manual Track Addition</h2>
-            <div class="form-group">
-                <label for="artist-input">Artist:</label>
-                <input type="text" id="artist-input" value="{{ current_artist }}" placeholder="e.g., Motorhead">
+                <h4 style="color: #bdc3c7; margin-bottom: 10px; border-bottom: 1px solid #4a6279; padding-bottom: 8px;">Settings:</h4>
+                <div class="form-group">
+                    <label for="min-queue-length-input">Min Queue Length:</label>
+                    <input type="number" id="min-queue-length-input" value="5" min="1" max="25">
+                </div>
+                <div class="form-group">
+                    <label for="num-tracks-min-input">Tracks to Add (Min):</label>
+                    <input type="number" id="num-tracks-min-input" value="3" min="1" max="25">
+                </div>
+                <div class="form-group">
+                    <label for="num-tracks-max-input">Tracks to Add (Max):</label>
+                    <input type="number" id="num-tracks-max-input" value="7" min="1" max="25">
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="auto-fill-genre-filter-checkbox"> Filter Auto-Fill by current playing genre<br>
+                        <span style="margin-left: 20px; color: #3498db;">{{ current_genre if current_genre }}</span>
+                    </label>
+                </div>
+                <button id="save-auto-fill-settings-btn" style="background-color: #f1c40f; color: #2c3e50; width: 100%;">💾 Save Auto-Fill Settings</button>
             </div>
-            <div class="form-group">
-                <label for="num-tracks-input">Number of Tracks to Add:</label>
-                <input type="number" id="num-tracks-input" value="25" min="1" max="50">
-            </div>
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="clear-playlist-checkbox"> Clear current playlist before adding
-                </label>
-            </div>
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="filter-by-genre-checkbox"> Filter by current genre. - {{ current_genre if
-                    current_genre != 'N/A' else 'N/A' }}
-                </label>
-            </div>
-            <button id="add-random-btn">Add Random Tracks</button>
-        </div>
-
-        {# Auto-Fill Section #}
-        <div class="controls auto-fill-buttons">
-            <h2>Auto-Fill Playlist</h2>
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="auto-fill-toggle"> Enable Auto-Fill
-                </label>
-            </div>
-            <p>Current Status: <span id="auto-fill-status-display">Loading...</span></p>
-
-            <h3>Settings:</h3>
-            <div class="form-group">
-                <label for="min-queue-length-input">Min Queue Length:</label>
-                <input type="number" id="min-queue-length-input" value="5" min="1" max="25">
-            </div>
-            <div class="form-group">
-                <label for="num-tracks-min-input">Tracks to Add (Min):</label>
-                <input type="number" id="num-tracks-min-input" value="3" min="1" max="25">
-            </div>
-            <div class="form-group">
-                <label for="num-tracks-max-input">Tracks to Add (Max):</label>
-                <input type="number" id="num-tracks-max-input" value="7" min="1" max="25">
-            </div>
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="auto-fill-genre-filter-checkbox"> Filter Auto-Fill by current playing
-                    genre.<br>
-                    <span style="margin-left: 20px;">{{ current_genre if current_genre }}</span>
-                </label>
-            </div>
-            <button id="save-auto-fill-settings-btn">Save Auto-Fill Settings</button>
         </div>
 
     </div>
@@ -895,6 +1004,49 @@
                 .then(r => r.json())
                 .then(d => { var el = document.getElementById('version-info'); if (el) el.textContent = d.app_name + ' v' + d.version + ' (' + d.build_date + ')'; })
                 .catch(() => { var el = document.getElementById('version-info'); if (el) el.textContent = 'MPD Web Control'; });
+        })();
+    </script>
+
+    <script>
+        // Accordion toggle functionality with localStorage persistence
+        function toggleAccordion(sectionId) {
+            const header = document.querySelector(`#section-${sectionId} .accordion-header`);
+            const content = document.getElementById(`content-${sectionId}`);
+            
+            if (content.classList.contains('collapsed')) {
+                // Expand
+                content.classList.remove('collapsed');
+                header.classList.remove('collapsed');
+                content.style.maxHeight = content.scrollHeight + 'px';
+                localStorage.setItem(`accordion-${sectionId}`, 'expanded');
+            } else {
+                // Collapse
+                content.style.maxHeight = content.scrollHeight + 'px';
+                requestAnimationFrame(() => {
+                    content.classList.add('collapsed');
+                    header.classList.add('collapsed');
+                });
+                localStorage.setItem(`accordion-${sectionId}`, 'collapsed');
+            }
+        }
+
+        // Initialize accordion states from localStorage
+        (function initAccordions() {
+            const sections = ['genre', 'manual', 'autofill'];
+            sections.forEach(sectionId => {
+                const state = localStorage.getItem(`accordion-${sectionId}`);
+                const header = document.querySelector(`#section-${sectionId} .accordion-header`);
+                const content = document.getElementById(`content-${sectionId}`);
+                
+                if (state === 'collapsed') {
+                    content.classList.add('collapsed');
+                    header.classList.add('collapsed');
+                    content.style.maxHeight = '0';
+                } else {
+                    // Default to expanded
+                    content.style.maxHeight = 'none';
+                }
+            });
         })();
     </script>
 
