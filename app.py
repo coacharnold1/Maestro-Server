@@ -4471,25 +4471,75 @@ def get_album_art():
 
 @app.route('/static_placeholder_art')
 def static_placeholder_art():
-    """Generates and serves a 'No Art' placeholder image."""
-    img_size = (150, 150)
-    img = Image.new('RGB', img_size, color = (44, 62, 80))
-    d = ImageDraw.Draw(img)
-    text = "No Art"
+    """Generates and serves an artistic 'No Art' placeholder image with gradient and musical motif."""
+    img_size = (300, 300)
     
+    # Create gradient background (dark blue to deep purple)
+    img = Image.new('RGB', img_size)
+    pixels = img.load()
+    
+    for y in range(img_size[1]):
+        # Gradient from #1a3a52 (dark blue) to #2d1b4e (deep purple)
+        r = int(26 + (45 - 26) * (y / img_size[1]))
+        g = int(58 + (27 - 58) * (y / img_size[1]))
+        b = int(82 + (78 - 82) * (y / img_size[1]))
+        for x in range(img_size[0]):
+            pixels[x, y] = (r, g, b)
+    
+    d = ImageDraw.Draw(img, 'RGBA')
+    
+    # Draw subtle circles/rings in the background
+    center_x, center_y = img_size[0] // 2, img_size[1] // 2
+    for radius in [80, 60, 40]:
+        d.ellipse(
+            [(center_x - radius, center_y - radius), (center_x + radius, center_y + radius)],
+            outline=(61, 189, 227, 30),  # Light blue, semi-transparent
+            width=2
+        )
+    
+    # Draw musical notes or radio waves
+    # Draw 3 radio wave arcs
+    for i, (offset, alpha) in enumerate([(0, 80), (15, 60), (30, 40)]):
+        r = 25 + offset
+        d.arc(
+            [(center_x - r, center_y - r), (center_x + r, center_y + r)],
+            0, 180,
+            fill=(52, 211, 153, alpha),  # Green, varying transparency
+            width=2
+        )
+    
+    # Draw center circle
+    d.ellipse(
+        [(center_x - 15, center_y - 15), (center_x + 15, center_y + 15)],
+        fill=(52, 211, 153, 200),  # Solid green center
+        outline=(255, 255, 255, 100)
+    )
+    
+    # Draw a music note in the center
+    # Stem
+    d.line([(center_x + 2, center_y - 12), (center_x + 2, center_y + 5)], fill=(255, 255, 255, 255), width=2)
+    # Note heads (two eighth notes)
+    d.ellipse([(center_x - 2, center_y - 5), (center_x + 6, center_y + 1)], fill=(255, 255, 255, 255))
+    d.ellipse([(center_x + 8, center_y + 2), (center_x + 16, center_y + 8)], fill=(255, 255, 255, 255))
+    # Beam connecting notes
+    d.line([(center_x + 2, center_y - 5), (center_x + 12, center_y + 2)], fill=(255, 255, 255, 200), width=2)
+    
+    # Add text
+    text = "No Album Art"
     try:
-        font = ImageFont.truetype(FONT_PATH, 24)
+        font_large = ImageFont.truetype(FONT_PATH, 18)
+        font_small = ImageFont.truetype(FONT_PATH, 12)
     except IOError:
-        font = ImageFont.load_default()
-        print(f"Warning: Could not load font from {FONT_PATH}. Using default font for placeholder.")
-
-    bbox = d.textbbox((0,0), text, font=font)
-    text_width = bbox[2] - bbox[0]
-    text_height = bbox[3] - bbox[1]
-    x = (img_size[0] - text_width) / 2
-    y = (img_size[1] - text_height) / 2
+        font_large = ImageFont.load_default()
+        font_small = ImageFont.load_default()
     
-    d.text((x, y), text, fill=(189, 195, 199), font=font)
+    # Draw main text with shadow effect
+    shadow_offset = 2
+    d.text((center_x + shadow_offset, 250 + shadow_offset), text, fill=(0, 0, 0, 100), font=font_large, anchor='mm')
+    d.text((center_x, 250), text, fill=(226, 232, 240, 255), font=font_large, anchor='mm')
+    
+    # Add secondary text
+    d.text((center_x, 270), "Now Playing", fill=(148, 163, 184, 200), font=font_small, anchor='mm')
 
     byte_io = BytesIO()
     img.save(byte_io, 'PNG')
