@@ -1095,6 +1095,9 @@
                 <p class="status-item"><span>Title:</span> <span id="current-title">{{ mpd_info.song_title }}</span></p>
                 <p class="status-item"><span>Album:</span> <span id="current-album">{{ mpd_info.album }}</span></p>
                 <p class="status-item"><span>Genre:</span> <span id="current-genre"><a href="/browse/artists?genre={{ mpd_info.get('genre')|urlencode }}" style="color:#27ae60; text-decoration:underline;">{{ mpd_info.get('genre') if mpd_info.get('genre') else 'N/A' }}</a></span></p>
+                {% if mpd_info.get('is_stream') %}
+                <p class="status-item"><span>Type:</span> <span id="current-type" style="color: #e74c3c; font-weight: bold;">🔴 STREAM</span></p>
+                {% endif %}
                 <p class="status-item"><span>Format:</span> <span id="current-format">{% if mpd_info.get('file_format') or mpd_info.get('sample_rate') or mpd_info.get('bit_depth') %}{% if mpd_info.get('file_format') %}{{ mpd_info.get('file_format') }}{% endif %}{% if mpd_info.get('sample_rate') %}{% if mpd_info.get('file_format') %} • {% endif %}{{ (mpd_info.get('sample_rate') / 1000.0)|float|round(1, 'common') }} kHz{% endif %}{% if mpd_info.get('bit_depth') %}{% if mpd_info.get('file_format') or mpd_info.get('sample_rate') %} • {% endif %}{{ mpd_info.get('bit_depth') }}-bit{% endif %}{% else %}N/A{% endif %}</span></p>
                 <p class="status-item"><span>Playback:</span> <span id="playback-summary">Vol {{ mpd_info.volume }}% • {{ mpd_info.elapsed_time }} / {{ mpd_info.total_time }}</span></p>
             </div>
@@ -1527,6 +1530,17 @@
                     if (currentGenreSpan) currentGenreSpan.innerHTML = `<a href="/browse/artists?genre=${encodeURIComponent(data.genre || 'N/A')}" style="color:#27ae60; text-decoration:underline;">${data.genre || 'N/A'}</a>`;
                     if (currentFormatSpan) currentFormatSpan.textContent = formatAudioFormat(data.sample_rate, data.bit_depth, data.file_format);
 
+                    // Update stream indicator
+                    const currentTypeSpan = document.getElementById('current-type');
+                    if (data.is_stream && currentTypeSpan) {
+                        currentTypeSpan.textContent = '🔴 STREAM';
+                        currentTypeSpan.style.color = '#e74c3c';
+                        currentTypeSpan.style.fontWeight = 'bold';
+                    } else if (currentTypeSpan && currentTypeSpan.parentElement) {
+                        // Hide the type row if not a stream
+                        currentTypeSpan.parentElement.parentElement.style.display = 'none';
+                    }
+
                     // Update playback summary and volume controls display
                     if (playbackSummarySpan) playbackSummarySpan.textContent = `Vol ${data.volume}% • ${data.elapsed_time} / ${data.total_time}`;
                     if (volumePercentageDisplay) volumePercentageDisplay.textContent = data.volume + '%';
@@ -1555,9 +1569,17 @@
                         
                         albumArtImg.src = newArtSrc;
                         albumArtImg.dataset.currentSongId = newSongId;
+                        
+                        // Set up error handler with fallback to stream favicon
                         albumArtImg.onerror = function () {
                             this.onerror = null;
-                            this.src = "{{ url_for('static_placeholder_art') }}";
+                            // Use stream favicon as fallback if available
+                            if (data.is_stream && data.stream_favicon) {
+                                console.log('No album art found, using stream favicon:', data.stream_favicon);
+                                this.src = data.stream_favicon;
+                            } else {
+                                this.src = "{{ url_for('static_placeholder_art') }}";
+                            }
                         };
                     }
                     albumArtContainer.style.display = 'block';

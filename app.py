@@ -657,6 +657,31 @@ def get_mpd_status_for_display():
         if current_genre != 'N/A':
             auto_fill_last_genre = current_genre
 
+        # Find favicon for the currently playing stream (if it's a stream)
+        stream_favicon = None
+        if is_stream:
+            # First check the in-memory cache (favicon sent when stream was played)
+            if song_file_path in stream_favicon_cache:
+                stream_favicon = stream_favicon_cache[song_file_path]
+                print(f"[Stream] Found favicon in cache: {stream_favicon}")
+            # Then check manual stations
+            elif not stream_favicon:
+                manual_stations = load_manual_stations()
+                for station in manual_stations:
+                    if station.get('url') == song_file_path and station.get('favicon'):
+                        stream_favicon = station.get('favicon')
+                        break
+            
+            # If still not found, check preset stations
+            if not stream_favicon:
+                try:
+                    with open(GENRE_STATIONS_FILE, 'r') as f:
+                        genre_stations = json.load(f)
+                        # genre_stations is a dict of genres, not stations
+                        # Skip this for now since it doesn't contain station URLs
+                except Exception:
+                    pass
+
         current_status_info = {
             'state': status.get('state', 'unknown'),
             'song_id': current_song.get('id'),
@@ -682,6 +707,8 @@ def get_mpd_status_for_display():
             'crossfade_seconds': crossfade_seconds,
             'next_song_title': next_song_title,
             'next_song_artist': next_song_artist,
+            'is_stream': is_stream,
+            'stream_favicon': stream_favicon,
             'message': 'Connected to MPD successfully.'
         }
         
