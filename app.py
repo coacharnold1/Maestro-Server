@@ -4528,18 +4528,13 @@ def static_placeholder_art():
     text = "No Album Art"
     try:
         font_large = ImageFont.truetype(FONT_PATH, 18)
-        font_small = ImageFont.truetype(FONT_PATH, 12)
     except IOError:
         font_large = ImageFont.load_default()
-        font_small = ImageFont.load_default()
     
     # Draw main text with shadow effect
     shadow_offset = 2
     d.text((center_x + shadow_offset, 250 + shadow_offset), text, fill=(0, 0, 0, 100), font=font_large, anchor='mm')
     d.text((center_x, 250), text, fill=(226, 232, 240, 255), font=font_large, anchor='mm')
-    
-    # Add secondary text
-    d.text((center_x, 270), "Now Playing", fill=(148, 163, 184, 200), font=font_small, anchor='mm')
 
     byte_io = BytesIO()
     img.save(byte_io, 'PNG')
