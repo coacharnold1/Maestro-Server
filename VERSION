@@ -2,19 +2,30 @@ Maestro MPD Server v3.2
 Release Date: Tue Mar 03 00:00:00 UTC 2026
 Version: 3.2
 
-🎵 PHASE 2A UI MODERNIZATION - FIXED HEADER WITH SEARCH 🎵
+🎵 ENHANCED SEARCH & AUTOCOMPLETE - NOW ACROSS ALL PAGES 🎵
 
-Latest Features (Mar 3, 2026 - v3.0.1):
-✅ NEW: Phase 2A Fixed Header Navigation - Consistent navigation across all pages
-✅ NEW: Header Search Bar - Search functionality with autocomplete in fixed header
-✅ NEW: Dynamic Page Headings - Genre and artist names displayed in page titles
-✅ NEW: Browse Albums Page - Complete Phase 2 header integration
-✅ IMPROVED: Bandcamp Button - Left-justified on genres page, Clear Playlist on right
-✅ IMPROVED: Theme Support - All 8 themes now apply to fixed header elements
-✅ IMPROVED: Browse Pages Navigation - Added browse_genres, browse_artists, browse_albums to Phase 2A
-✅ IMPROVED: Better Music Discovery - Collects 3 tracks per artist for balanced variety
-✅ NEW: Clickable Artist Links - Random album results link back to artist search
-✅ ENHANCED: Debug Messages - Shows similar artist count and candidate pool size
+Latest Features (Mar 3, 2026 - v3.2):
+✅ NEW: Autocomplete Search - All 4 browse pages (albums, artists, genres, recent) + search results
+✅ FIXED: Album Artwork in Search Results - Song results now display album art thumbnails
+✅ FIXED: Search Parameters - Corrected parameter names (album/artist/title instead of albums/artists/songs)
+✅ NEW: "All Types" Search Option - Quick way to search across all categories at once
+✅ IMPROVED: Autocomplete Dropdown Layout - Fixed CSS overlap issues with search button
+✅ IMPROVED: Playback Controls Centering - Reorganized layout to prevent float issues
+✅ IMPROVED: Now-Playing-Bar Theme Support - Added CSS for all 8 themes on browse_albums page
+✅ ENHANCED: Consistent UI/UX - Autocomplete behavior standardized across entire application
+✅ REMOVED: Redundant Clear Playlist Button - Streamlined playback control interface
+
+Previous Features (Mar 3, 2026 - v3.0.1):
+✅ Phase 2A Fixed Header Navigation - Consistent navigation across all pages
+✅ Header Search Bar - Search functionality with autocomplete in fixed header
+✅ Dynamic Page Headings - Genre and artist names displayed in page titles
+✅ Browse Albums Page - Complete Phase 2 header integration
+✅ Bandcamp Button & Clear Playlist - Proper layout positioning
+✅ Theme Support - All 8 themes now apply to fixed header elements
+✅ Browse Pages Navigation - Added browse_genres, browse_artists, browse_albums to Phase 2A
+✅ Better Music Discovery - Collects 3 tracks per artist for balanced variety
+✅ Clickable Artist Links - Random album results link back to artist search
+✅ Enhanced Debug Messages - Shows similar artist count and candidate pool size
 
 Previous Features (Jan 10, 2026 - v2.5.0):
 ✅ Album Art Collage View - Click album art to see interactive 3x3 grid with artist's albums
