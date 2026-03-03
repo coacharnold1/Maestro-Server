@@ -2736,7 +2736,166 @@
     <!-- Keyboard Shortcuts -->
     <!-- Playback Controls -->
     <script>
-        // Header search functionality
+        // ===== HEADER SEARCH WITH AUTOCOMPLETE =====
+        let headerAutocompleteData = { artists: [], albums: [], titles: [] };
+        let headerSelectedIndex = -1;
+
+        // Load autocomplete data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/search/autocomplete')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        headerAutocompleteData = data;
+                        console.log(`Header autocomplete data loaded: ${data.artists.length} artists, ${data.albums.length} albums, ${data.titles.length} titles`);
+                    }
+                })
+                .catch(err => console.error('Error loading header autocomplete data:', err));
+
+            // Wire up header search events
+            const headerInput = document.getElementById('header-search-input');
+            const headerSearchType = document.getElementById('header-search-type');
+            
+            if (headerInput) {
+                headerInput.addEventListener('input', showHeaderSuggestions);
+                headerInput.addEventListener('keydown', handleHeaderKeyDown);
+                headerInput.addEventListener('blur', function() {
+                    // Delay closing dropdown to allow clicks on suggestions
+                    setTimeout(() => {
+                        const dropdown = document.getElementById('header-autocomplete-dropdown');
+                        if (dropdown) dropdown.style.display = 'none';
+                    }, 200);
+                });
+            }
+            
+            if (headerSearchType) {
+                headerSearchType.addEventListener('change', showHeaderSuggestions);
+            }
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                const dropdown = document.getElementById('header-autocomplete-dropdown');
+                const container = document.getElementById('header-search-input');
+                if (dropdown && !dropdown.contains(e.target) && e.target !== container) {
+                    dropdown.style.display = 'none';
+                }
+            });
+        });
+
+        // Filter and display suggestions for header
+        function showHeaderSuggestions() {
+            const headerSearchType = document.getElementById('header-search-type');
+            const headerInput = document.getElementById('header-search-input');
+            const dropdown = document.getElementById('header-autocomplete-dropdown');
+            
+            if (!headerInput || !dropdown) return;
+
+            const searchType = headerSearchType ? headerSearchType.value : 'any';
+            const inputValue = headerInput.value.trim().toLowerCase();
+            
+            if (inputValue.length < 2) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            let suggestions = [];
+            
+            if (searchType === 'any') {
+                // Combine all types
+                suggestions = [
+                    ...headerAutocompleteData.artists.filter(a => a.toLowerCase().includes(inputValue)),
+                    ...headerAutocompleteData.albums.filter(a => a.toLowerCase().includes(inputValue)),
+                    ...headerAutocompleteData.titles.filter(t => t.toLowerCase().includes(inputValue))
+                ].slice(0, 15);
+            } else if (searchType === 'artist') {
+                suggestions = headerAutocompleteData.artists.filter(a => 
+                    a.toLowerCase().includes(inputValue)
+                ).slice(0, 15);
+            } else if (searchType === 'album') {
+                suggestions = headerAutocompleteData.albums.filter(a => 
+                    a.toLowerCase().includes(inputValue)
+                ).slice(0, 15);
+            } else if (searchType === 'title') {
+                suggestions = headerAutocompleteData.titles.filter(t => 
+                    t.toLowerCase().includes(inputValue)
+                ).slice(0, 15);
+            }
+
+            if (suggestions.length === 0) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            // Build dropdown HTML
+            dropdown.innerHTML = suggestions.map((item, index) => 
+                `<div class="autocomplete-item" data-index="${index}">${escapeHeaderHtml(item)}</div>`
+            ).join('');
+
+            dropdown.style.display = 'block';
+            headerSelectedIndex = -1;
+
+            // Add click handlers
+            dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    headerInput.value = this.textContent;
+                    dropdown.style.display = 'none';
+                    performHeaderSearch();
+                });
+            });
+        }
+
+        // Handle keyboard navigation in header autocomplete
+        function handleHeaderKeyDown(e) {
+            const dropdown = document.getElementById('header-autocomplete-dropdown');
+            if (!dropdown || dropdown.style.display === 'none') {
+                // If Enter was pressed and dropdown is closed, perform search
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    performHeaderSearch();
+                }
+                return;
+            }
+
+            const items = dropdown.querySelectorAll('.autocomplete-item');
+            if (items.length === 0) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                headerSelectedIndex = Math.min(headerSelectedIndex + 1, items.length - 1);
+                updateHeaderSelection(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                headerSelectedIndex = Math.max(headerSelectedIndex - 1, -1);
+                updateHeaderSelection(items);
+            } else if (e.key === 'Enter' && headerSelectedIndex >= 0) {
+                e.preventDefault();
+                document.getElementById('header-search-input').value = items[headerSelectedIndex].textContent;
+                dropdown.style.display = 'none';
+                performHeaderSearch();
+            } else if (e.key === 'Escape') {
+                dropdown.style.display = 'none';
+                headerSelectedIndex = -1;
+            }
+        }
+
+        function updateHeaderSelection(items) {
+            items.forEach((item, index) => {
+                if (index === headerSelectedIndex) {
+                    item.classList.add('selected');
+                    item.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
+
+        function escapeHeaderHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Perform header search
         function performHeaderSearch() {
             const query = document.getElementById('header-search-input').value.trim();
             const searchType = document.getElementById('header-search-type').value;
@@ -2744,18 +2903,6 @@
                 window.location.href = `/search?query=${encodeURIComponent(query)}&type=${searchType}`;
             }
         }
-
-        // Handle Enter key in header search input
-        document.addEventListener('DOMContentLoaded', function() {
-            const headerInput = document.getElementById('header-search-input');
-            if (headerInput) {
-                headerInput.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        performHeaderSearch();
-                    }
-                });
-            }
-        });
     </script>
     <script src="/static/playback-controls.js"></script>
     <script src="/static/keyboard-shortcuts.js"></script>
