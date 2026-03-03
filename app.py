@@ -1,8 +1,8 @@
 print("[DEBUG] app.py loaded and running", flush=True)
 
 # Application version information
-APP_VERSION = "2.9.7.2"
-APP_BUILD_DATE = "2026-02-28" 
+APP_VERSION = "3.0.1"
+APP_BUILD_DATE = "2026-03-03" 
 APP_NAME = "Maestro MPD Server"
 
 # Simple threading mode to avoid eventlet issues

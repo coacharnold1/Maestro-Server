@@ -1410,9 +1410,9 @@
         }
 
         .header-nav a.active {
-            color: white;
-            background-color: #e67e22 !important;
-            border-color: #e67e22 !important;
+            color: #1a1a1a;
+            background-color: #f39c12 !important;
+            border-color: #f39c12 !important;
             font-weight: bold;
         }
 
@@ -1561,7 +1561,6 @@
                     <a href="/">🏠 Main</a>
                     <a href="/playlist">🎵 Queue</a>
                     <a href="/add_music">🎲 Add Music</a>
-                    <a href="/search">🔍 Search</a>
                     <a href="/recent">📀 Recent</a>
                     <a href="/browse">🗂️ Browse</a>
                 </div>
@@ -2742,6 +2741,20 @@
 
         // Load autocomplete data on page load
         document.addEventListener('DOMContentLoaded', function() {
+            // Auto-highlight current page in navigation
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.header-nav a');
+            
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                const href = link.getAttribute('href');
+                // Match root path specially
+                if ((currentPath === '/' && href === '/') || 
+                    (currentPath !== '/' && href !== '/' && currentPath.startsWith(href))) {
+                    link.classList.add('active');
+                }
+            });
+
             fetch('/api/search/autocomplete')
                 .then(r => r.json())
                 .then(data => {

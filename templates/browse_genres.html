@@ -238,15 +238,6 @@
             margin-left: 15px;
         }
 
-        .stats {
-            text-align: center;
-            margin-bottom: 20px;
-            padding: 15px;
-            background-color: #34495e;
-            border-radius: 8px;
-            color: #bdc3c7;
-        }
-
         .message {
             position: fixed;
             top: 20px;
@@ -329,6 +320,27 @@
             color: #ffffff;
         }
 
+        body.light .now-playing-bar {
+            background: linear-gradient(135deg, #f0f3f6 0%, #e8ecf0 100%);
+            border-color: #d0d7de;
+        }
+        body.light .now-playing-bar .label {
+            color: #6b7280;
+        }
+        body.light .now-playing-bar .info,
+        body.light .now-playing-bar .track {
+            color: #1a1a1a;
+        }
+        body.light .now-playing-bar .artist {
+            color: #059669;
+        }
+        body.light .now-playing-bar .album {
+            color: #d97706;
+        }
+        body.light .now-playing-bar .separator {
+            color: #d0d7de;
+        }
+
         body.high-contrast {
             background-color: #000000;
             color: #ffff00;
@@ -344,6 +356,23 @@
         body.high-contrast .letter-nav {
             background-color: #000000;
             border: 2px solid #ffff00;
+        }
+
+        body.high-contrast .now-playing-bar {
+            background: linear-gradient(135deg, #000000 0%, #111111 100%);
+            border: 2px solid #ffff00;
+        }
+        body.high-contrast .now-playing-bar .label {
+            color: #ffff00;
+        }
+        body.high-contrast .now-playing-bar .info,
+        body.high-contrast .now-playing-bar .track,
+        body.high-contrast .now-playing-bar .artist,
+        body.high-contrast .now-playing-bar .album {
+            color: #ffff00;
+        }
+        body.high-contrast .now-playing-bar .separator {
+            color: #ffff00;
         }
 
         /* Desert theme */
@@ -364,6 +393,27 @@
             border-color: #cd853f;
         }
 
+        body.desert .now-playing-bar {
+            background: linear-gradient(135deg, #4a3b2a 0%, #3d2f20 100%);
+            border-color: #cd853f;
+        }
+        body.desert .now-playing-bar .label {
+            color: #d2b48c;
+        }
+        body.desert .now-playing-bar .info,
+        body.desert .now-playing-bar .track {
+            color: #f4e4bc;
+        }
+        body.desert .now-playing-bar .artist {
+            color: #daa520;
+        }
+        body.desert .now-playing-bar .album {
+            color: #cd853f;
+        }
+        body.desert .now-playing-bar .separator {
+            color: #8b4513;
+        }
+
         /* Terminal theme */
         body.terminal {
             background-color: #000000;
@@ -380,6 +430,23 @@
         body.terminal .letter-nav {
             background-color: #1a1a1a;
             border-color: #00cc00;
+        }
+
+        body.terminal .now-playing-bar {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            border-color: #00cc00;
+        }
+        body.terminal .now-playing-bar .label {
+            color: #00aa00;
+        }
+        body.terminal .now-playing-bar .info,
+        body.terminal .now-playing-bar .track,
+        body.terminal .now-playing-bar .artist,
+        body.terminal .now-playing-bar .album {
+            color: #00ff00;
+        }
+        body.terminal .now-playing-bar .separator {
+            color: #009900;
         }
 
         /* Sunset theme */
@@ -400,6 +467,27 @@
             border-color: #ff6b35;
         }
 
+        body.sunset .now-playing-bar {
+            background: linear-gradient(135deg, #3d2534 0%, #2d1b2e 100%);
+            border-color: #ff6b35;
+        }
+        body.sunset .now-playing-bar .label {
+            color: #ffb380;
+        }
+        body.sunset .now-playing-bar .info,
+        body.sunset .now-playing-bar .track {
+            color: #ffe4b5;
+        }
+        body.sunset .now-playing-bar .artist {
+            color: #ffb347;
+        }
+        body.sunset .now-playing-bar .album {
+            color: #ff6b35;
+        }
+        body.sunset .now-playing-bar .separator {
+            color: #ff8c42;
+        }
+
         /* Forest theme */
         body.forest {
             background-color: #0d1b0d;
@@ -418,6 +506,27 @@
             border-color: #4a7c4e;
         }
 
+        body.forest .now-playing-bar {
+            background: linear-gradient(135deg, #233d23 0%, #1a2e1a 100%);
+            border-color: #4a7c4e;
+        }
+        body.forest .now-playing-bar .label {
+            color: #7cb342;
+        }
+        body.forest .now-playing-bar .info,
+        body.forest .now-playing-bar .track {
+            color: #c9e4c5;
+        }
+        body.forest .now-playing-bar .artist {
+            color: #7cb342;
+        }
+        body.forest .now-playing-bar .album {
+            color: #4a7c4e;
+        }
+        body.forest .now-playing-bar .separator {
+            color: #558b2f;
+        }
+
         /* Midnight theme */
         body.midnight {
             background-color: #0f0a1e;
@@ -434,6 +543,27 @@
         body.midnight .letter-nav {
             background-color: #2a1f4a;
             border-color: #6a4c93;
+        }
+
+        body.midnight .now-playing-bar {
+            background: linear-gradient(135deg, #2a1f4a 0%, #1e1435 100%);
+            border-color: #6a4c93;
+        }
+        body.midnight .now-playing-bar .label {
+            color: #b19cd9;
+        }
+        body.midnight .now-playing-bar .info,
+        body.midnight .now-playing-bar .track {
+            color: #e0d4f7;
+        }
+        body.midnight .now-playing-bar .artist {
+            color: #bb86fc;
+        }
+        body.midnight .now-playing-bar .album {
+            color: #6a4c93;
+        }
+        body.midnight .now-playing-bar .separator {
+            color: #8367a7;
         }
 
         @media (max-width: 600px) {
@@ -486,6 +616,391 @@
                 font-size: 1.1em;
             }
         }
+
+        /* ==================== PHASE 2: FIXED HEADER NAVIGATION ==================== */
+
+        /* Theme-specific header colors */
+        body .fixed-header {
+            background-color: #2c3e50;
+            border-bottom-color: #34495e;
+        }
+        body .header-nav a, body .header-nav button {
+            color: #3498db;
+            border-color: #3498db;
+        }
+        body .header-search input, body .header-search select {
+            background-color: #34495e;
+            color: #ecf0f1;
+            border-color: #3498db;
+        }
+
+        body.light .fixed-header {
+            background-color: #e8e8e8;
+            border-bottom-color: #cccccc;
+        }
+        body.light .header-nav a, body.light .header-nav button {
+            color: #0066cc;
+            border-color: #0066cc;
+        }
+        body.light .header-search input, body.light .header-search select {
+            background-color: #ffffff;
+            color: #333333;
+            border-color: #0066cc;
+        }
+        body.light .header-search input::placeholder {
+            color: #999999;
+        }
+
+        body.high-contrast .fixed-header {
+            background-color: #000000;
+            border-bottom: 2px solid #ffff00;
+        }
+        body.high-contrast .header-nav a, body.high-contrast .header-nav button {
+            color: #ffff00;
+            border-color: #ffff00;
+        }
+        body.high-contrast .header-search input, body.high-contrast .header-search select {
+            background-color: #000000;
+            color: #ffff00;
+            border: 2px solid #ffff00;
+        }
+        body.high-contrast .header-search input::placeholder {
+            color: #ffff00;
+            opacity: 0.5;
+        }
+
+        body.desert .fixed-header {
+            background-color: #3d2f20;
+            border-bottom-color: #8b4513;
+        }
+        body.desert .header-nav a, body.desert .header-nav button {
+            color: #cd853f;
+            border-color: #cd853f;
+        }
+        body.desert .header-search input, body.desert .header-search select {
+            background-color: #4a3b2a;
+            color: #f4e4bc;
+            border-color: #cd853f;
+        }
+        body.desert .header-search input::placeholder {
+            color: #b8956f;
+        }
+
+        body.terminal .fixed-header {
+            background-color: #0a0a0a;
+            border-bottom: 2px solid #00cc00;
+        }
+        body.terminal .header-nav a, body.terminal .header-nav button {
+            color: #00ff00;
+            border-color: #00cc00;
+        }
+        body.terminal .header-search input, body.terminal .header-search select {
+            background-color: #1a1a1a;
+            color: #00ff00;
+            border-color: #00cc00;
+        }
+        body.terminal .header-search input::placeholder {
+            color: #00cc00;
+            opacity: 0.6;
+        }
+
+        body.sunset .fixed-header {
+            background-color: #2d1b2e;
+            border-bottom-color: #ff6b35;
+        }
+        body.sunset .header-nav a, body.sunset .header-nav button {
+            color: #ff8c42;
+            border-color: #ff8c42;
+        }
+        body.sunset .header-search input, body.sunset .header-search select {
+            background-color: #3d2534;
+            color: #ffe4b5;
+            border-color: #ff8c42;
+        }
+        body.sunset .header-search input::placeholder {
+            color: #c9a47a;
+        }
+
+        body.forest .fixed-header {
+            background-color: #1a2e1a;
+            border-bottom-color: #4a7c4e;
+        }
+        body.forest .header-nav a, body.forest .header-nav button {
+            color: #66bb6a;
+            border-color: #66bb6a;
+        }
+        body.forest .header-search input, body.forest .header-search select {
+            background-color: #233d23;
+            color: #c9e4c5;
+            border-color: #66bb6a;
+        }
+        body.forest .header-search input::placeholder {
+            color: #7cb342;
+        }
+
+        body.midnight .fixed-header {
+            background-color: #1e1435;
+            border-bottom-color: #6a4c93;
+        }
+        body.midnight .header-nav a, body.midnight .header-nav button {
+            color: #bb86fc;
+            border-color: #bb86fc;
+        }
+        body.midnight .header-search input, body.midnight .header-search select {
+            background-color: #2a1f4a;
+            color: #e0d4f7;
+            border-color: #bb86fc;
+        }
+        body.midnight .header-search input::placeholder {
+            color: #b19cd9;
+        }
+
+        .fixed-header {
+            background-color: #2c3e50;
+            border-bottom: 2px solid #34495e;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            padding: 0;
+            margin: 0 0 20px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .header-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px 20px;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .header-nav a,
+        .header-nav button {
+            color: #3498db;
+            text-decoration: none;
+            padding: 8px 14px;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            background: none;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .header-nav a:hover,
+        .header-nav button:hover {
+            color: white;
+            background-color: #3498db;
+        }
+
+        .header-nav a.active {
+            color: #1a1a1a;
+            background-color: #f39c12 !important;
+            border-color: #f39c12 !important;
+            font-weight: bold;
+        }
+
+        .header-search {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: nowrap;
+            justify-content: center;
+        }
+
+        .header-search input,
+        .header-search select {
+            padding: 8px 12px;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            background-color: #34495e;
+            color: #ecf0f1;
+            font-size: 0.9em;
+        }
+
+        .header-search select {
+            max-width: 100px;
+            flex-shrink: 0;
+        }
+
+        .header-search input {
+            width: auto;
+            max-width: 175px;
+            min-width: 100px;
+        }
+
+        .header-search button {
+            flex-shrink: 0;
+        }
+
+        .random-albums-btn {
+            flex-shrink: 0;
+        }
+
+        .header-search input::placeholder {
+            color: #95a5a6;
+        }
+
+        .header-search input:focus,
+        .header-search select:focus {
+            outline: none;
+            box-shadow: 0 0 8px rgba(52, 152, 219, 0.3);
+        }
+
+        .header-search button {
+            padding: 8px 16px;
+            background-color: #3498db;
+            color: white;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .header-search button:hover {
+            background-color: #2980b9;
+            border-color: #2980b9;
+        }
+
+        .autocomplete-container {
+            position: relative;
+            flex: none;
+            width: auto;
+        }
+
+        .autocomplete-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: #34495e;
+            border: 1px solid #3498db;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .autocomplete-item {
+            padding: 10px 12px;
+            color: #ecf0f1;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(52, 152, 219, 0.2);
+            font-size: 0.9em;
+        }
+
+        .autocomplete-item:hover,
+        .autocomplete-item.selected {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .random-albums-btn {
+            background-color: #9b59b6;
+            color: white;
+            border: 1px solid #9b59b6;
+            padding: 8px 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+
+        .random-albums-btn:hover {
+            background-color: #8e44ad;
+            border-color: #8e44ad;
+        }
+
+        .stats {
+            background-color: #34495e;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            color: #bdc3c7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: nowrap;
+        }
+
+        .stats #bandcamp-link {
+            flex: 0 0 auto;
+        }
+
+        .stats .genre-count-label {
+            text-align: center;
+            flex: 1;
+        }
+
+        .stats button,
+        .stats a {
+            padding: 8px 14px;
+            border-radius: 5px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            font-size: 0.85em;
+            white-space: nowrap;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+
+        .clear-btn {
+            background-color: #e74c3c;
+            color: white;
+            border-color: #e74c3c;
+        }
+
+        .clear-btn:hover {
+            background-color: #c0392b;
+            border-color: #c0392b;
+        }
+
+        .playback-controls .clear-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: 1px solid #e74c3c;
+        }
+
+        .playback-controls .clear-btn:hover {
+            background-color: #c0392b;
+            border-color: #c0392b;
+        }
+
+        #bandcamp-link {
+            background-color: #1b6e3c;
+            color: white;
+            border-color: #1b6e3c;
+            padding: 8px 14px;
+            border-radius: 5px;
+            flex-shrink: 0;
+        }
+
+        #bandcamp-link:hover {
+            background-color: #145a32;
+            border-color: #145a32;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
 </head>
@@ -514,15 +1029,31 @@
 
         <h1>🎵 Browse Music by Genre</h1>
 
-        <div class="nav-links">
-            <a href="/">🏠 Main</a>
-            <a href="/playlist">🎵 Play Queue</a>
-            <a href="/add_music">🎲 Add Music</a>
-            <a href="/search">🔍 Search</a>
-            <a href="/recent">📀 Recent</a>
-            <a href="/browse" class="current-page">🗂️ Browse</a>
-            <a href="/bandcamp" id="bandcamp-link" style="display: none;">🎵 Bandcamp</a>
-            <button onclick="clearPlaylist()" class="clear-btn">🗑️ Clear Playlist</button>
+        <!-- Phase 2: Fixed Header Navigation -->
+        <div class="fixed-header">
+            <div class="header-content">
+                <div class="header-nav">
+                    <a href="/">🏠 Main</a>
+                    <a href="/playlist">🎵 Queue</a>
+                    <a href="/add_music">🎲 Add Music</a>
+                    <a href="/recent">📀 Recent</a>
+                    <a href="/browse" class="active">🗂️ Browse</a>
+                </div>
+                <div class="header-search">
+                    <select id="header-search-type">
+                        <option value="any">All Types</option>
+                        <option value="artist">Artists</option>
+                        <option value="album">Albums</option>
+                        <option value="title">Songs</option>
+                    </select>
+                    <div class="autocomplete-container">
+                        <input type="text" id="header-search-input" placeholder="Search..." autocomplete="off">
+                        <div id="header-autocomplete-dropdown" class="autocomplete-dropdown"></div>
+                    </div>
+                    <button onclick="performHeaderSearch()">Go</button>
+                    <button type="button" class="random-albums-btn" onclick="window.location.href='/random_albums'" title="Get 25 random albums">🎲 Random</button>
+                </div>
+            </div>
         </div>
 
         <div class="playback-controls">
@@ -533,6 +1064,7 @@
             <button onclick="playbackAction('stop')" style="background-color: #f39c12; color: white;">⏹️ Stop</button>
             <button onclick="playbackAction('pause')" style="background-color: #e74c3c; color: white;">⏸️ Pause</button>
             <button onclick="playbackAction('next')" style="background-color: #3498db; color: white;">⏭️ Next</button>
+            <button onclick="clearPlaylist()" class="clear-btn" style="float: right;">🗑️ Clear Playlist</button>
         </div>
 
         <div id="loading" class="loading">
@@ -543,7 +1075,10 @@
         <div id="error" class="error" style="display: none;"></div>
 
         <div class="stats" id="stats" style="display: none;">
-            <span id="genre-count">0</span> genres found in your music library
+            <a href="/bandcamp" id="bandcamp-link" style="display: none;">🎵 Bandcamp</a>
+            <div class="genre-count-label" style="text-align: center;">
+                <span id="genre-count">0</span> genres found in your music library
+            </div>
         </div>
 
         <div class="letter-nav" id="letter-nav">
@@ -570,6 +1105,32 @@
                 .then(d=>{var el=document.getElementById('version-info'); if(el) el.textContent = d.app_name+' v'+d.version+' ('+d.build_date+')';})
                 .catch(()=>{var el=document.getElementById('version-info'); if(el) el.textContent='MPD Web Control';});
         })();
+
+        // Header navigation and search
+        document.addEventListener('DOMContentLoaded', function() {
+            // Highlight current page in header nav
+            const currentPath = window.location.pathname;
+            const headerNavLinks = document.querySelectorAll('.header-nav a');
+            headerNavLinks.forEach(link => {
+                if (link.pathname === currentPath || (currentPath === '/browse' && link.pathname === '/browse')) {
+                    link.classList.add('active');
+                }
+            });
+
+            // Header search - performHeaderSearch is called via onclick attribute
+            function performHeaderSearch() {
+                const searchInput = document.getElementById('header-search-input');
+                const searchType = document.getElementById('header-search-type');
+                const query = searchInput ? searchInput.value.trim() : '';
+                if (query.length > 0) {
+                    const type = searchType ? searchType.value : 'any';
+                    window.location.href = `/search?query=${encodeURIComponent(query)}&type=${type}`;
+                }
+            }
+
+            // Make it globally available
+            window.performHeaderSearch = performHeaderSearch;
+        });
 
         // Load genres when page loads
         document.addEventListener('DOMContentLoaded', function () {

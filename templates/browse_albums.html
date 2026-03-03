@@ -74,6 +74,33 @@
             border-color: #c0392b;
         }
 
+        .clear-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: 1px solid #e74c3c;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+
+        .clear-btn:hover {
+            background-color: #c0392b;
+            border-color: #c0392b;
+        }
+
+        .playback-controls .clear-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: 1px solid #e74c3c;
+        }
+
+        .playback-controls .clear-btn:hover {
+            background-color: #c0392b;
+            border-color: #c0392b;
+        }
+
         .playback-controls {
             text-align: center;
             margin-bottom: 20px;
@@ -609,6 +636,715 @@
             .now-playing-bar .info { font-size: 0.9em; }
             .now-playing-bar .separator { margin: 0 4px; }
         }
+
+        /* Phase 2: Fixed Header Navigation */
+        .fixed-header {
+            background-color: #2c3e50;
+            border-bottom: 2px solid #34495e;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            padding: 0;
+            margin: 0 0 20px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .header-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px 20px;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .header-nav a,
+        .header-nav button {
+            color: #3498db;
+            text-decoration: none;
+            padding: 8px 14px;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            background: none;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .header-nav a:hover,
+        .header-nav button:hover {
+            color: white;
+            background-color: #3498db;
+        }
+
+        .header-nav a.active {
+            color: #1a1a1a;
+            background-color: #f39c12 !important;
+            border-color: #f39c12 !important;
+            font-weight: bold;
+        }
+
+        .header-search {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: nowrap;
+            justify-content: center;
+        }
+
+        .header-search input,
+        .header-search select {
+            padding: 8px 12px;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            background-color: #34495e;
+            color: #ecf0f1;
+            font-size: 0.9em;
+        }
+
+        .header-search select {
+            max-width: 100px;
+            flex-shrink: 0;
+        }
+
+        .header-search input {
+            width: auto;
+            max-width: 175px;
+            min-width: 100px;
+        }
+
+        .header-search button {
+            flex-shrink: 0;
+        }
+
+        .random-albums-btn {
+            flex-shrink: 0;
+        }
+
+        .header-search input::placeholder {
+            color: #95a5a6;
+        }
+
+        .header-search input:focus,
+        .header-search select:focus {
+            outline: none;
+            box-shadow: 0 0 8px rgba(52, 152, 219, 0.3);
+        }
+
+        .header-search button {
+            padding: 8px 16px;
+            background-color: #3498db;
+            color: white;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .header-search button:hover {
+            background-color: #2980b9;
+            border-color: #2980b9;
+        }
+
+        .autocomplete-container {
+            position: relative;
+            flex: none;
+            width: auto;
+        }
+
+        .autocomplete-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: #34495e;
+            border: 1px solid #3498db;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .autocomplete-item {
+            padding: 10px 12px;
+            color: #ecf0f1;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(52, 152, 219, 0.2);
+            font-size: 0.9em;
+        }
+
+        .autocomplete-item:hover,
+        .autocomplete-item.selected {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .random-albums-btn {
+            background-color: #9b59b6;
+            color: white;
+            border: 1px solid #9b59b6;
+            padding: 8px 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+
+        .random-albums-btn:hover {
+            background-color: #8e44ad;
+            border-color: #8e44ad;
+        }
+
+        body.light .fixed-header {
+            background-color: #f5f5f7;
+            border-color: #d0d7de;
+        }
+
+        body.light .header-nav a,
+        body.light .header-nav button {
+            color: #0961d9;
+            border-color: #0961d9;
+        }
+
+        body.light .header-nav a:hover,
+        body.light .header-nav button:hover {
+            background-color: #0961d9;
+            color: #ffffff;
+        }
+
+        body.light .header-search input,
+        body.light .header-search select {
+            background-color: #ffffff;
+            color: #1a1a1a;
+            border-color: #0961d9;
+        }
+
+        body.light .header-search input::placeholder {
+            color: #666;
+        }
+
+        body.light .header-search button {
+            background-color: #0961d9;
+            border-color: #0961d9;
+        }
+
+        body.light .header-search button:hover {
+            background-color: #0851c7;
+        }
+
+        body.light .autocomplete-dropdown {
+            background-color: #f5f5f7;
+            border-color: #0961d9;
+        }
+
+        body.light .autocomplete-item {
+            color: #1a1a1a;
+            border-color: rgba(9, 97, 217, 0.2);
+        }
+
+        body.light .autocomplete-item:hover,
+        body.light .autocomplete-item.selected {
+            background-color: #0961d9;
+            color: #ffffff;
+        }
+
+        /* Light theme updates for fixed header */
+        body.light .random-albums-btn {
+            background-color: #6f42c1;
+            border-color: #6f42c1;
+        }
+
+        body.light .random-albums-btn:hover {
+            background-color: #5a32a3;
+        }
+
+        /* Theme overrides for fixed header */
+        body .fixed-header {
+            background-color: #2c3e50;
+            border-bottom-color: #34495e;
+        }
+        body .header-nav a, body .header-nav button {
+            color: #3498db;
+            border-color: #3498db;
+        }
+        body .header-search input, body .header-search select {
+            background-color: #34495e;
+            color: #ecf0f1;
+            border-color: #3498db;
+        }
+
+        body.light .fixed-header {
+            background-color: #e8e8e8;
+            border-bottom-color: #cccccc;
+        }
+        body.light .header-nav a, body.light .header-nav button {
+            color: #0066cc;
+            border-color: #0066cc;
+        }
+        body.light .header-search input, body.light .header-search select {
+            background-color: #ffffff;
+            color: #333333;
+            border-color: #0066cc;
+        }
+        body.light .header-search input::placeholder {
+            color: #999999;
+        }
+
+        body.high-contrast .fixed-header {
+            background-color: #000000;
+            border-bottom: 2px solid #ffff00;
+        }
+        body.high-contrast .header-nav a, body.high-contrast .header-nav button {
+            color: #ffff00;
+            border-color: #ffff00;
+        }
+        body.high-contrast .header-search input, body.high-contrast .header-search select {
+            background-color: #000000;
+            color: #ffff00;
+            border: 2px solid #ffff00;
+        }
+        body.high-contrast .header-search input::placeholder {
+            color: #ffff00;
+            opacity: 0.5;
+        }
+
+        body.desert .fixed-header {
+            background-color: #3d2f20;
+            border-bottom-color: #8b4513;
+        }
+        body.desert .header-nav a, body.desert .header-nav button {
+            color: #cd853f;
+            border-color: #cd853f;
+        }
+        body.desert .header-search input, body.desert .header-search select {
+            background-color: #4a3b2a;
+            color: #f4e4bc;
+            border-color: #cd853f;
+        }
+        body.desert .header-search input::placeholder {
+            color: #b8956f;
+        }
+
+        body.terminal .fixed-header {
+            background-color: #0a0a0a;
+            border-bottom: 2px solid #00cc00;
+        }
+        body.terminal .header-nav a, body.terminal .header-nav button {
+            color: #00ff00;
+            border-color: #00cc00;
+        }
+        body.terminal .header-search input, body.terminal .header-search select {
+            background-color: #1a1a1a;
+            color: #00ff00;
+            border-color: #00cc00;
+        }
+        body.terminal .header-search input::placeholder {
+            color: #00cc00;
+            opacity: 0.6;
+        }
+
+        body.sunset .fixed-header {
+            background-color: #2d1b2e;
+            border-bottom-color: #ff6b35;
+        }
+        body.sunset .header-nav a, body.sunset .header-nav button {
+            color: #ff8c42;
+            border-color: #ff8c42;
+        }
+        body.sunset .header-search input, body.sunset .header-search select {
+            background-color: #3d2534;
+            color: #ffe4b5;
+            border-color: #ff8c42;
+        }
+        body.sunset .header-search input::placeholder {
+            color: #c9a47a;
+        }
+
+        body.forest .fixed-header {
+            background-color: #1a2e1a;
+            border-bottom-color: #4a7c4e;
+        }
+        body.forest .header-nav a, body.forest .header-nav button {
+            color: #66bb6a;
+            border-color: #66bb6a;
+        }
+        body.forest .header-search input, body.forest .header-search select {
+            background-color: #233d23;
+            color: #c9e4c5;
+            border-color: #66bb6a;
+        }
+        body.forest .header-search input::placeholder {
+            color: #7cb342;
+        }
+
+        body.midnight .fixed-header {
+            background-color: #1e1435;
+            border-bottom-color: #6a4c93;
+        }
+        body.midnight .header-nav a, body.midnight .header-nav button {
+            color: #bb86fc;
+            border-color: #bb86fc;
+        }
+        body.midnight .header-search input, body.midnight .header-search select {
+            background-color: #2a1f4a;
+            color: #e0d4f7;
+            border-color: #bb86fc;
+        }
+        body.midnight .header-search input::placeholder {
+            color: #b19cd9;
+        }
+
+        /* Header button theme overrides */
+        body.light .header-nav a:hover,
+        body.light .header-nav button:hover {
+            background-color: #0961d9;
+            color: #ffffff;
+        }
+
+        body.light .header-nav a.active {
+            background-color: #f39c12 !important;
+            color: #1a1a1a !important;
+        }
+
+        body.light .header-search button {
+            background-color: #0961d9;
+            border-color: #0961d9;
+            color: #ffffff;
+        }
+
+        body.light .header-search button:hover {
+            background-color: #0851c7;
+        }
+
+        body.high-contrast .header-nav a:hover,
+        body.high-contrast .header-nav button:hover {
+            background-color: #ffff00;
+            color: #000000;
+        }
+
+        body.high-contrast .header-nav a.active {
+            background-color: #ffff00 !important;
+            color: #000000 !important;
+        }
+
+        body.high-contrast .header-search button {
+            background-color: #ffff00;
+            border-color: #ffff00;
+            color: #000000;
+        }
+
+        body.high-contrast .header-search button:hover {
+            background-color: #cccc00;
+        }
+
+        body.desert .header-nav a:hover,
+        body.desert .header-nav button:hover {
+            background-color: #cd853f;
+            color: #f4e4bc;
+        }
+
+        body.desert .header-nav a.active {
+            background-color: #cd853f !important;
+            color: #f4e4bc !important;
+        }
+
+        body.desert .header-search button {
+            background-color: #cd853f;
+            border-color: #cd853f;
+            color: #f4e4bc;
+        }
+
+        body.desert .header-search button:hover {
+            background-color: #b8860b;
+        }
+
+        body.terminal .header-nav a:hover,
+        body.terminal .header-nav button:hover {
+            background-color: #00cc00;
+            color: #000000;
+        }
+
+        body.terminal .header-nav a.active {
+            background-color: #00ff00 !important;
+            color: #000000 !important;
+        }
+
+        body.terminal .header-search button {
+            background-color: #00cc00;
+            border-color: #00cc00;
+            color: #000000;
+        }
+
+        body.terminal .header-search button:hover {
+            background-color: #00ff00;
+        }
+
+        body.sunset .header-nav a:hover,
+        body.sunset .header-nav button:hover {
+            background-color: #ff8c42;
+            color: #ffe4b5;
+        }
+
+        body.sunset .header-nav a.active {
+            background-color: #ff8c42 !important;
+            color: #ffe4b5 !important;
+        }
+
+        body.sunset .header-search button {
+            background-color: #ff8c42;
+            border-color: #ff8c42;
+            color: #ffe4b5;
+        }
+
+        body.sunset .header-search button:hover {
+            background-color: #ff6b35;
+        }
+
+        body.forest .header-nav a:hover,
+        body.forest .header-nav button:hover {
+            background-color: #66bb6a;
+            color: #c9e4c5;
+        }
+
+        body.forest .header-nav a.active {
+            background-color: #66bb6a !important;
+            color: #c9e4c5 !important;
+        }
+
+        body.forest .header-search button {
+            background-color: #66bb6a;
+            border-color: #66bb6a;
+            color: #c9e4c5;
+        }
+
+        body.forest .header-search button:hover {
+            background-color: #558b5e;
+        }
+
+        body.midnight .header-nav a:hover,
+        body.midnight .header-nav button:hover {
+            background-color: #bb86fc;
+            color: #e0d4f7;
+        }
+
+        body.midnight .header-nav a.active {
+            background-color: #bb86fc !important;
+            color: #e0d4f7 !important;
+        }
+
+        body.midnight .header-search button {
+            background-color: #bb86fc;
+            border-color: #bb86fc;
+            color: #e0d4f7;
+        }
+
+        body.midnight .header-search button:hover {
+            background-color: #9966ee;
+        }
+
+        /* Random button theme overrides */
+        body.light .random-albums-btn {
+            background-color: #6f42c1;
+            border-color: #6f42c1;
+            color: #ffffff;
+        }
+
+        body.light .random-albums-btn:hover {
+            background-color: #5a32a3;
+        }
+
+        body.high-contrast .random-albums-btn {
+            background-color: #ffff00;
+            border-color: #ffff00;
+            color: #000000;
+        }
+
+        body.high-contrast .random-albums-btn:hover {
+            background-color: #cccc00;
+        }
+
+        body.desert .random-albums-btn {
+            background-color: #cd853f;
+            border-color: #cd853f;
+            color: #f4e4bc;
+        }
+
+        body.desert .random-albums-btn:hover {
+            background-color: #b8860b;
+        }
+
+        body.terminal .random-albums-btn {
+            background-color: #00cc00;
+            border-color: #00cc00;
+            color: #000000;
+        }
+
+        body.terminal .random-albums-btn:hover {
+            background-color: #00ff00;
+        }
+
+        body.sunset .random-albums-btn {
+            background-color: #ff8c42;
+            border-color: #ff8c42;
+            color: #ffe4b5;
+        }
+
+        body.sunset .random-albums-btn:hover {
+            background-color: #ff6b35;
+        }
+
+        body.forest .random-albums-btn {
+            background-color: #66bb6a;
+            border-color: #66bb6a;
+            color: #c9e4c5;
+        }
+
+        body.forest .random-albums-btn:hover {
+            background-color: #558b5e;
+        }
+
+        body.midnight .random-albums-btn {
+            background-color: #bb86fc;
+            border-color: #bb86fc;
+            color: #e0d4f7;
+        }
+
+        body.midnight .random-albums-btn:hover {
+            background-color: #9966ee;
+        }
+
+        /* Autocomplete dropdown theme overrides */
+        body.light .autocomplete-dropdown {
+            background-color: #f5f5f7;
+            border-color: #0961d9;
+        }
+
+        body.light .autocomplete-item {
+            color: #1a1a1a;
+            border-color: rgba(9, 97, 217, 0.2);
+        }
+
+        body.light .autocomplete-item:hover,
+        body.light .autocomplete-item.selected {
+            background-color: #0961d9;
+            color: #ffffff;
+        }
+
+        body.high-contrast .autocomplete-dropdown {
+            background-color: #000000;
+            border-color: #ffff00;
+        }
+
+        body.high-contrast .autocomplete-item {
+            color: #ffff00;
+            border-color: rgba(255, 255, 0, 0.2);
+        }
+
+        body.high-contrast .autocomplete-item:hover,
+        body.high-contrast .autocomplete-item.selected {
+            background-color: #ffff00;
+            color: #000000;
+        }
+
+        body.desert .autocomplete-dropdown {
+            background-color: #4a3b2a;
+            border-color: #cd853f;
+        }
+
+        body.desert .autocomplete-item {
+            color: #f4e4bc;
+            border-color: rgba(205, 133, 63, 0.2);
+        }
+
+        body.desert .autocomplete-item:hover,
+        body.desert .autocomplete-item.selected {
+            background-color: #cd853f;
+            color: #f4e4bc;
+        }
+
+        body.terminal .autocomplete-dropdown {
+            background-color: #1a1a1a;
+            border-color: #00cc00;
+        }
+
+        body.terminal .autocomplete-item {
+            color: #00ff00;
+            border-color: rgba(0, 204, 0, 0.2);
+        }
+
+        body.terminal .autocomplete-item:hover,
+        body.terminal .autocomplete-item.selected {
+            background-color: #00cc00;
+            color: #000000;
+        }
+
+        body.sunset .autocomplete-dropdown {
+            background-color: #3d2534;
+            border-color: #ff8c42;
+        }
+
+        body.sunset .autocomplete-item {
+            color: #ffe4b5;
+            border-color: rgba(255, 140, 66, 0.2);
+        }
+
+        body.sunset .autocomplete-item:hover,
+        body.sunset .autocomplete-item.selected {
+            background-color: #ff8c42;
+            color: #ffe4b5;
+        }
+
+        body.forest .autocomplete-dropdown {
+            background-color: #233d23;
+            border-color: #66bb6a;
+        }
+
+        body.forest .autocomplete-item {
+            color: #c9e4c5;
+            border-color: rgba(102, 187, 106, 0.2);
+        }
+
+        body.forest .autocomplete-item:hover,
+        body.forest .autocomplete-item.selected {
+            background-color: #66bb6a;
+            color: #c9e4c5;
+        }
+
+        body.midnight .autocomplete-dropdown {
+            background-color: #2a1f4a;
+            border-color: #bb86fc;
+        }
+
+        body.midnight .autocomplete-item {
+            color: #e0d4f7;
+            border-color: rgba(187, 134, 252, 0.2);
+        }
+
+        body.midnight .autocomplete-item:hover,
+        body.midnight .autocomplete-item.selected {
+            background-color: #bb86fc;
+            color: #e0d4f7;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
 </head>
@@ -630,17 +1366,34 @@
             </div>
         </div>
 
-        <h1>💿 Albums</h1>
+        <h1 id="page-heading">💿 Albums</h1>
         <div class="artist-title" id="artist-title">Loading...</div>
 
-        <div class="nav-links">
-            <a href="/">🏠 Main</a>
-            <a href="/playlist">🎵 Play Queue</a>
-            <a href="/add_music">🎲 Add Music</a>
-            <a href="/search">🔍 Search</a>
-            <a href="/recent">📀 Recent</a>
-            <a href="/browse">🗂️ Browse</a>
-            <button onclick="clearPlaylist()" class="clear-btn">🗑️ Clear Playlist</button>
+        <!-- Phase 2: Fixed Header Navigation -->
+        <div class="fixed-header">
+            <div class="header-content">
+                <div class="header-nav">
+                    <a href="/">🏠 Main</a>
+                    <a href="/playlist">🎵 Queue</a>
+                    <a href="/add_music">🎲 Add Music</a>
+                    <a href="/recent">📀 Recent</a>
+                    <a href="/browse" class="active">🗂️ Browse</a>
+                </div>
+                <div class="header-search">
+                    <select id="header-search-type">
+                        <option value="any">All Types</option>
+                        <option value="artist">Artists</option>
+                        <option value="album">Albums</option>
+                        <option value="title">Songs</option>
+                    </select>
+                    <div class="autocomplete-container">
+                        <input type="text" id="header-search-input" placeholder="Search..." autocomplete="off">
+                        <div id="header-autocomplete-dropdown" class="autocomplete-dropdown"></div>
+                    </div>
+                    <button onclick="performHeaderSearch()">Go</button>
+                    <button class="random-albums-btn" onclick="window.location.href='/random_albums'">🎲 Random</button>
+                </div>
+            </div>
         </div>
         
         <div style="text-align: center; margin: 15px 0;">
@@ -657,6 +1410,7 @@
             <button onclick="playbackAction('stop')" style="background-color: #f39c12; color: white;">⏹️ Stop</button>
             <button onclick="playbackAction('pause')" style="background-color: #e74c3c; color: white;">⏸️ Pause</button>
             <button onclick="playbackAction('next')" style="background-color: #3498db; color: white;">⏭️ Next</button>
+            <button onclick="clearPlaylist()" class="clear-btn" style="float: right;">🗑️ Clear Playlist</button>
         </div>
 
         <div id="loading" class="loading">
@@ -704,6 +1458,34 @@
     </style>
 
     <script src="/static/browse_albums.js"></script>
+    <!-- Update Page Heading with Artist Name -->
+    <script>
+        // Get artist from URL parameters and update heading
+        const urlParams = new URLSearchParams(window.location.search);
+        const artistName = urlParams.get('artist');
+        
+        if (artistName) {
+            const headingEl = document.getElementById('page-heading');
+            if (headingEl) {
+                headingEl.textContent = `🎵 ${decodeURIComponent(artistName)} » Albums`;
+            }
+        }
+    </script>
+    <!-- Header Search Functionality -->
+    <script>
+        function performHeaderSearch() {
+            const searchInput = document.getElementById('header-search-input');
+            const searchType = document.getElementById('header-search-type');
+            const query = searchInput ? searchInput.value.trim() : '';
+            if (query.length > 0) {
+                const type = searchType ? searchType.value : 'any';
+                window.location.href = `/search?query=${encodeURIComponent(query)}&type=${type}`;
+            }
+        }
+
+        // Make it globally available
+        window.performHeaderSearch = performHeaderSearch;
+    </script>
     <!-- Keyboard Shortcuts -->
     <!-- Playback Controls -->
     <script src="/static/playback-controls.js"></script>

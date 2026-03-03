@@ -1,13 +1,17 @@
-Maestro MPD Server v2.9.7.2
-Release Date: Fri Feb 28 00:00:00 UTC 2026
-Version: 2.9.7.2
+Maestro MPD Server v3.0.1
+Release Date: Mon Mar 03 00:00:00 UTC 2026
+Version: 3.0.1
 
-🎵 REPLACE PLAYLIST AUTO-PLAY & TRACK COUNT DISPLAY 🎵
+🎵 PHASE 2A UI MODERNIZATION - FIXED HEADER WITH SEARCH 🎵
 
-Latest Features (Jan 28, 2026 - v2.9.3):
-✅ NEW: Replace Playlist Auto-Play - Music starts playing immediately when album is added
-✅ NEW: Track Count Display - Toast shows how many tracks were cleared from queue
-✅ IMPROVED: Single Toast Message - Combined clearing and now-playing in one notification
+Latest Features (Mar 3, 2026 - v3.0.1):
+✅ NEW: Phase 2A Fixed Header Navigation - Consistent navigation across all pages
+✅ NEW: Header Search Bar - Search functionality with autocomplete in fixed header
+✅ NEW: Dynamic Page Headings - Genre and artist names displayed in page titles
+✅ NEW: Browse Albums Page - Complete Phase 2 header integration
+✅ IMPROVED: Bandcamp Button - Left-justified on genres page, Clear Playlist on right
+✅ IMPROVED: Theme Support - All 8 themes now apply to fixed header elements
+✅ IMPROVED: Browse Pages Navigation - Added browse_genres, browse_artists, browse_albums to Phase 2A
 ✅ IMPROVED: Better Music Discovery - Collects 3 tracks per artist for balanced variety
 ✅ NEW: Clickable Artist Links - Random album results link back to artist search
 ✅ ENHANCED: Debug Messages - Shows similar artist count and candidate pool size
