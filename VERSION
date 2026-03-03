@@ -15,6 +15,15 @@ Latest Features (Mar 3, 2026 - v3.2):
 ✅ ENHANCED: Consistent UI/UX - Autocomplete behavior standardized across entire application
 ✅ REMOVED: Redundant Clear Playlist Button - Streamlined playback control interface
 
+Files Modified in v3.2:
+- templates/search_results.html - Album artwork display, autocomplete data fetching
+- templates/browse_albums.html - Autocomplete implementation, playback controls layout, theme CSS for now-playing-bar
+- templates/browse_artists.html - Autocomplete implementation, playback controls layout
+- templates/browse_genres.html - Autocomplete implementation, playback controls layout
+- templates/recent_albums.html - Autocomplete implementation, removed redundant Clear Playlist button
+- app.py - Version string updated to 3.2
+- VERSION - This file with detailed feature documentation
+
 Previous Features (Mar 3, 2026 - v3.0.1):
 ✅ Phase 2A Fixed Header Navigation - Consistent navigation across all pages
 ✅ Header Search Bar - Search functionality with autocomplete in fixed header
