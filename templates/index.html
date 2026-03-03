@@ -1771,7 +1771,7 @@
                     if (!albumArtImg.dataset.currentSongId || albumArtImg.dataset.currentSongId !== newSongId) {
                         // Song changed - update the album art
                         console.log('Song changed, updating album art');
-                        const newArtSrc = `/album_art?song_file=${encodeURIComponent(data.song_file)}&artist=${encodeURIComponent(data.artist)}&album=${encodeURIComponent(data.album)}&title=${encodeURIComponent(data.song_title)}`;
+                        const newArtSrc = `/album_art?song_file=${encodeURIComponent(data.song_file)}&artist=${encodeURIComponent(data.artist)}&album=${encodeURIComponent(data.album)}&title=${encodeURIComponent(data.song_title)}&_t=${Date.now()}`;
                         
                         albumArtImg.src = newArtSrc;
                         albumArtImg.dataset.currentSongId = newSongId;

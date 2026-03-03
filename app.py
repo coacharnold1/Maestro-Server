@@ -233,7 +233,7 @@ album_art_cache = {}
 
 # Rate limiting for album art requests to prevent client loops from overloading NFS
 album_art_request_times = {}  # {(client_ip, cache_key): last_request_timestamp}
-ALBUM_ART_RATE_LIMIT_SECONDS = 0.5  # Minimum seconds between identical requests from same client
+ALBUM_ART_RATE_LIMIT_SECONDS = 0  # Disabled - cache-busting timestamp prevents client loops
 
 # Default HTTP headers for outbound requests (identify our app version)
 DEFAULT_HTTP_HEADERS = {
