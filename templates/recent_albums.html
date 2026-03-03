@@ -1083,7 +1083,6 @@
         <div style="text-align: center; margin: 20px 0;">
             <button class="refresh-btn" onclick="loadRecentAlbums()">🔄 Refresh Albums</button>
             <button class="refresh-btn" onclick="loadRecentAlbums(true)" style="background-color: #e67e22;">🔄 Force Refresh</button>
-            <button class="refresh-btn" onclick="clearPlaylist()" style="background-color: #e74c3c;">🗑️ Clear Playlist</button>
         </div>
 
         <div class="stats" id="stats" style="display: none;">
@@ -1936,8 +1935,93 @@
             const query = document.getElementById('header-search-input').value.trim();
             const searchType = document.getElementById('header-search-type').value;
             if (query) {
-                window.location.href = `/search?query=${encodeURIComponent(query)}&type=${searchType}`;
+                window.location.href = `/search?query=${encodeURIComponent(query)}&search_tag=${searchType}`;
             }
+        }
+
+        // Load autocomplete data
+        let allAlbums = [];
+        let allArtists = [];
+        let allSongs = [];
+
+        fetch('/api/search/autocomplete')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    allAlbums = data.albums || [];
+                    allArtists = data.artists || [];
+                    allSongs = data.titles || [];
+                    console.log('Autocomplete data loaded:', {albums: allAlbums.length, artists: allArtists.length, songs: allSongs.length});
+                }
+            })
+            .catch(err => console.error('Error fetching autocomplete data:', err));
+
+        const searchInput = document.getElementById('header-search-input');
+        const searchType = document.getElementById('header-search-type');
+        const autocompleteDropdown = document.getElementById('header-autocomplete-dropdown');
+
+        function showHeaderSuggestions(query) {
+            if (query.length === 0) {
+                autocompleteDropdown.style.display = 'none';
+                return;
+            }
+            const type = searchType.value;
+            const lowerQuery = query.toLowerCase();
+            let suggestions = [];
+
+            if (type === 'any') {
+                if (allArtists.length > 0) {
+                    suggestions = suggestions.concat(allArtists.filter(a => a.toLowerCase().includes(lowerQuery)));
+                }
+                if (allAlbums.length > 0) {
+                    suggestions = suggestions.concat(allAlbums.filter(a => a.toLowerCase().includes(lowerQuery)));
+                }
+                if (allSongs.length > 0) {
+                    suggestions = suggestions.concat(allSongs.filter(s => s.toLowerCase().includes(lowerQuery)));
+                }
+                suggestions = [...new Set(suggestions)].slice(0, 5);
+            } else if (type === 'album' && allAlbums.length > 0) {
+                suggestions = allAlbums.filter(a => a.toLowerCase().includes(lowerQuery)).slice(0, 5);
+            } else if (type === 'artist' && allArtists.length > 0) {
+                suggestions = allArtists.filter(a => a.toLowerCase().includes(lowerQuery)).slice(0, 5);
+            } else if (type === 'title' && allSongs.length > 0) {
+                suggestions = allSongs.filter(s => s.toLowerCase().includes(lowerQuery)).slice(0, 5);
+            }
+
+            if (suggestions.length > 0) {
+                autocompleteDropdown.innerHTML = suggestions.map(s => 
+                    `<div class="autocomplete-item">${escapeHtml(s)}</div>`
+                ).join('');
+                autocompleteDropdown.style.display = 'block';
+                
+                autocompleteDropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+                    item.addEventListener('click', function() {
+                        searchInput.value = this.textContent;
+                        autocompleteDropdown.style.display = 'none';
+                        performHeaderSearch();
+                    });
+                });
+            } else {
+                autocompleteDropdown.style.display = 'none';
+            }
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                showHeaderSuggestions(this.value);
+            });
+        }
+
+        if (searchType) {
+            searchType.addEventListener('change', function() {
+                showHeaderSuggestions(searchInput.value);
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
     </script>
 

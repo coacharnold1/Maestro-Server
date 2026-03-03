@@ -1007,8 +1007,7 @@
             justify-content: center;
         }
 
-        .header-search input,
-        .header-search select {
+        .header-search input {
             padding: 8px 12px;
             border: 1px solid #3498db;
             border-radius: 5px;
@@ -1018,14 +1017,14 @@
         }
 
         .header-search select {
+            padding: 8px 12px;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            background-color: #34495e;
+            color: #ecf0f1;
+            font-size: 0.9em;
             max-width: 100px;
             flex-shrink: 0;
-        }
-
-        .header-search input {
-            width: auto;
-            max-width: 175px;
-            min-width: 100px;
         }
 
         .header-search button {
@@ -1065,8 +1064,14 @@
 
         .autocomplete-container {
             position: relative;
-            flex: none;
+            flex-shrink: 0;
             width: auto;
+        }
+
+        .autocomplete-container input {
+            width: auto;
+            max-width: 175px;
+            min-width: 100px;
         }
 
         .autocomplete-dropdown {
@@ -1131,16 +1136,17 @@
         </div>
 
         <!-- Now Playing Bar -->
-        <div class="now-playing-bar">
-            <img class="np-art" id="npArt" src="" alt="Album Art" style="display:none;">
+        <!-- Now Playing Bar -->
+        <div class="now-playing-bar" id="now-playing-bar" style="display: none;">
+            <img class="np-art" id="np-art" src="/static_placeholder_art" alt="Album Art" onerror="this.src='/static_placeholder_art'">
             <div class="np-content">
-                <div class="label">NOW PLAYING</div>
+                <div class="label">♪ Now Playing</div>
                 <div class="info">
-                    <span class="track" id="npTrack">Not playing</span>
-                    <span class="separator" id="npSeparator1" style="display:none;"> • </span>
-                    <span class="artist" id="npArtist" style="display:none;"></span>
-                    <span class="separator" id="npSeparator2" style="display:none;"> • </span>
-                    <span class="album" id="npAlbum" style="display:none;"></span>
+                    <span class="artist" id="np-artist">-</span>
+                    <span class="separator">•</span>
+                    <span class="album" id="np-album">-</span>
+                    <span class="separator">•</span>
+                    <span class="track" id="np-track">-</span>
                 </div>
             </div>
         </div>
@@ -1156,15 +1162,16 @@
                     <a href="/browse">🗂️ Browse</a>
                 </div>
                 <div class="header-search">
+                    <select id="headerSearchType">
+                        <option value="any">All Types</option>
+                        <option value="artist">Artists</option>
+                        <option value="album">Albums</option>
+                        <option value="title">Songs</option>
+                    </select>
                     <div class="autocomplete-container">
                         <input type="text" id="headerSearchInput" placeholder="Search albums...">
                         <div class="autocomplete-dropdown" id="autocompleteDropdown"></div>
                     </div>
-                    <select id="headerSearchType">
-                        <option value="albums">Albums</option>
-                        <option value="artists">Artists</option>
-                        <option value="songs">Songs</option>
-                    </select>
                     <button id="headerSearchBtn">Search</button>
                     <button class="random-albums-btn" id="randomAlbumsBtn" title="Load random albums">🎲 Random</button>
                 </div>
@@ -1232,17 +1239,28 @@
             </li>
             {% else %}
             <li>
-                <div class="song-info">
-                    <div class="title">{{ item.get('title', 'Unknown Title') }}</div>
-                    <div class="artist">{{ item.get('artist', 'Unknown Artist') }}</div>
-                    <div class="album">{{ item.get('album', 'Unknown Album') }}</div>
-                    {% if item.get('genre') and item.get('genre') != 'Unknown Genre' %}
-                    <div style="font-size: 0.85em; color: #95a5a6;">🎵 {{ item.get('genre') }}</div>
+                <div class="album-content">
+                    {% if item.get('file') %}
+                    <img src="/album_art?song_file={{ item.get('file')|urlencode_str }}&artist={{ item.get('artist', '')|urlencode_str }}&album={{ item.get('album', '')|urlencode_str }}&size=thumb"
+                        alt="{{ item.get('album', 'Unknown Album') }} cover" class="album-thumbnail" loading="lazy"
+                        onerror="this.style.display='none';">
+                    {% else %}
+                    <img src="/album_art?artist={{ item.get('artist', '')|urlencode_str }}&album={{ item.get('album', '')|urlencode_str }}&size=thumb"
+                        alt="{{ item.get('album', 'Unknown Album') }} cover" class="album-thumbnail" loading="lazy"
+                        onerror="this.style.display='none';">
                     {% endif %}
-                    {% if item.get('time') and item.get('time') != '0' and item.get('time')|int > 0 %}
-                    <div class="duration">⏱️ {{ '%d:%02d' | format((item.get('time')|int // 60), (item.get('time')|int %
-                        60)) }}</div>
-                    {% endif %}
+                    <div class="song-info">
+                        <div class="title">{{ item.get('title', 'Unknown Title') }}</div>
+                        <div class="artist">{{ item.get('artist', 'Unknown Artist') }}</div>
+                        <div class="album">{{ item.get('album', 'Unknown Album') }}</div>
+                        {% if item.get('genre') and item.get('genre') != 'Unknown Genre' %}
+                        <div style="font-size: 0.85em; color: #95a5a6; margin-top: 2px;">🎵 {{ item.get('genre') }}</div>
+                        {% endif %}
+                        {% if item.get('time') and item.get('time') != '0' and item.get('time')|int > 0 %}
+                        <div class="duration">⏱️ {{ '%d:%02d' | format((item.get('time')|int // 60), (item.get('time')|int %
+                            60)) }}</div>
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="song-actions">
                     <button class="btn-replace-song" data-file="{{ item.get('file','')|e }}">🔄 Replace
@@ -1921,11 +1939,26 @@
             let allArtists = [];
             let allSongs = [];
 
+            // Load autocomplete data from API
+            fetch('/api/search/autocomplete')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        allAlbums = data.albums || [];
+                        allArtists = data.artists || [];
+                        allSongs = data.titles || [];
+                        console.log('Autocomplete data loaded:', {albums: allAlbums.length, artists: allArtists.length, songs: allSongs.length});
+                    } else {
+                        console.error('Failed to load autocomplete data:', data.message);
+                    }
+                })
+                .catch(err => console.error('Error fetching autocomplete data:', err));
+
             function performHeaderSearch() {
                 const query = headerSearchInput.value.trim();
                 const searchType = headerSearchType.value;
                 if (query.length > 0) {
-                    window.location.href = `/search?query=${encodeURIComponent(query)}&type=${searchType}`;
+                    window.location.href = `/search?query=${encodeURIComponent(query)}&search_tag=${searchType}`;
                 }
             }
 
@@ -1946,11 +1979,23 @@
                 const lowerQuery = query.toLowerCase();
                 let suggestions = [];
 
-                if (searchType === 'albums' && allAlbums.length > 0) {
+                if (searchType === 'any') {
+                    // Combine all suggestions from all types
+                    if (allArtists.length > 0) {
+                        suggestions = suggestions.concat(allArtists.filter(a => a.toLowerCase().includes(lowerQuery)));
+                    }
+                    if (allAlbums.length > 0) {
+                        suggestions = suggestions.concat(allAlbums.filter(a => a.toLowerCase().includes(lowerQuery)));
+                    }
+                    if (allSongs.length > 0) {
+                        suggestions = suggestions.concat(allSongs.filter(s => s.toLowerCase().includes(lowerQuery)));
+                    }
+                    suggestions = [...new Set(suggestions)].slice(0, 5);  // Remove duplicates and limit
+                } else if (searchType === 'album' && allAlbums.length > 0) {
                     suggestions = allAlbums.filter(a => a.toLowerCase().includes(lowerQuery)).slice(0, 5);
-                } else if (searchType === 'artists' && allArtists.length > 0) {
+                } else if (searchType === 'artist' && allArtists.length > 0) {
                     suggestions = allArtists.filter(a => a.toLowerCase().includes(lowerQuery)).slice(0, 5);
-                } else if (searchType === 'songs' && allSongs.length > 0) {
+                } else if (searchType === 'title' && allSongs.length > 0) {
                     suggestions = allSongs.filter(s => s.toLowerCase().includes(lowerQuery)).slice(0, 5);
                 }
 

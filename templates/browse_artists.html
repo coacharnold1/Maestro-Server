@@ -902,13 +902,14 @@
 
         <div class="playback-controls">
             <h2>🎵 Playback Controls</h2>
-            <button onclick="playbackAction('previous')" style="background-color: #9b59b6; color: white;">⏮️
-                Previous</button>
-            <button onclick="playbackAction('play')" style="background-color: #27ae60; color: white;">▶️ Play</button>
-            <button onclick="playbackAction('stop')" style="background-color: #f39c12; color: white;">⏹️ Stop</button>
-            <button onclick="playbackAction('pause')" style="background-color: #e74c3c; color: white;">⏸️ Pause</button>
-            <button onclick="playbackAction('next')" style="background-color: #3498db; color: white;">⏭️ Next</button>
-            <button onclick="clearPlaylist()" class="clear-btn" style="float: right;">🗑️ Clear Playlist</button>
+            <div style="margin-bottom: 10px;">
+                <button onclick="playbackAction('previous')" style="background-color: #9b59b6; color: white;">⏮️ Previous</button>
+                <button onclick="playbackAction('play')" style="background-color: #27ae60; color: white;">▶️ Play</button>
+                <button onclick="playbackAction('stop')" style="background-color: #f39c12; color: white;">⏹️ Stop</button>
+                <button onclick="playbackAction('pause')" style="background-color: #e74c3c; color: white;">⏸️ Pause</button>
+                <button onclick="playbackAction('next')" style="background-color: #3498db; color: white;">⏭️ Next</button>
+            </div>
+            <button onclick="clearPlaylist()" class="clear-btn">🗑️ Clear Playlist</button>
         </div>
 
         <div id="loading" class="loading">
@@ -969,14 +970,96 @@
                 }
             });
 
-            // Header search functionality
+            // Header search functionality with autocomplete
+            let allAlbums = [];
+            let allArtists = [];
+            let allSongs = [];
+
+            fetch('/api/search/autocomplete')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        allAlbums = data.albums || [];
+                        allArtists = data.artists || [];
+                        allSongs = data.titles || [];
+                        console.log('Autocomplete data loaded:', {albums: allAlbums.length, artists: allArtists.length, songs: allSongs.length});
+                    }
+                })
+                .catch(err => console.error('Error fetching autocomplete data:', err));
+
+            const searchInput = document.getElementById('header-search-input');
+            const searchType = document.getElementById('header-search-type');
+            const autocompleteDropdown = document.getElementById('header-autocomplete-dropdown');
+
+            function showHeaderSuggestions(query) {
+                if (query.length === 0) {
+                    autocompleteDropdown.style.display = 'none';
+                    return;
+                }
+                const type = searchType.value;
+                const lowerQuery = query.toLowerCase();
+                let suggestions = [];
+
+                if (type === 'any') {
+                    if (allArtists.length > 0) {
+                        suggestions = suggestions.concat(allArtists.filter(a => a.toLowerCase().includes(lowerQuery)));
+                    }
+                    if (allAlbums.length > 0) {
+                        suggestions = suggestions.concat(allAlbums.filter(a => a.toLowerCase().includes(lowerQuery)));
+                    }
+                    if (allSongs.length > 0) {
+                        suggestions = suggestions.concat(allSongs.filter(s => s.toLowerCase().includes(lowerQuery)));
+                    }
+                    suggestions = [...new Set(suggestions)].slice(0, 5);
+                } else if (type === 'album' && allAlbums.length > 0) {
+                    suggestions = allAlbums.filter(a => a.toLowerCase().includes(lowerQuery)).slice(0, 5);
+                } else if (type === 'artist' && allArtists.length > 0) {
+                    suggestions = allArtists.filter(a => a.toLowerCase().includes(lowerQuery)).slice(0, 5);
+                } else if (type === 'title' && allSongs.length > 0) {
+                    suggestions = allSongs.filter(s => s.toLowerCase().includes(lowerQuery)).slice(0, 5);
+                }
+
+                if (suggestions.length > 0) {
+                    autocompleteDropdown.innerHTML = suggestions.map(s => 
+                        `<div class="autocomplete-item">${escapeHtml(s)}</div>`
+                    ).join('');
+                    autocompleteDropdown.style.display = 'block';
+                    
+                    autocompleteDropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+                        item.addEventListener('click', function() {
+                            searchInput.value = this.textContent;
+                            autocompleteDropdown.style.display = 'none';
+                            performHeaderSearch();
+                        });
+                    });
+                } else {
+                    autocompleteDropdown.style.display = 'none';
+                }
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    showHeaderSuggestions(this.value);
+                });
+            }
+
+            if (searchType) {
+                searchType.addEventListener('change', function() {
+                    showHeaderSuggestions(searchInput.value);
+                });
+            }
+
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
             function performHeaderSearch() {
-                const searchInput = document.getElementById('header-search-input');
-                const searchType = document.getElementById('header-search-type');
                 const query = searchInput ? searchInput.value.trim() : '';
                 if (query.length > 0) {
                     const type = searchType ? searchType.value : 'any';
-                    window.location.href = `/search?query=${encodeURIComponent(query)}&type=${type}`;
+                    window.location.href = `/search?query=${encodeURIComponent(query)}&search_tag=${type}`;
                 }
             }
 
