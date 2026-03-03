@@ -1057,6 +1057,151 @@
             background-color: #2a1f4a;
             border-color: #6a4c93;
         }
+
+        /* ==================== PHASE 1 UI IMPROVEMENTS ==================== */
+
+        /* Connection Status Indicator */
+        .connection-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background-color: #2ecc71;
+            box-shadow: 0 0 8px rgba(46, 204, 113, 0.6);
+        }
+
+        .status-dot.disconnected {
+            background-color: #e74c3c;
+            box-shadow: 0 0 8px rgba(231, 76, 60, 0.6);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Volume Icon Display */
+        .volume-icon {
+            font-size: 1.5em;
+            margin-right: 8px;
+            display: inline-block;
+        }
+
+        .volume-display-modern {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            background-color: #34495e;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .volume-display-modern .volume-bar {
+            width: 100px;
+            height: 6px;
+            background-color: #555;
+            border-radius: 3px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .volume-display-modern .volume-fill {
+            height: 100%;
+            background-color: #1abc9c;
+            border-radius: 3px;
+            transition: width 0.2s ease;
+        }
+
+        /* Mode Indicators */
+        .mode-indicators {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin: 12px 0;
+            flex-wrap: wrap;
+        }
+
+        .mode-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background-color: #34495e;
+            border: 1px solid #555;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .mode-indicator.active {
+            background-color: #3498db;
+            border-color: #3498db;
+            color: white;
+        }
+
+        .mode-indicator.active-shuffle {
+            background-color: #2ecc71;
+            border-color: #2ecc71;
+            color: white;
+        }
+
+        .mode-indicator.active-repeat {
+            background-color: #f39c12;
+            border-color: #f39c12;
+            color: white;
+        }
+
+        .mode-indicator:hover {
+            background-color: #4a5f7f;
+        }
+
+        .mode-indicator.active:hover {
+            opacity: 0.8;
+        }
+
+        .mode-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: currentColor;
+            opacity: 0.5;
+        }
+
+        .mode-indicator.active .mode-dot {
+            opacity: 1;
+        }
+
+        /* Color Coding for text */
+        .artist-text {
+            color: #27ae60;
+        }
+
+        .album-text {
+            color: #3498db;
+        }
+
+        .track-text {
+            color: #e67e22;
+        }
+
+        /* Hide old MPD Options section in favor of mode indicator buttons */
+        .mpd-options-controls {
+            display: none !important;
+        }
     </style>
     <!-- Include Socket.IO client library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
@@ -1084,10 +1229,14 @@
         </div>
 
         <div class="status-box">
-            <!-- Updated: Compact 2-column layout -->
-            <h2>MPD Status: <span id="mpd-state"
-                    class="{{ 'connected' if mpd_info.state != 'disconnected' else 'disconnected' }}">{{ mpd_info.state
-                    }}</span></h2>
+            <!-- Updated: Compact 2-column layout + Connection Indicator -->
+            <h2 style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <span>MPD Status:</span>
+                <span id="mpd-state" class="{{ 'connected' if mpd_info.state != 'disconnected' else 'disconnected' }}">{{ mpd_info.state }}</span>
+                <span class="connection-status">
+                    <span id="status-indicator" class="status-dot {{ 'connected' if mpd_info.state != 'disconnected' else 'disconnected' }}"></span>
+                </span>
+            </h2>
             <p class="status-item" style="margin-bottom: 8px;"><span>Message:</span> <span id="mpd-message">{{ mpd_info.message }}</span></p>
             {% if mpd_info.state != 'disconnected' and mpd_info.state != 'error' %}
             <div class="status-items-grid">
@@ -1149,16 +1298,41 @@
             <button onclick="nextTrack()" style="background-color: #3498db; color: white;" data-i18n="next">⏭️ Next</button>
         </div>
 
-        {# VOLUME CONTROLS - Simple and Clean #}
+        {# VOLUME CONTROLS - New Visual Display #}
         <div class="controls volume-controls-simple">
-            <h2><span data-i18n="volume">Volume</span>: <span class="volume-value" id="volume-percentage-display">{{ mpd_info.volume | default(0)
-                    }}%</span></h2>
+            <div class="volume-display-modern">
+                <span id="volume-icon" class="volume-icon">🔊</span>
+                <div class="volume-bar" onclick="handleVolumeBarClick(event)">
+                    <div id="volume-fill" class="volume-fill" style="width: {{ mpd_info.volume | default(0) }}%"></div>
+                </div>
+                <span class="volume-value" id="volume-percentage-display">{{ mpd_info.volume | default(0) }}%</span>
+            </div>
             <div class="volume-buttons-row">
                 <button class="volume-btn-small" onclick="adjustVolume(5)">+5</button>
                 <button class="volume-btn-small" onclick="adjustVolume(2)">+2</button>
                 <button class="volume-btn-mute" onclick="toggleMute()" id="mute-btn">🔇</button>
                 <button class="volume-btn-small" onclick="adjustVolume(-2)">-2</button>
                 <button class="volume-btn-small" onclick="adjustVolume(-5)">-5</button>
+            </div>
+        </div>
+
+        {# NEW: Mode Indicators (Shuffle, Repeat, etc) #}
+        <div class="mode-indicators">
+            <div class="mode-indicator" id="shuffle-indicator" onclick="document.getElementById('shuffle-mode-checkbox').click()">
+                <span class="mode-dot"></span>
+                <span>🔀 Shuffle</span>
+            </div>
+            <div class="mode-indicator" id="consume-indicator" onclick="document.getElementById('consume-mode-checkbox').click()">
+                <span class="mode-dot"></span>
+                <span>🗑️ Consume</span>
+            </div>
+            <div class="mode-indicator" id="autofill-indicator" onclick="document.getElementById('auto-fill-toggle-index').click()">
+                <span class="mode-dot"></span>
+                <span>✨ Auto-Fill</span>
+            </div>
+            <div class="mode-indicator" id="crossfade-indicator" onclick="document.getElementById('crossfade-checkbox').click()">
+                <span class="mode-dot"></span>
+                <span>〰️ Crossfade</span>
             </div>
         </div>
 
@@ -1484,6 +1658,13 @@
             if (autoFillToggleIndex) {
                 autoFillToggleIndex.addEventListener('change', function () {
                     const newState = this.checked;
+                    
+                    // Update indicator immediately
+                    const autofillIndicator = document.getElementById('autofill-indicator');
+                    if (autofillIndicator) {
+                        autofillIndicator.classList.toggle('active', newState);
+                    }
+                    
                     fetch('/toggle_auto_fill', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -1518,6 +1699,13 @@
                 mpdState.textContent = data.state;
                 mpdState.className = data.state === 'disconnected' || data.state === 'error' ? 'disconnected' : 'connected';
 
+                // Update connection status indicator
+                const statusIndicator = document.getElementById('status-indicator');
+                if (statusIndicator) {
+                    statusIndicator.classList.remove('connected', 'disconnected');
+                    statusIndicator.classList.add(data.state === 'disconnected' || data.state === 'error' ? 'disconnected' : 'connected');
+                }
+
                 // Update Message
                 mpdMessage.textContent = data.message;
 
@@ -1544,6 +1732,24 @@
                     // Update playback summary and volume controls display
                     if (playbackSummarySpan) playbackSummarySpan.textContent = `Vol ${data.volume}% • ${data.elapsed_time} / ${data.total_time}`;
                     if (volumePercentageDisplay) volumePercentageDisplay.textContent = data.volume + '%';
+
+                    // Update volume visualization
+                    const volumeFill = document.getElementById('volume-fill');
+                    if (volumeFill) {
+                        volumeFill.style.width = data.volume + '%';
+                    }
+                    const volumeIcon = document.getElementById('volume-icon');
+                    if (volumeIcon) {
+                        if (data.volume === 0) {
+                            volumeIcon.textContent = '🔇';
+                        } else if (data.volume < 33) {
+                            volumeIcon.textContent = '🔈';
+                        } else if (data.volume < 66) {
+                            volumeIcon.textContent = '🔉';
+                        } else {
+                            volumeIcon.textContent = '🔊';
+                        }
+                    }
 
                     // Update progress bar
                     if (data.raw_total_time > 0) {
@@ -1606,6 +1812,27 @@
                     if (crossfadeCheckbox) {
                         crossfadeCheckbox.checked = data.crossfade_enabled;
                     }
+
+                    // Update mode indicators
+                    const shuffleIndicator = document.getElementById('shuffle-indicator');
+                    const consumeIndicator = document.getElementById('consume-indicator');
+                    const crossfadeIndicator = document.getElementById('crossfade-indicator');
+                    const autofillIndicator = document.getElementById('autofill-indicator');
+
+                    if (shuffleIndicator) {
+                        shuffleIndicator.classList.toggle('active-shuffle', data.shuffle_mode);
+                    }
+                    if (consumeIndicator) {
+                        consumeIndicator.classList.toggle('active', data.consume_mode);
+                    }
+                    if (crossfadeIndicator) {
+                        crossfadeIndicator.classList.toggle('active', data.crossfade_enabled);
+                    }
+                    // Auto-fill is checked based on checkbox state, not from backend data
+                    if (autofillIndicator && document.getElementById('auto-fill-toggle-index')) {
+                        autofillIndicator.classList.toggle('active', document.getElementById('auto-fill-toggle-index').checked);
+                    }
+                    
                     // NEW: Update Up Next
                     if (upNextArtistSpan && typeof data.next_song_artist !== 'undefined') {
                         const strippedNextArtist = stripLocation(data.next_song_artist);
@@ -2032,6 +2259,24 @@
                 muteBtn.textContent = '🔇';
                 muteBtn.classList.remove('muted');
             }
+        }
+
+        function handleVolumeBarClick(event) {
+            const volumeBar = event.currentTarget;
+            const rect = volumeBar.getBoundingClientRect();
+            const percentage = Math.round(((event.clientX - rect.left) / rect.width) * 100);
+            const newVolume = Math.max(0, Math.min(100, percentage));
+            
+            const formData = new FormData();
+            formData.append('volume', newVolume);
+
+            fetch('/set_volume', {
+                method: 'POST',
+                body: formData
+            })
+                .catch(error => {
+                    displayMessage('error', 'Error setting volume');
+                });
         }
 
         // ========== LYRICS MODAL ==========
