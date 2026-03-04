@@ -459,6 +459,160 @@
             color: #e0d4f7 !important;
             border-color: #6a4c93 !important;
         }
+
+        /* ==================== FIXED HEADER NAV ==================== */
+        .fixed-header {
+            background-color: #2c3e50;
+            border-bottom: 2px solid #34495e;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            padding: 0;
+            margin: 0 0 20px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .header-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px 20px;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .header-nav a,
+        .header-nav button {
+            color: #3498db;
+            text-decoration: none;
+            padding: 8px 14px;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            background: none;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .header-nav a:hover,
+        .header-nav button:hover {
+            color: white;
+            background-color: #3498db;
+        }
+
+        .header-nav a.active {
+            color: #1a1a1a;
+            background-color: #f39c12 !important;
+            border-color: #f39c12 !important;
+            font-weight: bold;
+        }
+
+        @media (max-width: 450px) {
+            /* Make header nav work on mobile with 6 items */
+            .header-nav {
+                gap: 4px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .header-nav a {
+                padding: 6px 10px !important;
+                font-size: 12px !important;
+                margin: 2px 1px;
+            }
+        }
+
+        /* ==================== THEME-SPECIFIC FIXED HEADER COLORS ==================== */
+        
+        /* Dark theme (default) */
+        body .fixed-header {
+            background-color: #2c3e50;
+            border-bottom-color: #34495e;
+        }
+        body .header-nav a, body .header-nav button {
+            color: #3498db;
+            border-color: #3498db;
+        }
+
+        /* Light theme */
+        body.light .fixed-header {
+            background-color: #e8e8e8;
+            border-bottom-color: #cccccc;
+        }
+        body.light .header-nav a, body.light .header-nav button {
+            color: #0066cc;
+            border-color: #0066cc;
+        }
+
+        /* High-contrast theme */
+        body.high-contrast .fixed-header {
+            background-color: #000000;
+            border-bottom: 2px solid #ffff00;
+        }
+        body.high-contrast .header-nav a, body.high-contrast .header-nav button {
+            color: #ffff00;
+            border-color: #ffff00;
+        }
+
+        /* Desert theme */
+        body.desert .fixed-header {
+            background-color: #3d2f20;
+            border-bottom-color: #8b4513;
+        }
+        body.desert .header-nav a, body.desert .header-nav button {
+            color: #cd853f;
+            border-color: #cd853f;
+        }
+
+        /* Terminal theme */
+        body.terminal .fixed-header {
+            background-color: #0a0a0a;
+            border-bottom: 2px solid #00cc00;
+        }
+        body.terminal .header-nav a, body.terminal .header-nav button {
+            color: #00ff00;
+            border-color: #00cc00;
+        }
+
+        /* Sunset theme */
+        body.sunset .fixed-header {
+            background-color: #2d1b2e;
+            border-bottom-color: #ff6b35;
+        }
+        body.sunset .header-nav a, body.sunset .header-nav button {
+            color: #ff8c42;
+            border-color: #ff8c42;
+        }
+
+        /* Forest theme */
+        body.forest .fixed-header {
+            background-color: #1a2e1a;
+            border-bottom-color: #4a7c4e;
+        }
+        body.forest .header-nav a, body.forest .header-nav button {
+            color: #66bb6a;
+            border-color: #66bb6a;
+        }
+
+        /* Midnight theme */
+        body.midnight .fixed-header {
+            background-color: #1e1435;
+            border-bottom-color: #6a4c93;
+        }
+        body.midnight .header-nav a, body.midnight .header-nav button {
+            color: #9575cd;
+            border-color: #9575cd;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
@@ -486,14 +640,18 @@
             </div>
         </div>
 
-        <!-- Navigation Links -->
-        <div class="nav-links">
-            <a href="/">🏠 Main</a>
-            <a href="/playlist">🎵 Play Queue</a>
-            <a href="/add_music">🎲 Add Music</a>
-            <a href="/search" class="current-page">🔍 Search</a>
-            <a href="/recent">📀 Recent</a>
-            <a href="/browse">🗂️ Browse</a>
+        <!-- Fixed Header Navigation -->
+        <div class="fixed-header">
+            <div class="header-content">
+                <div class="header-nav">
+                    <a href="/">🏠 Main</a>
+                    <a href="/playlist">🎵 Queue</a>
+                    <a href="/add_music">🎲 Add Music</a>
+                    <a href="/recent">📀 Recent</a>
+                    <a href="/browse">🗂️ Browse</a>
+                    <a href="/search" class="active">🔍 Search</a>
+                </div>
+            </div>
         </div>
 
         <div id="message-area"></div>

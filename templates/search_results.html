@@ -1150,6 +1150,48 @@
             background-color: #8e44ad;
             border-color: #8e44ad;
         }
+
+        @media (max-width: 450px) {
+            /* Mobile search link visible, desktop hidden */
+            .mobile-search-link {
+                display: inline-block !important;
+            }
+
+            /* Make header nav work on mobile with 6 items */
+            .header-nav {
+                gap: 4px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .header-nav a {
+                padding: 6px 10px !important;
+                font-size: 12px !important;
+                margin: 2px 1px;
+            }
+
+            /* Hide search inputs on mobile, keep Random button */
+            #header-search-type,
+            .autocomplete-container,
+            .autocomplete-dropdown,
+            #header-autocomplete-dropdown,
+            .header-search button:not(.random-albums-btn) {
+                display: none !important;
+            }
+
+            /* Adjust header-search for mobile */
+            .header-search {
+                gap: 4px;
+                padding: 0 5px;
+            }
+        }
+
+        /* Hide mobile search link on desktop */
+        @media (min-width: 451px) {
+            .mobile-search-link {
+                display: none !important;
+            }
+        }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 </head>
@@ -1182,24 +1224,25 @@
             <div class="header-content">
                 <div class="header-nav">
                     <a href="/">🏠 Main</a>
-                    <a href="/playlist">🎵 Playlist</a>
+                    <a href="/playlist">🎵 Queue</a>
                     <a href="/add_music">🎲 Add Music</a>
                     <a href="/recent">📀 Recent</a>
                     <a href="/browse">🗂️ Browse</a>
+                    <a href="/search" class="mobile-search-link">🔍 Search</a>
                 </div>
                 <div class="header-search">
-                    <select id="headerSearchType">
+                    <select id="header-search-type">
                         <option value="any">All Types</option>
                         <option value="artist">Artists</option>
                         <option value="album">Albums</option>
                         <option value="title">Songs</option>
                     </select>
                     <div class="autocomplete-container">
-                        <input type="text" id="headerSearchInput" placeholder="Search albums...">
-                        <div class="autocomplete-dropdown" id="autocompleteDropdown"></div>
+                        <input type="text" id="header-search-input" placeholder="Search..." autocomplete="off">
+                        <div id="header-autocomplete-dropdown" class="autocomplete-dropdown"></div>
                     </div>
-                    <button id="headerSearchBtn">Search</button>
-                    <button class="random-albums-btn" id="randomAlbumsBtn" title="Load random albums">🎲 Random</button>
+                    <button onclick="performHeaderSearch()">Go</button>
+                    <button type="button" class="random-albums-btn" onclick="window.location.href='/random_albums'" title="Get 25 random albums">🎲 Random</button>
                 </div>
             </div>
         </div>
@@ -1957,10 +2000,10 @@
             });
 
             // Header search functionality
-            const headerSearchInput = document.getElementById('headerSearchInput');
-            const headerSearchBtn = document.getElementById('headerSearchBtn');
-            const headerSearchType = document.getElementById('headerSearchType');
-            const autocompleteDropdown = document.getElementById('autocompleteDropdown');
+            const headerSearchInput = document.getElementById('header-search-input');
+            const headerSearchBtn = document.querySelector('.header-search button[onclick="performHeaderSearch()"]');
+            const headerSearchType = document.getElementById('header-search-type');
+            const autocompleteDropdown = document.getElementById('header-autocomplete-dropdown');
             let allAlbums = [];
             let allArtists = [];
             let allSongs = [];
@@ -1988,12 +2031,16 @@
                 }
             }
 
-            headerSearchBtn.addEventListener('click', performHeaderSearch);
-            headerSearchInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    performHeaderSearch();
-                }
-            });
+            if (headerSearchBtn) {
+                headerSearchBtn.addEventListener('click', performHeaderSearch);
+            }
+            if (headerSearchInput) {
+                headerSearchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        performHeaderSearch();
+                    }
+                });
+            }
 
             // Autocomplete suggestions
             function showHeaderSuggestions(query) {

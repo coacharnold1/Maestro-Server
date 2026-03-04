@@ -954,6 +954,39 @@
                 margin: 0 !important;
                 width: 120px !important;
             }
+
+            /* Mobile search link visible, desktop hidden */
+            .mobile-search-link {
+                display: inline-block !important;
+            }
+
+            /* Make header nav work on mobile with 6 items */
+            .header-nav {
+                gap: 4px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .header-nav a {
+                padding: 6px 10px !important;
+                font-size: 12px !important;
+                margin: 2px 1px;
+            }
+
+            /* Hide search inputs on mobile, keep Random button */
+            #header-search-type,
+            .autocomplete-container,
+            .autocomplete-dropdown,
+            #header-autocomplete-dropdown,
+            .header-search button:not(.random-albums-btn) {
+                display: none !important;
+            }
+
+            /* Adjust header-search for mobile */
+            .header-search {
+                gap: 4px;
+                padding: 0 5px;
+            }
         }
 
         /* Minimal theme overrides to honor Settings theme */
@@ -1453,6 +1486,13 @@
             flex-shrink: 0;
         }
 
+        /* Hide mobile search link on desktop */
+        @media (min-width: 451px) {
+            .mobile-search-link {
+                display: none !important;
+            }
+        }
+
         .header-search input::placeholder {
             color: #95a5a6;
         }
@@ -1591,6 +1631,7 @@
                     <a href="/add_music">🎲 Add Music</a>
                     <a href="/recent">📀 Recent</a>
                     <a href="/browse">🗂️ Browse</a>
+                    <a href="/search" class="mobile-search-link">🔍 Search</a>
                 </div>
                 <div class="header-search">
                     <select id="header-search-type">
