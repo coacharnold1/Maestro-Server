@@ -1521,54 +1521,35 @@ def _clean_genius_lyrics(lyrics: str) -> Optional[str]:
     """
     Remove common metadata junk from Genius lyrics.
     Strips contributor info, translations, descriptions, etc.
+    Keep all actual lyrics including verses 1, 2, 3...
     """
     lines = lyrics.split('\n')
     cleaned_lines = []
-    metadata_keywords = [
-        'Contributor',
-        'Translations',
-        'Español',
-        'Italiano',
-        'Português',
-        'Français',
-        'Deutsch',
-        'Read More',
-        'See full lyrics',
-        'by which we measure',  # Generic pattern matcher
+    
+    # Patterns to completely remove lines
+    junk_patterns = [
+        r'^\d+\s+Contributors?$',        # "71 Contributors"
+        r'^Translations?$',               # "Translations"
+        r'^(Español|Italiano|Português|Français|Deutsch|中文|日本語)$',  # Language names
+        r'^(Read More|See full lyrics|Get the lyrics|Lyrics)$',          # Common metadata
+        r'^\[.*?\]\s*Lyrics.*$',          # "[Song Name] Lyrics"
     ]
     
-    # Flag to track if we've found actual lyrics
-    found_lyrics_start = False
-    
-    for i, line in enumerate(lines):
+    for line in lines:
         line_stripped = line.strip()
         
-        # Skip empty lines before lyrics start
-        if not found_lyrics_start and not line_stripped:
-            continue
+        # Check if this line is pure junk to skip
+        is_junk = any(re.match(pattern, line_stripped) for pattern in junk_patterns)
         
-        # Check if line contains metadata keywords
-        is_metadata = any(keyword.lower() in line_stripped.lower() for keyword in metadata_keywords)
+        # Also skip lines that look like Genius descriptions (long text between metadata and [Verse)
+        # Only if they don't contain typical lyric markers
+        is_long_description = (len(line_stripped) > 100 and 
+                              not re.match(r'^\[', line_stripped) and
+                              'believe' not in line_stripped.lower() and
+                              'dream' not in line_stripped.lower())
         
-        # Look for actual lyric indicators ([Verse, [Chorus, etc.)
-        is_lyric_section = re.match(r'^\[', line_stripped)
-        
-        # If we haven't found lyrics yet and this looks like metadata, skip it
-        if not found_lyrics_start and is_metadata and not is_lyric_section:
-            continue
-        
-        # If this is a lyric section marker or looks like actual lyrics, we've found the start
-        if is_lyric_section or (found_lyrics_start and line_stripped):
-            found_lyrics_start = True
+        if not is_junk and not is_long_description:
             cleaned_lines.append(line)
-        elif found_lyrics_start:
-            # Keep all lines after we've found lyrics start
-            if line_stripped or (cleaned_lines and cleaned_lines[-1].strip()):
-                # Keep non-empty lines or preserve blank lines between sections
-                if line_stripped:
-                    cleaned_lines.append(line)
-                elif len(cleaned_lines) > 0:
-                    cleaned_lines.append('')
 
     # Join and clean up excess blank lines
     result = '\n'.join(cleaned_lines).strip()
