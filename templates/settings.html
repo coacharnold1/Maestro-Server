@@ -100,6 +100,30 @@
             </div>
         </div>
 
+        <h2 style="text-align:left; margin-top:14px;">Recent Albums Directory</h2>
+        <div class="controls" style="border-top:none;">
+            <div style="margin:10px 0; padding:10px; background:rgba(52,152,219,0.1); border-left:3px solid #3498db; border-radius:4px; font-size:0.9em; color:#bdc3c7;">
+                <strong>ℹ️ Where are your recently added albums?</strong>
+                <div style="margin-top:5px;">
+                    Specify the folder(s) to scan for recently added albums. You can use a single path or comma-separated paths. Examples: <code style="background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:3px;">/media/music/ripped</code>, <code style="background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:3px;">/media/music/new,/media/music/ripped</code>
+                </div>
+            </div>
+            <div style="margin:15px 0;">
+                <label for="recent_albums_dir" style="display:block; font-weight:bold; margin-bottom:8px;">Recent Albums Directory:</label>
+                <div style="display:flex; gap:8px;">
+                    <input type="text" id="recent_albums_dir" name="recent_albums_dir" placeholder="e.g., /media/music/ripped or /media/music/new,/media/music/ripped" value="{{ recent_albums_dir or '' }}" style="flex:1; padding:8px; border-radius:6px; box-sizing:border-box; font-family:monospace;"/>
+                    <button type="button" class="button" onclick="openFolderBrowser()" style="background:#3498db; color:#ecf0f1; padding:8px 16px; white-space:nowrap;">📁 Browse</button>
+                </div>
+                <div style="margin-top:5px; color:#95a5a6; font-size:0.9em;">
+                    {% if recent_albums_dir %}
+                        <strong style="color:#2ecc71;">✓ Set to:</strong> {{ recent_albums_dir }}
+                    {% else %}
+                        <strong style="color:#f39c12;">⚠️</strong> Not configured - Recent Albums page may be empty
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
         <div style="border-top: 2px solid #34495e; margin-top: 20px; padding-top: 20px;">
             <div class="controls" style="border-top:none;">
                 <button type="submit" class="button" style="background:#2ecc71; color:#1a1a1a; padding: 12px 30px; font-size: 1.05em; font-weight: bold;">💾 Save All Settings</button>
@@ -402,5 +426,190 @@
 
     // Initialize LMS on page load
     checkLMSStatus();
+
+    // =====================================================================
+    // RECENT ALBUMS DIRECTORY FOLDER BROWSER
+    // =====================================================================
+    let currentBrowsePath = '/media/music';
+    let selectedFolders = [];
+
+    function openFolderBrowser() {
+        const modal = document.getElementById('folder-browser-modal');
+        modal.style.display = 'block';
+        currentBrowsePath = '/media/music';
+        selectedFolders = [];
+        loadFolderBrowserContents(currentBrowsePath);
+    }
+
+    function closeFolderBrowser() {
+        const modal = document.getElementById('folder-browser-modal');
+        modal.style.display = 'none';
+    }
+
+    function loadFolderBrowserContents(path) {
+        const loading = document.getElementById('folder-browser-loading');
+        const list = document.getElementById('folder-browser-list');
+        const pathDisplay = document.getElementById('folder-browser-path');
+        const parentBtn = document.getElementById('folder-browser-parent');
+        
+        loading.style.display = 'block';
+        list.innerHTML = '';
+        pathDisplay.textContent = path;
+        
+        fetch(`/api/list_music_directories?path=${encodeURIComponent(path)}`)
+            .then(r => r.json())
+            .then(data => {
+                loading.style.display = 'none';
+                
+                if (!data.success) {
+                    list.innerHTML = `<div style="color:#e74c3c; padding:15px; text-align:center;">Error: ${data.error}</div>`;
+                    return;
+                }
+                
+                // Show/hide parent button
+                if (data.parent) {
+                    parentBtn.style.display = 'block';
+                    parentBtn.onclick = () => {
+                        currentBrowsePath = data.parent;
+                        loadFolderBrowserContents(data.parent);
+                    };
+                } else {
+                    parentBtn.style.display = 'none';
+                }
+                
+                // Show folders
+                if (data.items.length === 0) {
+                    list.innerHTML = '<div style="color:#95a5a6; padding:15px; text-align:center;">No folders found</div>';
+                    return;
+                }
+                
+                data.items.forEach(item => {
+                    if (item.is_dir) {
+                        const isSelected = selectedFolders.includes(item.path);
+                        const div = document.createElement('div');
+                        div.style.cssText = `
+                            padding: 12px;
+                            margin: 5px 0;
+                            background: ${isSelected ? 'rgba(46,204,113,0.2)' : 'rgba(52,73,94,0.3)'};
+                            border: 1px solid ${isSelected ? '#2ecc71' : '#34495e'};
+                            border-radius: 6px;
+                            cursor: pointer;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                        `;
+                        
+                        div.innerHTML = `
+                            <div style="display:flex; align-items:center; gap:8px; flex:1;">
+                                <input type="checkbox" ${isSelected ? 'checked' : ''} style="cursor:pointer;" onchange="e => e.stopPropagation()">
+                                <span style="cursor:pointer;">📁 ${item.name}</span>
+                            </div>
+                            <button type="button" style="background:#3498db; color:#ecf0f1; padding:6px 12px; border:none; border-radius:4px; cursor:pointer; font-size:0.85em;">Open →</button>
+                        `;
+                        
+                        // Checkbox toggle
+                        const checkbox = div.querySelector('input[type="checkbox"]');
+                        checkbox.addEventListener('change', (e) => {
+                            e.stopPropagation();
+                            if (checkbox.checked) {
+                                if (!selectedFolders.includes(item.path)) {
+                                    selectedFolders.push(item.path);
+                                }
+                            } else {
+                                selectedFolders = selectedFolders.filter(p => p !== item.path);
+                            }
+                            updateFolderBrowserSelection();
+                        });
+                        
+                        // Folder open button
+                        const btn = div.querySelector('button');
+                        btn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            currentBrowsePath = item.path;
+                            loadFolderBrowserContents(item.path);
+                        });
+                        
+                        // Also allow clicking the folder name to open it
+                        const folderName = div.querySelector('span');
+                        folderName.addEventListener('click', (e) => {
+                            if (e.detail === 2) {  // Double-click
+                                currentBrowsePath = item.path;
+                                loadFolderBrowserContents(item.path);
+                            }
+                        });
+                        
+                        list.appendChild(div);
+                    }
+                });
+                
+                updateFolderBrowserSelection();
+            })
+            .catch(err => {
+                loading.style.display = 'none';
+                list.innerHTML = `<div style="color:#e74c3c; padding:15px; text-align:center;">Network error: ${err.message}</div>`;
+            });
+    }
+
+    function updateFolderBrowserSelection() {
+        const summary = document.getElementById('folder-browser-summary');
+        if (selectedFolders.length === 0) {
+            summary.textContent = 'No folders selected';
+            summary.style.color = '#f39c12';
+        } else {
+            summary.textContent = `${selectedFolders.length} folder(s) selected`;
+            summary.style.color = '#2ecc71';
+        }
+    }
+
+    function applyFolderSelection() {
+        if (selectedFolders.length === 0) {
+            alert('Please select at least one folder');
+            return;
+        }
+        
+        const input = document.getElementById('recent_albums_dir');
+        input.value = selectedFolders.join(',');
+        closeFolderBrowser();
+    }
+
+    // Close modal when clicking outside
+    window.addEventListener('click', (e) => {
+        const modal = document.getElementById('folder-browser-modal');
+        if (e.target === modal) {
+            closeFolderBrowser();
+        }
+    });
 </script>
+
+<!-- Folder Browser Modal -->
+<div id="folder-browser-modal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.7);">
+    <div style="background:#1a1a1a; margin:5% auto; padding:20px; border-radius:8px; width:90%; max-width:700px; color:#ecf0f1;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h2 style="margin:0; font-size:1.3em;">📁 Select Recent Albums Folders</h2>
+            <button type="button" onclick="closeFolderBrowser()" style="background:none; border:none; color:#95a5a6; font-size:1.5em; cursor:pointer;">✕</button>
+        </div>
+        
+        <div style="margin-bottom:10px; padding:10px; background:rgba(52,152,219,0.1); border-left:3px solid #3498db; border-radius:4px; font-size:0.9em;">
+            <strong>ℹ️</strong> Check the folders you want to scan, then click "Apply Selection" to add them to the field above. You can select multiple folders.
+        </div>
+        
+        <div style="margin-bottom:15px; padding:10px; background:rgba(52,73,94,0.3); border-radius:4px;">
+            <strong>Current Path:</strong> <code id="folder-browser-path" style="color:#3498db;">/media/music</code>
+            <button type="button" id="folder-browser-parent" onclick="true" style="margin-left:10px; background:#7f8c8d; color:#ecf0f1; padding:4px 10px; border:none; border-radius:4px; cursor:pointer; font-size:0.85em;">↑ Parent</button>
+        </div>
+        
+        <div id="folder-browser-loading" style="display:none; text-align:center; padding:20px; color:#95a5a6;">Loading folders...</div>
+        <div id="folder-browser-list" style="max-height:400px; overflow-y:auto; margin-bottom:15px; border:1px solid #34495e; border-radius:4px; padding:10px; background:rgba(0,0,0,0.2);"></div>
+        
+        <div style="padding:10px; background:rgba(52,73,94,0.3); border-radius:4px; margin-bottom:15px; text-align:center;">
+            <strong id="folder-browser-summary" style="color:#f39c12;">No folders selected</strong>
+        </div>
+        
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+            <button type="button" onclick="closeFolderBrowser()" class="button" style="background:#7f8c8d; color:#ecf0f1;">Cancel</button>
+            <button type="button" onclick="applyFolderSelection()" class="button" style="background:#2ecc71; color:#1a1a1a; font-weight:bold;">✓ Apply Selection</button>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

@@ -1246,6 +1246,7 @@ def settings_page():
         theme = request.form.get('theme', current.get('theme', 'dark')).strip() or 'dark'
         lastfm_key = request.form.get('lastfm_api_key', '').strip()
         lastfm_secret = request.form.get('lastfm_shared_secret', '').strip()
+        recent_albums_dir = request.form.get('recent_albums_dir', '').strip()
         scrobble_flag = request.form.get('enable_scrobbling') == 'on'
         show_toasts_flag = request.form.get('show_scrobble_toasts') == 'on'
         hide_volume_flag = request.form.get('hide_volume_controls') == 'on'
@@ -1257,6 +1258,15 @@ def settings_page():
         current['show_scrobble_toasts'] = show_toasts_flag
         show_scrobble_toasts = show_toasts_flag
         current['hide_volume_controls'] = hide_volume_flag
+        
+        # Handle Recent Albums Directory
+        if recent_albums_dir:
+            current['recent_albums_dir'] = recent_albums_dir
+            print(f"[Settings] Recent albums directory updated to: {recent_albums_dir}", flush=True)
+        elif 'recent_albums_dir' in current:
+            # If user cleared it, remove from settings
+            del current['recent_albums_dir']
+            print(f"[Settings] Recent albums directory cleared", flush=True)
         
         # Handle Last.fm API Key
         # If user submitted a value that's not the masked placeholder, update it
@@ -1291,6 +1301,7 @@ def settings_page():
                            lastfm_connected=bool(current.get('lastfm_session_key')),
                            show_scrobble_toasts=bool(current.get('show_scrobble_toasts', True)),
                            hide_volume_controls=bool(current.get('hide_volume_controls', False)),
+                           recent_albums_dir=current.get('recent_albums_dir', ''),
                            lastfm_api_key_masked=masked_key,
                            lastfm_shared_secret_masked=masked_secret,
                            genius_client_id=current.get('genius_client_id', ''),
@@ -5047,6 +5058,64 @@ def recent_albums():
 def recent_albums_page():
     """Display the recent albums page."""
     return render_template('recent_albums.html')
+
+@app.route('/api/list_music_directories')
+def list_music_directories():
+    """
+    List available directories within the music library for recent albums browsing.
+    Returns directory structure for folder picker in settings.
+    """
+    try:
+        path = request.args.get('path', '/media/music')
+        
+        # Security: Only allow browsing within standard music directories
+        allowed_root_paths = ['/media/music', '/var/lib/mpd/music', '/mnt/music']
+        
+        # Validate path is within allowed roots
+        if not any(path.startswith(root) for root in allowed_root_paths):
+            return jsonify({'success': False, 'error': 'Access denied'}), 403
+        
+        # Check if directory exists
+        if not os.path.isdir(path):
+            return jsonify({'success': False, 'error': f'Directory not found: {path}'}), 404
+        
+        items = []
+        try:
+            for entry in os.scandir(path):
+                if entry.is_dir(follow_symlinks=False):
+                    try:
+                        item = {
+                            'name': entry.name,
+                            'path': entry.path,
+                            'is_dir': True,
+                            'modified': entry.stat().st_mtime
+                        }
+                        items.append(item)
+                    except (PermissionError, OSError):
+                        # Skip directories we can't read
+                        pass
+        except (PermissionError, OSError) as e:
+            print(f"Error listing directory {path}: {e}")
+        
+        # Sort alphabetically
+        items.sort(key=lambda x: x['name'].lower())
+        
+        # Determine parent directory (don't go above music root)
+        parent = None
+        if path not in allowed_root_paths:
+            parent_path = os.path.dirname(path)
+            if any(parent_path.startswith(root) for root in allowed_root_paths):
+                parent = parent_path
+        
+        return jsonify({
+            'success': True,
+            'path': path,
+            'parent': parent,
+            'items': items
+        })
+    except Exception as e:
+        print(f"Error in list_music_directories: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 def get_recent_albums_from_mpd(limit=25, force_refresh=False):
     """
