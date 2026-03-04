@@ -1539,41 +1539,31 @@
             border-color: #8e44ad;
         }
 
-        /* Mobile search bar - stack and reduce width */
+        /* Mobile search bar - reduce size without reorganizing */
         @media (max-width: 768px) {
-            .header-search {
-                flex-wrap: wrap;
-                gap: 6px;
-                justify-content: space-between;
-            }
-
-            .header-search input,
-            .autocomplete-container input {
-                width: 100%;
-                max-width: none;
-                min-width: auto;
-            }
-
-            .autocomplete-container {
-                width: 100%;
-                order: 3;
-                flex-basis: 100%;
+            .header-search input {
+                max-width: 110px;
+                min-width: 80px;
+                padding: 6px 8px;
+                font-size: 0.85em;
             }
 
             .header-search select {
-                flex: 0 0 45%;
-                max-width: none;
+                max-width: 90px;
+                padding: 6px 8px;
+                font-size: 0.85em;
             }
 
             .header-search button {
-                flex: 0 0 45%;
-                white-space: normal;
-                padding: 8px 6px;
+                padding: 6px 10px;
+                font-size: 0.8em;
             }
 
             .random-albums-btn {
-                flex-basis: 100%;
-                text-align: center;
+                padding: 6px 10px;
+                font-size: 0.8em;
+                display: block;
+                margin: 8px auto;
             }
         }
     </style>

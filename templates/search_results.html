@@ -372,35 +372,30 @@
                 padding: 12px;
             }
 
-            /* Mobile search bar - stack and reduce width */
-            .header-search {
-                flex-wrap: wrap;
-                gap: 6px;
-                justify-content: space-between;
-            }
-
-            .header-search input,
-            .autocomplete-container input {
-                width: 100%;
-                max-width: none;
-                min-width: auto;
-            }
-
-            .autocomplete-container {
-                width: 100%;
-                order: 3;
-                flex-basis: 100%;
+            /* Mobile search bar */
+            .header-search input {
+                max-width: 110px;
+                min-width: 80px;
+                padding: 6px 8px;
+                font-size: 0.85em;
             }
 
             .header-search select {
-                flex: 0 0 45%;
-                max-width: none;
+                max-width: 90px;
+                padding: 6px 8px;
+                font-size: 0.85em;
             }
 
             .header-search button {
-                flex: 0 0 45%;
-                white-space: normal;
-                padding: 8px 6px;
+                padding: 6px 10px;
+                font-size: 0.8em;
+            }
+
+            .random-albums-btn {
+                padding: 6px 10px;
+                font-size: 0.8em;
+                display: block;
+                margin: 8px auto;
             }
         }
 
@@ -2097,7 +2092,7 @@
             // Random albums button
             const randomAlbumsBtn = document.getElementById('randomAlbumsBtn');
             randomAlbumsBtn.addEventListener('click', function() {
-                window.location.href = '/?random=1';
+                window.location.href = '/random_albums';
             });
         });
     </script>
