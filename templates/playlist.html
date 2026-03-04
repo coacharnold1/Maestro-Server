@@ -1419,6 +1419,39 @@
             background-color: #8e44ad;
             border-color: #8e44ad;
         }
+
+        /* Mobile search bar - stack and reduce width */
+        @media (max-width: 600px) {
+            .header-search {
+                flex-wrap: wrap;
+                gap: 6px;
+                justify-content: space-between;
+            }
+
+            .header-search input,
+            .autocomplete-container input {
+                width: 100%;
+                max-width: none;
+                min-width: auto;
+            }
+
+            .autocomplete-container {
+                width: 100%;
+                order: 3;
+                flex-basis: 100%;
+            }
+
+            .header-search select {
+                flex: 0 0 45%;
+                max-width: none;
+            }
+
+            .header-search button {
+                flex: 0 0 45%;
+                white-space: normal;
+                padding: 8px 6px;
+            }
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
