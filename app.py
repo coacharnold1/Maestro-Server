@@ -4099,6 +4099,9 @@ def get_album_art():
     size = request.args.get('size', 'full')  # 'full' or 'thumb'
     prefer_lastfm = request.args.get('prefer_lastfm', 'false').lower() == 'true'  # High-quality mode
 
+    # DEBUG: Log all requests to /album_art
+    print(f"[ALBUM_ART] Request: song_file={bool(song_file)}, artist={artist[:20] if artist else 'NONE'}, album={album[:20] if album else 'NONE'}, size={size}")
+
     # Rate limiting: prevent client loops from hammering NFS with identical requests
     client_ip = request.remote_addr
     cache_key_base = f"{song_file}-{artist}-{album}-{size}"
