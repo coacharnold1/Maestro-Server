@@ -37,11 +37,15 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentNpArtKey = '';
 
     // Helper to update album art
-    function updateNowPlayingArt(artist, album) {
+    function updateNowPlayingArt(artist, album, songFile) {
         const artKey = `${artist}-${album}`;
         if (artKey !== currentNpArtKey && npArt) {
             currentNpArtKey = artKey;
-            npArt.src = `/album_art?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}&size=thumb&_t=${Date.now()}`;
+            let artUrl = `/album_art?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}&size=thumb&_t=${Date.now()}`;
+            if (songFile) {
+                artUrl += `&file=${encodeURIComponent(songFile)}`;
+            }
+            npArt.src = artUrl;
         }
     }
 
@@ -62,7 +66,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     npArtist.textContent = data.artist;
                     npAlbum.textContent = data.album || 'Unknown Album';
                     npTrack.textContent = data.song_title;
-                    updateNowPlayingArt(data.artist, data.album || 'Unknown Album');
+                    updateNowPlayingArt(data.artist, data.album || 'Unknown Album', data.song_file || data.file);
                 }
             }
         })

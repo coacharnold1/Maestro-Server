@@ -1964,7 +1964,10 @@
             }
             document.getElementById('npTrack').textContent = songData.title || 'Unknown Track';
             const cacheTime = new Date().getTime();
-            const artUrl = `/album-art/${encodeURI(songData.album || 'Unknown')}/${encodeURI(songData.artist || 'Unknown')}?t=${cacheTime}`;
+            let artUrl = `/album_art?artist=${encodeURIComponent(songData.artist || 'Unknown')}&album=${encodeURIComponent(songData.album || 'Unknown')}&size=thumb&_t=${cacheTime}`;
+            if (songData.song_file || songData.file) {
+                artUrl += `&file=${encodeURIComponent(songData.song_file || songData.file)}`;
+            }
             const npArt = document.getElementById('npArt');
             npArt.src = artUrl;
             npArt.style.display = 'block';
