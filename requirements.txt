@@ -12,6 +12,9 @@ Pillow>=9.0.0
 # HTTP requests for Last.fm API
 requests>=2.25.0
 
+# HTML parsing for lyrics scraping
+beautifulsoup4>=4.9.0
+
 # Async support for SocketIO
 eventlet>=0.33.0
 

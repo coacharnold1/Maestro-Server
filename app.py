@@ -1459,14 +1459,72 @@ def _fetch_lyrics_genius(artist: str, title: str) -> Optional[str]:
         return None
 
 def _scrape_genius_page(url: str) -> Optional[str]:
-    """Scrape lyrics text from a Genius song page."""
+    """Scrape lyrics text from a Genius song page using BeautifulSoup for robustness."""
+    try:
+        from bs4 import BeautifulSoup
+        
+        resp = requests.get(url, timeout=8, headers=DEFAULT_HTTP_HEADERS)
+        resp.raise_for_status()
+        
+        soup = BeautifulSoup(resp.text, 'html.parser')
+        
+        # Find all containers with data-lyrics-container="true"
+        containers = soup.find_all('div', {'data-lyrics-container': 'true'})
+        if not containers:
+            print(f"[Genius] No lyrics containers found on {url}")
+            return None
+
+        parts = []
+        for container in containers:
+            # Extract all text from container, preserving line breaks
+            text_parts = []
+            for element in container.descendants:
+                if isinstance(element, str):
+                    text = element.strip()
+                    if text:
+                        text_parts.append(text)
+                elif element.name == 'br':
+                    text_parts.append('\n')
+            
+            # Join and clean up
+            block_text = ''.join(text_parts)
+            block_text = re.sub(r'\n{3,}', '\n\n', block_text).strip()
+            
+            if block_text:
+                parts.append(block_text)
+
+        if not parts:
+            print(f"[Genius] No lyric text extracted from {url}")
+            return None
+
+        lyrics = "\n\n".join(parts)
+        # Final cleanup: collapse excess blank lines
+        lyrics = re.sub(r'\n{3,}', '\n\n', lyrics).strip()
+        
+        if not lyrics:
+            return None
+            
+        print(f"[Genius] Successfully scraped {len(lyrics)} chars from {url}")
+        return lyrics
+    except ImportError:
+        print("[Genius] BeautifulSoup not installed, falling back to regex parsing")
+        return _scrape_genius_page_regex(url)
+    except Exception as e:
+        print(f"[Genius] scrape error: {e}")
+        return None
+
+def _scrape_genius_page_regex(url: str) -> Optional[str]:
+    """Fallback regex-based scraper if BeautifulSoup unavailable."""
     try:
         resp = requests.get(url, timeout=8, headers=DEFAULT_HTTP_HEADERS)
         resp.raise_for_status()
         html_text = resp.text
 
-        # Lyrics live inside multiple <div data-lyrics-container="true"> blocks
-        containers = re.findall(r'<div[^>]*data-lyrics-container="true"[^>]*>(.*?)</div>', html_text, flags=re.DOTALL)
+        # Try to find lyrics containers more carefully
+        # Match opening div with data-lyrics-container, then all content until matching close
+        pattern = r'<div[^>]*data-lyrics-container="true"[^>]*>(.*?)</div(?=>)'
+        containers = re.findall(pattern, html_text, flags=re.DOTALL)
+        
         if not containers:
             return None
 
@@ -1483,11 +1541,10 @@ def _scrape_genius_page(url: str) -> Optional[str]:
             return None
 
         lyrics = "\n\n".join(parts)
-        # Basic cleanup: collapse excess blank lines
         lyrics = re.sub(r'\n{3,}', '\n\n', lyrics).strip()
         return lyrics or None
     except Exception as e:
-        print(f"[Genius] scrape error: {e}")
+        print(f"[Genius] regex scrape error: {e}")
         return None
 
 @app.route('/api/test_genius', methods=['POST'])
