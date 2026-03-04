@@ -328,15 +328,93 @@ When clicking "Replace Playlist" (🔄) button on browse_albums or recent_albums
 
 ---
 
-**Current Session (Jan 31, 2026):**
-- Fixed critical bug: Albums page stuck on loading spinner
-- Root cause: Inline scripts weren't executing in Jinja2 templates
-- Solution: Moved all JavaScript to `static/browse_albums.js`
-- Version bumped to 2.9.45
-- Changes deployed and tested ✓
-- Committed to GitHub ✓
+## 🏗️ PLANNED REFACTORING (High Priority for Future Growth)
 
-**Last Updated**: January 31, 2026
+**Current Status as of March 4, 2026:**
+- `app.py` is 6,300+ lines (manageable but getting complex)
+- Features: MPD, Socket.io, Last.fm, Genius, Bandcamp, album art, auto-fill, caching, folder browser
+- Risk: Changes can have unpredictable side effects as complexity grows
+- Decision: Refactor BEFORE adding 5+ more features
+
+**Refactoring Plan (3 Phases):**
+
+### Phase 1: Structure & Organization (1-2 days)
+**Goal:** Logical separation without changing functionality
+- Create directory structure:
+  ```
+  app.py (main Flask app, routes only)
+  routes/
+    ├── browse.py (browse pages, API)
+    ├── playback.py (play, queue, controls)
+    ├── settings.py (settings page, preferences)
+    ├── album_art.py (album art serving, caching)
+    ├── search.py (search functionality)
+    └── lastfm.py (Last.fm authentication, scrobbling)
+  services/
+    ├── mpd_service.py (MPD client wrapper, connection)
+    ├── lastfm_service.py (Last.fm API calls)
+    ├── bandcamp_service.py (Bandcamp scraping)
+    ├── genius_service.py (Genius lyrics API)
+    └── album_art_service.py (local files, fallbacks)
+  utils/
+    ├── cache.py (caching logic)
+    ├── metadata.py (ID3, metadata parsing)
+    ├── helpers.py (shared functions)
+    └── constants.py (magic strings, config defaults)
+  ```
+- Move existing code into modules (no logic changes)
+- Wire up imports in main `app.py`
+- All tests pass = low-risk refactor
+
+### Phase 2: Isolate & Extract Services (2-3 days)
+**Goal:** Make dependencies explicit, improve testability
+- Extract `LastfmService` class
+  - Constructor takes config
+  - Methods: `authenticate()`, `scrobble()`, `get_now_playing()`
+  - Own error handling & caching
+- Extract `MPDService` class
+  - Singleton pattern for MPD connection
+  - Methods: `play()`, `queue()`, `get_status()`, `search()`
+  - Connection pooling & retry logic
+- Extract `BandcampService` class
+  - Methods: `fetch_album_art()`, `search_labels()`
+  - Caching & rate limiting
+- Similar for `GeniusService`, `AlbumArtService`
+- Benefits: Each service is independently testable, swappable, reusable
+
+### Phase 3: Add Tests (1-2 days)
+**Goal:** Foundation for safe future changes
+- Unit tests for each service (mock external APIs)
+- Integration tests for key flows:
+  - User selects album → album art loads correctly
+  - Scrobbling enabled → plays track → Last.fm receives scrobble
+  - Search returns results → clicking plays track
+- CI/CD hook: Tests run on every commit
+- Confidence: Future changes = run tests + deploy
+
+**Why This Matters:**
+- Current risk: 1 change = 10% chance of breaking something
+- After refactor: 1 change = <1% chance of breaking something
+- Enables: 5-10 new features without fear
+- Makes: Debugging isolated (x feature broke, not "something broke")
+
+**When Ready:** Ping with "refactor time" and we'll start Phase 1 immediately
+
+---
+
+**Recent Work (March 2-4, 2026):**
+- v3.2.1: Mobile navbar redesign (9 pages updated, all themes)
+- Repository cleanup: Removed 6 test/debug files
+- Album art bug fix: NOW PLAYING bar showing placeholder on production
+  - Root cause: Missing `song_file` parameter in 9 pages
+  - Fixed all 9 pages, deployed, verified working ✓
+- Settings enhancement: Recent Albums Directory configuration
+  - Added folder browser UI with modal picker
+  - New API endpoint: `/api/list_music_directories`
+  - Settings page now lets users change recent folder at runtime
+  - Tested locally ✓, pushed to GitHub ✓
+
+**Last Updated**: March 4, 2026
 **Maintainer**: fausto
-**Current Version**: 2.9.45
-**Environment**: Test Server (192.168.1.209)
+**Current Version**: 3.2.1
+**Environment**: Dev (192.168.1.209), Production Arch (192.168.1.142)
