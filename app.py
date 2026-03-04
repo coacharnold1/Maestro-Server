@@ -1498,6 +1498,10 @@ def _scrape_genius_page(url: str) -> Optional[str]:
             return None
 
         lyrics = "\n\n".join(parts)
+        
+        # Clean up common metadata junk
+        lyrics = _clean_genius_lyrics(lyrics)
+        
         # Final cleanup: collapse excess blank lines
         lyrics = re.sub(r'\n{3,}', '\n\n', lyrics).strip()
         
@@ -1512,6 +1516,65 @@ def _scrape_genius_page(url: str) -> Optional[str]:
     except Exception as e:
         print(f"[Genius] scrape error: {e}")
         return None
+
+def _clean_genius_lyrics(lyrics: str) -> Optional[str]:
+    """
+    Remove common metadata junk from Genius lyrics.
+    Strips contributor info, translations, descriptions, etc.
+    """
+    lines = lyrics.split('\n')
+    cleaned_lines = []
+    metadata_keywords = [
+        'Contributor',
+        'Translations',
+        'Español',
+        'Italiano',
+        'Português',
+        'Français',
+        'Deutsch',
+        'Read More',
+        'See full lyrics',
+        'by which we measure',  # Generic pattern matcher
+    ]
+    
+    # Flag to track if we've found actual lyrics
+    found_lyrics_start = False
+    
+    for i, line in enumerate(lines):
+        line_stripped = line.strip()
+        
+        # Skip empty lines before lyrics start
+        if not found_lyrics_start and not line_stripped:
+            continue
+        
+        # Check if line contains metadata keywords
+        is_metadata = any(keyword.lower() in line_stripped.lower() for keyword in metadata_keywords)
+        
+        # Look for actual lyric indicators ([Verse, [Chorus, etc.)
+        is_lyric_section = re.match(r'^\[', line_stripped)
+        
+        # If we haven't found lyrics yet and this looks like metadata, skip it
+        if not found_lyrics_start and is_metadata and not is_lyric_section:
+            continue
+        
+        # If this is a lyric section marker or looks like actual lyrics, we've found the start
+        if is_lyric_section or (found_lyrics_start and line_stripped):
+            found_lyrics_start = True
+            cleaned_lines.append(line)
+        elif found_lyrics_start:
+            # Keep all lines after we've found lyrics start
+            if line_stripped or (cleaned_lines and cleaned_lines[-1].strip()):
+                # Keep non-empty lines or preserve blank lines between sections
+                if line_stripped:
+                    cleaned_lines.append(line)
+                elif len(cleaned_lines) > 0:
+                    cleaned_lines.append('')
+
+    # Join and clean up excess blank lines
+    result = '\n'.join(cleaned_lines).strip()
+    result = re.sub(r'\n{3,}', '\n\n', result).strip()
+    
+    return result if result else None
 
 def _scrape_genius_page_regex(url: str) -> Optional[str]:
     """Fallback regex-based scraper if BeautifulSoup unavailable."""
