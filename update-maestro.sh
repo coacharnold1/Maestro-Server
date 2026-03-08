@@ -208,22 +208,32 @@ echo -e "${GREEN}[3/6] Updating main application...${NC}"
 # Copy main app files
 sudo cp -r "$REPO_DIR/templates" "$INSTALL_DIR/"
 sudo cp -r "$REPO_DIR/templates" "$INSTALL_DIR/web/"
-# Copy modular route handlers
-if [ -d "$REPO_DIR/routes" ]; then
-    sudo cp -r "$REPO_DIR/routes" "$INSTALL_DIR/web/"
-    echo -e "${GREEN}✓ Updated route handlers${NC}"
+
+# Copy modular route handlers (REQUIRED - fail if missing)
+if [ ! -d "$REPO_DIR/routes" ]; then
+    echo -e "${RED}✗ ERROR: routes directory not found in $REPO_DIR${NC}"
+    exit 1
 fi
-# Copy services directory
-if [ -d "$REPO_DIR/services" ]; then
-    sudo mkdir -p "$INSTALL_DIR/web/services"
-    sudo cp -rf "$REPO_DIR/services/"* "$INSTALL_DIR/web/services/"
-    echo -e "${GREEN}✓ Updated services${NC}"
+sudo cp -r "$REPO_DIR/routes" "$INSTALL_DIR/web/"
+echo -e "${GREEN}✓ Updated route handlers${NC}"
+
+# Copy services directory (REQUIRED - fail if missing)
+if [ ! -d "$REPO_DIR/services" ]; then
+    echo -e "${RED}✗ ERROR: services directory not found in $REPO_DIR${NC}"
+    exit 1
 fi
-# Copy utilities
-if [ -d "$REPO_DIR/utils" ]; then
-    sudo cp -r "$REPO_DIR/utils" "$INSTALL_DIR/web/"
-    echo -e "${GREEN}✓ Updated utilities${NC}"
+sudo mkdir -p "$INSTALL_DIR/web/services"
+sudo cp -rf "$REPO_DIR/services/"* "$INSTALL_DIR/web/services/"
+echo -e "${GREEN}✓ Updated services${NC}"
+
+# Copy utilities (REQUIRED - fail if missing)
+if [ ! -d "$REPO_DIR/utils" ]; then
+    echo -e "${RED}✗ ERROR: utils directory not found in $REPO_DIR${NC}"
+    exit 1
 fi
+sudo cp -r "$REPO_DIR/utils" "$INSTALL_DIR/web/"
+echo -e "${GREEN}✓ Updated utilities${NC}"
+
 # Copy static directory contents (create directory first, then copy contents)
 sudo mkdir -p "$INSTALL_DIR/static"
 sudo mkdir -p "$INSTALL_DIR/web/static"
