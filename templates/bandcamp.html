@@ -651,6 +651,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     streaming_url: track.streaming_url,
+                    track_id: track.track_id,
                     title: track.title,
                     artist: track.artist,
                     album: track.album,
@@ -711,6 +712,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         streaming_url: track.streaming_url,
+                        track_id: track.track_id,
                         title: track.title,
                         artist: track.artist,
                         artwork_url: track.artwork_url || '',

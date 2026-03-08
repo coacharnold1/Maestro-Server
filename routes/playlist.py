@@ -391,16 +391,48 @@ def add_song_to_playlist_handler(app_ctx):
         return redirect(url_for('index'))
 
 
-def get_mpd_playlist_helper(connect_mpd_client):
-    """Fetches the current MPD playlist."""
+def get_mpd_playlist_helper(connect_mpd_client, bandcamp_metadata_cache=None):
+    """Fetches the current MPD playlist and enriches with Bandcamp metadata."""
+    import re
+    
     client = connect_mpd_client()
     if not client:
         return []
     try:
         playlist = client.playlistinfo()
         client.disconnect()
-        for i, song in enumerate(playlist):
-            song['pos'] = i
+        
+        # Enrich with Bandcamp metadata if available
+        if bandcamp_metadata_cache:
+            for i, song in enumerate(playlist):
+                song['pos'] = i
+                song_file = song.get('file', '')
+                
+                # Check if this is a Bandcamp stream and look up metadata
+                if song_file and 'bandcamp.com' in song_file:
+                    bc_meta = None
+                    
+                    # First try: direct URL lookup
+                    if song_file in bandcamp_metadata_cache:
+                        bc_meta = bandcamp_metadata_cache[song_file]
+                    # Second try: extract track_id from URL
+                    elif 'track_id=' in song_file:
+                        track_id_match = re.search(r'track_id=(\d+)', song_file)
+                        if track_id_match:
+                            cache_key = f"track_{track_id_match.group(1)}"
+                            bc_meta = bandcamp_metadata_cache.get(cache_key)
+                    
+                    # Apply metadata if found
+                    if bc_meta:
+                        song['artist'] = bc_meta.get('artist', song.get('artist', 'Unknown Artist'))
+                        song['title'] = bc_meta.get('title', song.get('title', 'Unknown Title'))
+                        song['album'] = bc_meta.get('album', song.get('album', 'Unknown Album'))
+                else:
+                    song['pos'] = i
+        else:
+            for i, song in enumerate(playlist):
+                song['pos'] = i
+        
         return playlist
     except Exception as e:
         print(f"Error fetching playlist: {e}")
@@ -410,8 +442,9 @@ def get_mpd_playlist_helper(connect_mpd_client):
 def playlist_page_handler(app_ctx):
     """Renders the playlist HTML page."""
     connect_mpd_client = app_ctx['connect_mpd_client']
+    bandcamp_metadata_cache = app_ctx.get('bandcamp_metadata_cache', {})
     
-    playlist = get_mpd_playlist_helper(connect_mpd_client)
+    playlist = get_mpd_playlist_helper(connect_mpd_client, bandcamp_metadata_cache)
     return render_template('playlist.html', playlist=playlist)
 
 
@@ -419,6 +452,7 @@ def remove_from_playlist_handler(app_ctx):
     """Removes a song from the playlist by its position."""
     connect_mpd_client = app_ctx['connect_mpd_client']
     socketio = app_ctx['socketio']
+    bandcamp_metadata_cache = app_ctx.get('bandcamp_metadata_cache', {})
     
     pos = request.form.get('pos', type=int)
     if pos is None:
@@ -431,7 +465,7 @@ def remove_from_playlist_handler(app_ctx):
         client.delete(pos)
         client.disconnect()
         socketio.emit('server_message', {'type': 'info', 'text': f'Removed song at position {pos+1} from playlist.'})
-        socketio.emit('playlist_updated', get_mpd_playlist_helper(connect_mpd_client))
+        socketio.emit('playlist_updated', get_mpd_playlist_helper(connect_mpd_client, bandcamp_metadata_cache))
         return jsonify({'status': 'success', 'message': 'Song removed'})
     except CommandError as e:
         print(f"MPD CommandError removing song at {pos}: {e}")
@@ -511,6 +545,7 @@ def clear_playlist_handler(app_ctx):
     """Clears the entire MPD playlist."""
     connect_mpd_client = app_ctx['connect_mpd_client']
     socketio = app_ctx['socketio']
+    bandcamp_metadata_cache = app_ctx.get('bandcamp_metadata_cache', {})
     
     client = connect_mpd_client()
     if not client:
@@ -520,7 +555,7 @@ def clear_playlist_handler(app_ctx):
         client.disconnect()
         
         socketio.emit('server_message', {'type': 'info', 'text': 'MPD playlist cleared.'})
-        socketio.emit('playlist_updated', get_mpd_playlist_helper(connect_mpd_client))
+        socketio.emit('playlist_updated', get_mpd_playlist_helper(connect_mpd_client, bandcamp_metadata_cache))
         return jsonify({'status': 'success', 'message': 'Playlist cleared'})
     except CommandError as e:
         print(f"MPD CommandError clearing playlist: {e}")
@@ -622,6 +657,7 @@ def load_playlist_handler(app_ctx):
     connect_mpd_client = app_ctx['connect_mpd_client']
     socketio = app_ctx['socketio']
     playlists_dir = app_ctx['playlists_dir']
+    bandcamp_metadata_cache = app_ctx.get('bandcamp_metadata_cache', {})
     
     data = request.get_json()
     if not data or 'name' not in data:
@@ -661,7 +697,7 @@ def load_playlist_handler(app_ctx):
             'type': 'info',
             'text': f'Loaded playlist "{playlist_name}" ({songs_added} songs)'
         })
-        socketio.emit('playlist_updated', get_mpd_playlist_helper(connect_mpd_client))
+        socketio.emit('playlist_updated', get_mpd_playlist_helper(connect_mpd_client, bandcamp_metadata_cache))
         
         message = f'Loaded {songs_added} songs'
         if songs_failed > 0:

@@ -247,6 +247,7 @@ def bandcamp_add_track_handler(app_ctx):
     try:
         data = request.json
         streaming_url = data.get('streaming_url')
+        track_id = data.get('track_id')
         title = data.get('title', 'Unknown')
         artist = data.get('artist', 'Unknown')
         album = data.get('album', 'Unknown')
@@ -255,18 +256,28 @@ def bandcamp_add_track_handler(app_ctx):
         if not streaming_url:
             return jsonify({'status': 'error', 'message': 'Streaming URL required'}), 400
         
-        # Cache metadata for this Bandcamp stream
-        track_id_match = re.search(r'track_id=(\d+)', streaming_url)
-        cache_key = f"track_{track_id_match.group(1)}" if track_id_match else streaming_url
+        # Create consistent cache keys using track_id if available, otherwise extract from URL
+        if track_id:
+            cache_key = f"track_{track_id}"
+        else:
+            # Fallback: try to extract track_id from streaming_url
+            track_id_match = re.search(r'track_id=(\d+)', streaming_url)
+            cache_key = f"track_{track_id_match.group(1)}" if track_id_match else streaming_url
         
-        bandcamp_metadata_cache[cache_key] = {
+        # Cache metadata - use BOTH the track_id key AND the streaming URL as fallback
+        metadata = {
             'artist': artist,
             'title': title,
             'album': album,
             'artwork_url': artwork_url
         }
-        print(f"Cached Bandcamp metadata with key: {cache_key}")
-        print(f"  Artist: {artist}, Title: {title}")
+        bandcamp_metadata_cache[cache_key] = metadata
+        # Always also cache by streaming_url directly since that's what we'll have when playing
+        bandcamp_metadata_cache[streaming_url] = metadata
+        
+        print(f"Cached Bandcamp metadata")
+        print(f"  Keys: {cache_key} | {streaming_url}")
+        print(f"  Track ID: {track_id}, Artist: {artist}, Title: {title}")
         print(f"  Album: {album}, Artwork: {artwork_url}", flush=True)
         
         client = connect_mpd_client()

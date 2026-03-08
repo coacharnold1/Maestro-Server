@@ -584,20 +584,29 @@ def get_mpd_status_for_display():
                         current_album = station_name
                     print(f"[Stream] Parsed from title field: {current_artist} - {current_title} (Station: {current_album})")
             
-            # Check for cached Bandcamp metadata (match by track_id)
+            # Check for cached Bandcamp metadata (match by track_id or streaming URL)
             import re
             bc_meta = None
-            if 'bandcamp.com' in song_file_path and 'track_id=' in song_file_path:
-                track_id_match = re.search(r'track_id=(\d+)', song_file_path)
-                if track_id_match:
-                    cache_key = f"track_{track_id_match.group(1)}"
-                    bc_meta = bandcamp_metadata_cache.get(cache_key)
-            elif song_file_path in bandcamp_metadata_cache:
-                bc_meta = bandcamp_metadata_cache[song_file_path]
+            
+            # Try multiple lookup methods
+            if song_file_path and 'bandcamp.com' in song_file_path:
+                # First try: direct URL lookup (fastest)
+                if song_file_path in bandcamp_metadata_cache:
+                    bc_meta = bandcamp_metadata_cache[song_file_path]
+                    print(f"[Bandcamp] Found metadata by URL: {song_file_path}", flush=True)
+                # Second try: extract track_id from URL and look up by track_id key
+                elif 'track_id=' in song_file_path:
+                    track_id_match = re.search(r'track_id=(\d+)', song_file_path)
+                    if track_id_match:
+                        cache_key = f"track_{track_id_match.group(1)}"
+                        bc_meta = bandcamp_metadata_cache.get(cache_key)
+                        if bc_meta:
+                            print(f"[Bandcamp] Found metadata by track_id: {cache_key}", flush=True)
             
             if bc_meta:
                 current_artist = bc_meta.get('artist', current_artist)
                 current_title = bc_meta.get('title', current_title)
+                current_album = bc_meta.get('album', current_album)
                 current_album = bc_meta.get('album', current_album)
                 print(f"[Bandcamp] Using cached metadata: {current_artist} - {current_title}", flush=True)
             # Final fallback: if stream has NO metadata at all, use cached station name
@@ -2885,7 +2894,8 @@ def get_mpd_playlist():
 def playlist_page():
     """Renders the playlist HTML page."""
     app_ctx = {
-        'connect_mpd_client': connect_mpd_client
+        'connect_mpd_client': connect_mpd_client,
+        'bandcamp_metadata_cache': bandcamp_metadata_cache
     }
     return playlist_page_handler(app_ctx)
 
