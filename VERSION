@@ -1,13 +1,14 @@
-Maestro MPD Server v3.2.1
-Release Date: Wed Mar 04 00:00:00 UTC 2026
-Version: 3.2.1
+Maestro MPD Server v3.3.0
+Release Date: Fri Mar 07 00:00:00 UTC 2026
+Version: 3.3.0
 
-🎵 ENHANCED SEARCH & AUTOCOMPLETE - NOW ACROSS ALL PAGES 🎵
+🎵 BANDCAMP INTEGRATION & UI REFINEMENTS 🎵
 
-Latest Features (Mar 3, 2026 - v3.2):
-✅ NEW: Autocomplete Search - All 4 browse pages (albums, artists, genres, recent) + search results
-✅ FIXED: Album Artwork in Search Results - Song results now display album art thumbnails
-✅ FIXED: Search Parameters - Corrected parameter names (album/artist/title instead of albums/artists/songs)
+Latest Features (Mar 7, 2026 - v3.3):
+✅ NEW: Bandcamp Track Metadata in Queue - Browse Bandcamp albums, add tracks with proper title/artist/album display
+✅ NEW: Radio Page Navbar Standardization - Fixed-header navigation matching all other pages
+✅ ENHANCED: Bandcamp Metadata Caching - Track info cached by track_id and streaming URL for reliable queue display
+✅ FIXED: Search functionality integrated into radio page header
 ✅ NEW: "All Types" Search Option - Quick way to search across all categories at once
 ✅ IMPROVED: Autocomplete Dropdown Layout - Fixed CSS overlap issues with search button
 ✅ IMPROVED: Playback Controls Centering - Reorganized layout to prevent float issues
