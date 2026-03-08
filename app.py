@@ -25,41 +25,90 @@ import random
 import re
 import html
 
-# Settings and data files
-SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'settings.json')
-GENRE_STATIONS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'genre_stations.json')
+# Import settings utilities
+from utils.settings import (
+    load_settings, save_settings,
+    load_genre_stations, save_genre_stations,
+    load_manual_stations, save_manual_stations,
+    add_manual_station, remove_manual_station
+)
 
-# Settings helpers
-def load_settings():
-    try:
-        if os.path.exists(SETTINGS_FILE):
-            with open(SETTINGS_FILE, 'r') as f:
-                return json.load(f)
-    except Exception as e:
-        print(f"Error loading settings.json: {e}")
-    # defaults
-    return {
-        'theme': 'dark',
-        'lastfm_api_key': '',
-        'lastfm_shared_secret': '',
-        'show_scrobble_toasts': True,
-        'genius_client_id': '',
-        'genius_client_secret': '',
-        'genius_access_token': ''
-    }
+# Import settings routes handlers
+from routes.settings import settings_page_handler, settings_genius_page_handler
 
-def save_settings(data: dict) -> bool:
-    try:
-        with open(SETTINGS_FILE, 'w') as f:
-            json.dump(data, f, indent=2)
-        try:
-            os.chmod(SETTINGS_FILE, 0o600)
-        except Exception as pe:
-            print(f"Warning: could not set permissions on settings.json: {pe}")
-        return True
-    except Exception as e:
-        print(f"Error saving settings.json: {e}")
-        return False
+# Import playback routes handlers
+from routes.playback import (
+    play_handler, pause_handler, stop_handler,
+    next_song_handler, previous_song_handler,
+    seek_position_handler, set_volume_handler,
+    restart_mpd_handler
+)
+
+# Import browse/search routes handlers
+from routes.browse import (
+    search_autocomplete_handler, search_handler,
+    random_albums_handler,
+    browse_genres_page_handler, browse_artists_page_handler, browse_albums_page_handler,
+    api_browse_genres_handler, api_browse_artists_handler,
+    api_browse_albums_handler, api_album_tracks_handler, recent_albums_page_handler
+)
+
+# Import playlist routes handlers
+from routes.playlist import (
+    add_album_to_playlist_handler, clear_and_add_album_handler,
+    add_song_to_playlist_handler, playlist_page_handler,
+    remove_from_playlist_handler, move_track_handler,
+    clear_playlist_handler, save_playlist_handler,
+    list_playlists_handler, load_playlist_handler,
+    delete_playlist_handler, play_song_at_pos_handler,
+    get_mpd_playlist_helper
+)
+
+# Import status/history routes handlers
+from routes.status import (
+    db_update_status_handler, get_mpd_status_handler,
+    history_page_handler, get_history_handler,
+    clear_history_handler
+)
+
+# Import radio routes handlers
+from routes.radio import (
+    get_genre_stations_handler, save_genre_station_handler,
+    get_genre_station_handler, delete_genre_station_handler,
+    set_genre_station_mode_handler, test_streaming_radio_handler,
+    detect_radio_country_handler, get_radio_countries_handler,
+    download_radio_backup_handler, get_backup_status_handler,
+    get_radio_stations_handler, play_radio_station_handler,
+    get_manual_stations_handler, save_manual_station_handler,
+    remove_manual_station_handler
+)
+
+# Import integration routes handlers (Last.fm, Genius, Bandcamp, LMS)
+from routes.integrations import (
+    api_get_lyrics_handler, api_test_genius_handler,
+    api_test_lastfm_handler, lastfm_request_token_handler,
+    lastfm_finalize_handler, charts_page_handler, api_charts_handler,
+    bandcamp_collection_handler, bandcamp_album_handler,
+    bandcamp_add_track_handler, bandcamp_artwork_handler,
+    api_lms_players_handler, api_lms_sync_handler,
+    api_lms_unsync_handler, api_lms_status_handler,
+    api_lms_volume_handler
+)
+
+# Import utility routes handlers
+from routes.utilities import (
+    get_version_info_handler, get_settings_info_handler,
+    get_auto_fill_status_handler, toggle_auto_fill_handler,
+    set_auto_fill_settings_handler, recent_albums_handler,
+    list_music_directories_handler
+)
+
+# Import debug routes handlers
+from routes.debug import (
+    debug_albumartists_handler, debug_album_handler,
+    debug_album_genre_handler, debug_album_search_handler,
+    debug_genre_various_artists_handler
+)
 
 # Globals for Last.fm scrobbling
 scrobbling_enabled = False
@@ -198,9 +247,8 @@ lastfm_session_key = _settings.get('lastfm_session_key', '')
 show_scrobble_toasts = bool(_settings.get('show_scrobble_toasts', True))
 
 """
-Settings utilities moved near imports for early availability.
+Settings utilities imported from utils.settings module.
 """
-GENRE_STATIONS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'genre_stations.json')
 
 # Recent albums cache - simple and safe change detection
 recent_albums_cache = None
@@ -278,129 +326,38 @@ genre_station_mode = False
 genre_station_name = ""
 genre_station_genres = []
 
-# Radio stations storage functions
-def load_genre_stations():
-    """Load genre stations from JSON file"""
-    try:
-        if os.path.exists(GENRE_STATIONS_FILE):
-            with open(GENRE_STATIONS_FILE, 'r') as f:
-                return json.load(f)
-        return {}
-    except (json.JSONDecodeError, IOError) as e:
-        print(f"Error loading genre stations: {e}")
-        return {}
-
-def save_genre_stations(stations):
-    """Save genre stations to JSON file"""
-    try:
-        with open(GENRE_STATIONS_FILE, 'w') as f:
-            json.dump(stations, f, indent=2)
-        return True
-    except IOError as e:
-        print(f"Error saving genre stations: {e}")
-        return False
-
-# Manual Radio Stations Management
-MANUAL_STATIONS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'manual_radio_stations.json')
-
-def load_manual_stations():
-    """Load manually added radio stations from persistent storage"""
-    try:
-        if os.path.exists(MANUAL_STATIONS_FILE):
-            with open(MANUAL_STATIONS_FILE, 'r') as f:
-                return json.load(f)
-        return []
-    except (json.JSONDecodeError, IOError) as e:
-        print(f"Error loading manual stations: {e}")
-        return []
-
-def save_manual_stations(stations):
-    """Save manually added stations to persistent storage"""
-    try:
-        with open(MANUAL_STATIONS_FILE, 'w') as f:
-            json.dump(stations, f, indent=2)
-        print(f"Saved {len(stations)} manual radio stations")
-        return True
-    except IOError as e:
-        print(f"Error saving manual stations: {e}")
-        return False
-
-def add_manual_station(name, url, favicon=''):
-    """Add a new manually added radio station"""
-    try:
-        stations = load_manual_stations()
-        
-        # Check if URL already exists
-        if any(s['url'] == url for s in stations):
-            return False, "Station URL already exists"
-        
-        from datetime import datetime
-        station = {
-            'name': name.strip(),
-            'url': url.strip(),
-            'favicon': favicon.strip() if favicon else '',
-            'added_date': datetime.now().isoformat(),
-            'manual': True
-        }
-        
-        stations.append(station)
-        if save_manual_stations(stations):
-            return True, "Station added successfully"
-        return False, "Failed to save station"
-    except Exception as e:
-        print(f"Error adding manual station: {e}")
-        return False, str(e)
-
-def remove_manual_station(url):
-    """Remove a manually added station by URL"""
-    try:
-        stations = load_manual_stations()
-        original_count = len(stations)
-        stations = [s for s in stations if s['url'] != url]
-        
-        if len(stations) < original_count:
-            save_manual_stations(stations)
-            return True, "Station removed successfully"
-        return False, "Station not found"
-    except Exception as e:
-        print(f"Error removing manual station: {e}")
-        return False, str(e)
-
 # --- API endpoint for application version info ---
 @app.route('/api/version')
 def get_version_info():
-    return jsonify({
-        'app_name': APP_NAME,
-        'version': APP_VERSION,
-        'build_date': APP_BUILD_DATE,
-        'status': 'running'
-    })
+    app_ctx = {
+        'APP_NAME': APP_NAME,
+        'APP_VERSION': APP_VERSION,
+        'APP_BUILD_DATE': APP_BUILD_DATE
+    }
+    return get_version_info_handler(app_ctx)
 
 @app.route('/api/settings')
 def get_settings_info():
     """Get public settings info (no sensitive data)"""
-    settings = load_settings()
-    return jsonify({
-        'bandcamp_enabled': settings.get('bandcamp_enabled', False),
-        'bandcamp_username': settings.get('bandcamp_username', ''),
-        'bandcamp_identity_token': bool(settings.get('bandcamp_identity_token', '').strip()),  # Just return if it exists
-        'lms_enabled': settings.get('lms_enabled', False),
-        'hide_volume_controls': settings.get('hide_volume_controls', False)
-    })
+    app_ctx = {
+        'load_settings': load_settings
+    }
+    return get_settings_info_handler(app_ctx)
 
 # --- API endpoint for auto-fill status (for Add Music page) ---
 @app.route('/get_auto_fill_status')
 def get_auto_fill_status():
-    return jsonify({
-        'active': auto_fill_active,
-        'min_queue_length': auto_fill_min_queue_length,
-        'num_tracks_min': auto_fill_num_tracks_min,
-        'num_tracks_max': auto_fill_num_tracks_max,
-        'genre_filter_enabled': auto_fill_genre_filter_enabled,
+    app_ctx = {
+        'auto_fill_active': auto_fill_active,
+        'auto_fill_min_queue_length': auto_fill_min_queue_length,
+        'auto_fill_num_tracks_min': auto_fill_num_tracks_min,
+        'auto_fill_num_tracks_max': auto_fill_num_tracks_max,
+        'auto_fill_genre_filter_enabled': auto_fill_genre_filter_enabled,
         'genre_station_mode': genre_station_mode,
         'genre_station_name': genre_station_name,
         'genre_station_genres': genre_station_genres
-    })
+    }
+    return get_auto_fill_status_handler(app_ctx)
 # Simple in-memory cache for Last.fm album art data
 album_art_cache = {}
 
@@ -1240,154 +1197,33 @@ def lastfm_get_user_charts(chart_type: str, period: str = 'overall', limit: int 
 # --- Settings & Last.fm management ---
 @app.route('/settings', methods=['GET', 'POST'])
 def settings_page():
-    global LASTFM_API_KEY, LASTFM_SHARED_SECRET, scrobbling_enabled, lastfm_session_key, show_scrobble_toasts
-    current = load_settings()
-    if request.method == 'POST':
-        theme = request.form.get('theme', current.get('theme', 'dark')).strip() or 'dark'
-        lastfm_key = request.form.get('lastfm_api_key', '').strip()
-        lastfm_secret = request.form.get('lastfm_shared_secret', '').strip()
-        recent_albums_dir = request.form.get('recent_albums_dir', '').strip()
-        scrobble_flag = request.form.get('enable_scrobbling') == 'on'
-        show_toasts_flag = request.form.get('show_scrobble_toasts') == 'on'
-        hide_volume_flag = request.form.get('hide_volume_controls') == 'on'
+    """Route handler for /settings - delegates to routes.settings module"""
+    app_ctx = {
+        'app': app,
+        'globals': globals()
+    }
+    return settings_page_handler(app_ctx)
 
-        # Update in-memory and persisted settings. Environment variables still take precedence at runtime
-        current['theme'] = theme
-        current['enable_scrobbling'] = scrobble_flag
-        scrobbling_enabled = scrobble_flag
-        current['show_scrobble_toasts'] = show_toasts_flag
-        show_scrobble_toasts = show_toasts_flag
-        current['hide_volume_controls'] = hide_volume_flag
-        
-        # Handle Recent Albums Directory
-        if recent_albums_dir:
-            current['recent_albums_dir'] = recent_albums_dir
-            print(f"[Settings] Recent albums directory updated to: {recent_albums_dir}", flush=True)
-        elif 'recent_albums_dir' in current:
-            # If user cleared it, remove from settings
-            del current['recent_albums_dir']
-            print(f"[Settings] Recent albums directory cleared", flush=True)
-        
-        # Handle Last.fm API Key
-        # If user submitted a value that's not the masked placeholder, update it
-        masked_placeholder = '•' * 10
-        if lastfm_key and lastfm_key != masked_placeholder:
-            current['lastfm_api_key'] = lastfm_key
-            # Update runtime value only if not set via environment
-            if not os.environ.get('LASTFM_API_KEY'):
-                LASTFM_API_KEY = lastfm_key
-            print(f"[Settings] Last.fm API key updated", flush=True)
-        
-        # Handle Last.fm Shared Secret
-        if lastfm_secret and lastfm_secret != masked_placeholder:
-            current['lastfm_shared_secret'] = lastfm_secret
-            if not os.environ.get('LASTFM_SHARED_SECRET'):
-                LASTFM_SHARED_SECRET = lastfm_secret
-            print(f"[Settings] Last.fm shared secret updated", flush=True)
-
-        if save_settings(current):
-            app.config['THEME'] = theme
-            flash('Settings saved successfully', 'success')
-        else:
-            flash('Failed to save settings', 'error')
-        return redirect(url_for('settings_page'))
-
-    # Mask secrets in UI
-    masked_key = '•' * 10 if current.get('lastfm_api_key') else ''
-    masked_secret = '•' * 10 if current.get('lastfm_shared_secret') else ''
-    return render_template('settings.html',
-                           theme=current.get('theme', 'dark'),
-                           enable_scrobbling=bool(current.get('enable_scrobbling', False)),
-                           lastfm_connected=bool(current.get('lastfm_session_key')),
-                           show_scrobble_toasts=bool(current.get('show_scrobble_toasts', True)),
-                           hide_volume_controls=bool(current.get('hide_volume_controls', False)),
-                           recent_albums_dir=current.get('recent_albums_dir', ''),
-                           lastfm_api_key_masked=masked_key,
-                           lastfm_shared_secret_masked=masked_secret,
-                           genius_client_id=current.get('genius_client_id', ''),
-                           genius_client_secret=current.get('genius_client_secret', ''),
-                           genius_access_token=current.get('genius_access_token', ''))
 
 @app.route('/settings/genius', methods=['POST'])
 def settings_genius_page():
-    """Persist Genius API credentials and reload runtime values."""
-    global GENIUS_CLIENT_ID, GENIUS_CLIENT_SECRET, GENIUS_ACCESS_TOKEN
-    current = load_settings()
-    client_id = request.form.get('genius_client_id', '').strip()
-    client_secret = request.form.get('genius_client_secret', '').strip()
-    access_token = request.form.get('genius_access_token', '').strip()
-
-    if client_id:
-        current['genius_client_id'] = client_id
-        if not os.environ.get('GENIUS_CLIENT_ID'):
-            GENIUS_CLIENT_ID = client_id
-    if client_secret:
-        current['genius_client_secret'] = client_secret
-        if not os.environ.get('GENIUS_CLIENT_SECRET'):
-            GENIUS_CLIENT_SECRET = client_secret
-    if access_token:
-        current['genius_access_token'] = access_token
-        if not os.environ.get('GENIUS_ACCESS_TOKEN'):
-            GENIUS_ACCESS_TOKEN = access_token
-
-    if save_settings(current):
-        flash('Genius settings saved.', 'success')
-    else:
-        flash('Failed to save Genius settings.', 'error')
-    return redirect(url_for('settings_page'))
+    """Route handler for /settings/genius - delegates to routes.settings module"""
+    app_ctx = {
+        'app': app,
+        'globals': globals()
+    }
+    return settings_genius_page_handler(app_ctx)
 
 @app.route('/api/lyrics', methods=['POST'])
 def api_get_lyrics():
-    """
-    Fetch lyrics for a track
-    Expected JSON: {"artist": "...", "title": "..."}
-    
-    Note: Lyrics service is currently in fallback mode due to API limitations.
-    This endpoint gracefully handles instrumental tracks and unavailable lyrics.
-    """
-    data = request.get_json() or {}
-    artist = data.get('artist', '').strip()
-    title = data.get('title', '').strip()
-    
-    if not artist or not title:
-        return jsonify({'status': 'error', 'message': 'Artist and title required'}), 400
-    
-    try:
-        # Try to detect if track is likely instrumental based on metadata
-        is_instrumental = _is_likely_instrumental(title)
-        
-        if is_instrumental:
-            return jsonify({
-                'status': 'success',
-                'lyrics': None,
-                'message': f'🎼 Instrumental Track: "{title}" appears to be an instrumental piece. No lyrics available.'
-            })
-        
-        # Try multiple lyrics providers
-        lyrics = _try_lyrics_providers(artist, title)
-        
-        if lyrics:
-            return jsonify({
-                'status': 'success',
-                'lyrics': lyrics,
-                'artist': artist,
-                'title': title
-            })
-        
-        # No lyrics found
-        return jsonify({
-            'status': 'success',
-            'lyrics': None,
-            'message': 'No lyrics found. This track may be instrumental, a live recording, or not available in our database.'
-        })
-        
-    except Exception as e:
-        print(f"Error fetching lyrics: {e}")
-        return jsonify({
-            'status': 'success',
-            'lyrics': None,
-            'message': 'Could not retrieve lyrics at this time. Please try again later.'
-        })
+    """Get lyrics for a track."""
+    app_ctx = {
+        'get_current_track': get_current_track,
+        '_fetch_lyrics_genius': _fetch_lyrics_genius,
+        '_try_lyrics_providers': _try_lyrics_providers,
+        '_is_likely_instrumental': _is_likely_instrumental
+    }
+    return api_get_lyrics_handler(app_ctx)
 
 def _is_likely_instrumental(title: str) -> bool:
     """
@@ -1593,108 +1429,61 @@ def _scrape_genius_page_regex(url: str) -> Optional[str]:
 
 @app.route('/api/test_genius', methods=['POST'])
 def api_test_genius():
-    """Quick check that Genius search + scrape works."""
-    try:
-        artist = request.form.get('artist', 'The Beatles')
-        title = request.form.get('title', 'Hey Jude')
-        lyrics = _fetch_lyrics_genius(artist, title)
-        if lyrics:
-            snippet = (lyrics[:160] + '...') if len(lyrics) > 160 else lyrics
-            return jsonify({'status': 'success', 'message': 'Genius reachable and returned lyrics.', 'snippet': snippet})
-        return jsonify({'status': 'error', 'message': 'No lyrics returned. Verify track spelling or try another song.'}), 502
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': f'Genius test failed: {e}'}), 502
+    """Test Genius API connectivity."""
+    app_ctx = {'_fetch_lyrics_genius': _fetch_lyrics_genius}
+    return api_test_genius_handler(app_ctx)
 
 
 @app.route('/api/test_lastfm', methods=['POST'])
 def api_test_lastfm():
-    key = request.form.get('api_key', '').strip() or LASTFM_API_KEY
-    if not key:
-        return jsonify({'status': 'error', 'message': 'No API key provided'}), 400
-    try:
-        params = {
-            'method': 'artist.getsimilar',
-            'artist': 'Metallica',
-            'api_key': key,
-            'format': 'json',
-            'limit': 1
-        }
-        r = requests.get(LASTFM_API_URL, params=params, timeout=5, headers=DEFAULT_HTTP_HEADERS)
-        r.raise_for_status()
-        data = r.json()
-        if 'similarartists' in data:
-            return jsonify({'status': 'success', 'message': 'Last.fm API key appears valid.'})
-        return jsonify({'status': 'error', 'message': 'Unexpected response from Last.fm.'}), 502
-    except requests.exceptions.HTTPError as he:
-        return jsonify({'status': 'error', 'message': f'HTTP error: {he}'}), 502
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': f'Error contacting Last.fm: {e}'}), 502
+    """Test Last.fm API connectivity."""
+    app_ctx = {
+        'load_settings': load_settings,
+        'LASTFM_API_KEY': LASTFM_API_KEY,
+        'LASTFM_API_URL': LASTFM_API_URL,
+        'DEFAULT_HTTP_HEADERS': DEFAULT_HTTP_HEADERS
+    }
+    return api_test_lastfm_handler(app_ctx)
 
 @app.route('/lastfm/request_token', methods=['POST'])
 def lastfm_request_token_route():
-    try:
-        token = lastfm_request_token()
-        s = load_settings()
-        s['lastfm_auth_token'] = token
-        save_settings(s)
-        auth_url = f"{LASTFM_AUTH_URL}?api_key={LASTFM_API_KEY}&token={token}"
-        return jsonify({'status': 'success', 'auth_url': auth_url})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    """Get Last.fm request token for OAuth."""
+    app_ctx = {
+        'lastfm_request_token': lastfm_request_token,
+        'load_settings': load_settings,
+        'save_settings': save_settings,
+        'LASTFM_API_KEY': LASTFM_API_KEY,
+        'LASTFM_AUTH_URL': LASTFM_AUTH_URL
+    }
+    return lastfm_request_token_handler(app_ctx)
 
 @app.route('/lastfm/finalize', methods=['POST'])
 def lastfm_finalize_route():
-    global lastfm_session_key
-    try:
-        s = load_settings()
-        token = s.get('lastfm_auth_token', '')
-        if not token:
-            return jsonify({'status': 'error', 'message': 'No pending token. Request a token first.'}), 400
-        sk = lastfm_get_session(token)
-        s['lastfm_session_key'] = sk
-        s['lastfm_auth_token'] = ''
-        save_settings(s)
-        lastfm_session_key = sk
-        return jsonify({'status': 'success', 'message': 'Last.fm connected successfully.'})
-    except Exception as e:
-        print(f"[Last.fm] Finalize error: {e}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    """Finalize Last.fm OAuth and get session key."""
+    app_ctx = {
+        'lastfm_get_session': lastfm_get_session,
+        'save_settings': save_settings,
+        'load_settings': load_settings
+    }
+    return lastfm_finalize_handler(app_ctx)
 
 # --- Last.fm Charts API Endpoints ---
 @app.route('/charts')
 def charts_page():
-    """Display the Last.fm charts page."""
-    return render_template('charts.html')
+    """Display user's Last.fm charts."""
+    app_ctx = {}
+    return charts_page_handler(app_ctx)
 
 @app.route('/api/charts/<chart_type>')
 def api_charts(chart_type):
-    """
-    Return Last.fm user charts (artists, albums, or tracks).
-    Query params: period (7day, 1month, 3month, 6month, 12month, overall)
-    """
-    if chart_type not in ['artists', 'albums', 'tracks']:
-        return jsonify({'status': 'error', 'message': 'Invalid chart type'}), 400
-    
-    if not lastfm_session_key:
-        return jsonify({'status': 'error', 'message': 'Last.fm not connected'}), 401
-    
-    period = request.args.get('period', 'overall')
-    valid_periods = ['7day', '1month', '3month', '6month', '12month', 'overall']
-    if period not in valid_periods:
-        period = 'overall'
-    
-    try:
-        data = lastfm_get_user_charts(chart_type, period=period, limit=50)
-        return jsonify({
-            'status': 'success',
-            'chart_type': chart_type,
-            'period': period,
-            'data': data,
-            'count': len(data)
-        })
-    except Exception as e:
-        print(f"[Charts] Error fetching {chart_type}: {e}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    """Get user's Last.fm charts (artists, albums, or tracks)."""
+    app_ctx = {
+        'load_settings': load_settings,
+        'lastfm_get_user_charts': lastfm_get_user_charts,
+        'lastfm_session_key': lastfm_session_key,
+        'LASTFM_API_KEY': LASTFM_API_KEY
+    }
+    return api_charts_handler(app_ctx, chart_type)
 
 def is_genre_match(target_genre, candidate_genre):
     """
@@ -2157,416 +1946,101 @@ def get_artist_images():
 @app.route('/api/search/autocomplete')
 def search_autocomplete_data():
     """Return all artists, albums, and titles for client-side autocomplete."""
-    try:
-        client = connect_mpd_client()
-        if not client:
-            return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
-        
-        # Get all unique artists, albums, and titles
-        # Handle both string and dict responses from MPD
-        artists_raw = client.list('artist')
-        artists = sorted(set([
-            (a if isinstance(a, str) else a.get('artist', '')) 
-            for a in artists_raw if a
-        ]))
-        
-        albums_raw = client.list('album')
-        albums = sorted(set([
-            (a if isinstance(a, str) else a.get('album', '')) 
-            for a in albums_raw if a
-        ]))
-        
-        # Get titles - limit to reasonable amount for performance
-        titles_raw = client.list('title')
-        titles = sorted(set([
-            (t if isinstance(t, str) else t.get('title', '')) 
-            for t in titles_raw if t
-        ]))[:1000]  # Limit titles to 1000 most common
-        
-        client.disconnect()
-        
-        return jsonify({
-            'status': 'success',
-            'artists': [a for a in artists if a],  # Filter out empty strings
-            'albums': [a for a in albums if a],
-            'titles': [t for t in titles if t]
-        })
-    except Exception as e:
-        print(f"Error fetching autocomplete data: {e}", flush=True)
-        import traceback
-        traceback.print_exc()
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client
+    }
+    return search_autocomplete_handler(app_ctx)
 
 @app.route('/search', methods=['GET', 'POST'])
 def search():
     """Search page with improved functionality from beta version."""
-    print(f"Request method: {request.method}, Request form: {dict(request.form)}, Request args: {dict(request.args)}", flush=True)
-    
-    # Handle both POST and GET requests
-    if request.method == 'POST':
-        query = request.form.get('query', '').strip()
-        search_tag = request.form.get('search_tag', 'any')
-    else:  # GET request
-        query = request.args.get('query', '').strip()
-        # Support both 'search_tag' and 'type' parameter names for compatibility
-        search_tag = request.args.get('search_tag') or request.args.get('type', 'any')
-    
-    # If there's a query, perform the search
-    if query:
-        try:
-            print(f"Received search request for tag: {search_tag} with query: {query}")
-
-            client = connect_mpd_client()
-            if not client:
-                return render_template('search.html', error="Could not connect to MPD")
-
-            try:
-                search_results = perform_search(client, search_tag, query)
-                client.disconnect()
-                
-                result = render_template('search_results.html', 
-                                     results=search_results, 
-                                     query=query, 
-                                     search_tag=search_tag)
-                return result
-            except Exception as e:
-                client.disconnect()
-                import traceback
-                return render_template('search.html', error=f"Search failed: {e}")
-
-        except Exception as e:
-            print(f"Error processing search: {e}")
-            return render_template('search.html', error="An error occurred while processing your search")
-    
-    # No query provided, just show the search page
-    return render_template('search.html')
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client,
+        'perform_search': perform_search
+    }
+    return search_handler(app_ctx)
 
 @app.route('/random_albums', methods=['GET'])
 def random_albums():
     """Return 25 random albums from the library."""
-    try:
-        client = connect_mpd_client()
-        if not client:
-            return render_template('search.html', error="Could not connect to MPD")
-        
-        try:
-            # Get all unique albums efficiently
-            all_albums_raw = client.list('album')
-            
-            # Filter out empty album names and normalize (handle both strings and dicts)
-            valid_albums = []
-            for album_item in all_albums_raw:
-                if isinstance(album_item, dict):
-                    album_name = album_item.get('album', '')
-                else:
-                    album_name = album_item
-                if album_name and str(album_name).strip():
-                    valid_albums.append(album_name)
-            
-            print(f"[DEBUG] Total albums in library: {len(valid_albums)}", flush=True)
-            
-            # Get 25 random albums
-            import random
-            num_to_select = min(25, len(valid_albums))
-            random_album_names = random.sample(valid_albums, num_to_select)
-            print(f"[DEBUG] Selected {num_to_select} random albums", flush=True)
-            
-            albums_list = []
-            for album_name in random_album_names:
-                try:
-                    # Use find for exact match instead of search
-                    songs = client.find('album', album_name)
-                    if songs:
-                        # Get the first song's info
-                        first_song = songs[0]
-                        artist_name = first_song.get('artist', 'Unknown Artist')
-                        song_file = first_song.get('file', '')
-                        genre = first_song.get('genre', 'Unknown Genre')
-                        
-                        albums_list.append({
-                            'item_type': 'album',
-                            'artist': artist_name,
-                            'album': album_name,
-                            'genre': genre,
-                            'track_count': len(songs),
-                            'sample_file': song_file
-                        })
-                        print(f"[DEBUG] Added album: {album_name} by {artist_name} ({len(songs)} tracks)", flush=True)
-                    else:
-                        print(f"[DEBUG] No songs found for album: {album_name}", flush=True)
-                except Exception as e:
-                    print(f"[DEBUG] Error getting info for album '{album_name}': {e}", flush=True)
-                    continue
-            
-            client.disconnect()
-            
-            print(f"[DEBUG] Returning {len(albums_list)} albums", flush=True)
-            return render_template('search_results.html', 
-                                 results=albums_list, 
-                                 query='Random Selection', 
-                                 search_tag='album')
-        except Exception as e:
-            if client:
-                client.disconnect()
-            import traceback
-            traceback.print_exc()
-            return render_template('search.html', error=f"Random albums failed: {e}")
-            
-    except Exception as e:
-        print(f"Error getting random albums: {e}")
-        return render_template('search.html', error="An error occurred while getting random albums")
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client
+    }
+    return random_albums_handler(app_ctx)
 
 @app.route('/play', methods=['GET', 'POST'])
 def play():
-    try:
-        client = connect_mpd_client()
-        if client:
-            # Check if playlist has songs before attempting to play
-            status = client.status()
-            playlist_length = int(status.get('playlistlength', 0))
-            
-            if playlist_length == 0:
-                client.disconnect()
-                error_msg = 'Cannot play: playlist is empty'
-                if request.args.get('ajax') == '1' or request.method == 'POST':
-                    return jsonify({'status': 'error', 'message': error_msg})
-                return redirect(url_for('index'))
-            
-            client.play()
-            client.disconnect()
-        # Check if this is an AJAX request (GET parameter or POST request)
-        if request.args.get('ajax') == '1' or request.method == 'POST':
-            return jsonify({'status': 'success', 'message': 'Play command sent'})
-    except Exception as e:
-        print(f"Error playing: {e}")
-        if request.args.get('ajax') == '1' or request.method == 'POST':
-            return jsonify({'status': 'error', 'message': f'Error playing: {e}'})
-    return redirect(url_for('index'))
+    """Route handler for /play - delegates to routes.playback module"""
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client,
+    }
+    return play_handler(app_ctx)
+
 
 @app.route('/pause', methods=['GET', 'POST'])
 def pause():
-    try:
-        client = connect_mpd_client()
-        if client:
-            client.pause()
-            client.disconnect()
-        # Check if this is an AJAX request
-        if request.args.get('ajax') == '1':
-            return jsonify({'status': 'success', 'message': 'Pause command sent'})
-    except Exception as e:
-        print(f"Error pausing: {e}")
-        if request.args.get('ajax') == '1':
-            return jsonify({'status': 'error', 'message': f'Error pausing: {e}'})
-    return redirect(url_for('index'))
+    """Route handler for /pause - delegates to routes.playback module"""
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client,
+    }
+    return pause_handler(app_ctx)
+
 
 @app.route('/stop', methods=['GET', 'POST'])
 def stop():
-    try:
-        client = connect_mpd_client()
-        if client:
-            client.stop()
-            client.disconnect()
-        # Check if this is an AJAX request
-        if request.args.get('ajax') == '1':
-            return jsonify({'status': 'success', 'message': 'Stop command sent'})
-    except Exception as e:
-        print(f"Error stopping: {e}")
-        if request.args.get('ajax') == '1':
-            return jsonify({'status': 'error', 'message': f'Error stopping: {e}'})
-    return redirect(url_for('index'))
+    """Route handler for /stop - delegates to routes.playback module"""
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client,
+    }
+    return stop_handler(app_ctx)
+
 
 @app.route('/next', methods=['GET', 'POST'])
 def next_song():
-    try:
-        client = connect_mpd_client()
-        if client:
-            client.next()
-            client.disconnect()
-        # Check if this is an AJAX request
-        if request.args.get('ajax') == '1':
-            return jsonify({'status': 'success', 'message': 'Next command sent'})
-    except Exception as e:
-        print(f"Error nexting: {e}")
-        if request.args.get('ajax') == '1':
-            return jsonify({'status': 'error', 'message': f'Error nexting: {e}'})
-    return redirect(url_for('index'))
+    """Route handler for /next - delegates to routes.playback module"""
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client,
+    }
+    return next_song_handler(app_ctx)
+
 
 @app.route('/previous', methods=['GET', 'POST'])
 def previous_song():
-    try:
-        client = connect_mpd_client()
-        if client:
-            client.previous()
-            client.disconnect()
-        # Check if this is an AJAX request
-        if request.args.get('ajax') == '1':
-            return jsonify({'status': 'success', 'message': 'Previous command sent'})
-    except Exception as e:
-        print(f"Error previousing: {e}")
-        if request.args.get('ajax') == '1':
-            return jsonify({'status': 'error', 'message': f'Error previousing: {e}'})
-    return redirect(url_for('index'))
+    """Route handler for /previous - delegates to routes.playback module"""
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client,
+    }
+    return previous_song_handler(app_ctx)
+
 
 @app.route('/seek', methods=['POST'])
 def seek_position():
-    """Seek to a specific position in the current song"""
-    try:
-        data = request.get_json()
-        if not data or 'position' not in data:
-            return jsonify({'status': 'error', 'message': 'Position required'}), 400
-        
-        position = float(data['position'])
-        
-        if position < 0:
-            return jsonify({'status': 'error', 'message': 'Position must be >= 0'}), 400
-        
-        client = connect_mpd_client()
-        if not client:
-            return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
-        
-        try:
-            # seekcur seeks relative to current position
-            # To seek to absolute position, use status to get current song ID
-            status = client.status()
-            if status.get('state') not in ['play', 'pause']:
-                client.disconnect()
-                return jsonify({'status': 'error', 'message': 'No song playing'}), 400
-            
-            # Get current song position in playlist
-            current_song = int(status.get('song', 0))
-            
-            # Seek to absolute position in current song
-            client.seek(current_song, position)
-            client.disconnect()
-            
-            return jsonify({
-                'status': 'success',
-                'message': f'Seeked to {position:.1f}s',
-                'position': position
-            })
-        
-        except CommandError as e:
-            print(f"MPD CommandError seeking: {e}")
-            return jsonify({'status': 'error', 'message': f'MPD error: {e}'}), 500
-        except Exception as e:
-            print(f"Error seeking: {e}")
-            return jsonify({'status': 'error', 'message': f'Error: {e}'}), 500
-    
-    except Exception as e:
-        print(f"Error processing seek request: {e}")
-        return jsonify({'status': 'error', 'message': f'Error: {e}'}), 500
+    """Route handler for /seek - delegates to routes.playback module"""
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client,
+    }
+    return seek_position_handler(app_ctx)
 
-@app.route('/history')
-def history():
-    """Display play history page"""
-    mpd_status = get_mpd_status_for_display()
-    if mpd_status is None:
-        mpd_status = last_mpd_status if last_mpd_status else {'state': 'unknown'}
-    app_theme = app.config.get('THEME', 'dark')
-    return render_template('history.html', 
-                          history=play_history,
-                          mpd_info=mpd_status,
-                          app_theme=app_theme)
-
-@app.route('/api/history/clear', methods=['POST'])
-def clear_history():
-    """Clear play history"""
-    global play_history, last_tracked_song_id
-    play_history = []
-    last_tracked_song_id = None
-    return jsonify({'status': 'success', 'message': 'History cleared'})
-
-@app.route('/api/history', methods=['GET'])
-def get_history():
-    """Return play history as JSON"""
-    return jsonify({'status': 'success', 'history': play_history})
 
 @app.route('/set_volume', methods=['POST'])
 def set_volume():
-    """Set volume on MPD
-    
-    Supports two modes:
-    1. Absolute: volume=<0-100>
-    2. Relative: change=<+/- value> (will fetch current and adjust)
-    """
-    volume = request.form.get('volume', type=int, default=None)
-    change = request.form.get('change', type=int, default=None)
-    
-    # If using relative change, fetch current volume first
-    if change is not None and volume is None:
-        try:
-            client = connect_mpd_client()
-            if client:
-                status = client.status()
-                current_vol = int(status.get('volume', '0'))
-                client.disconnect()
-                volume = current_vol + change
-            else:
-                print("Failed to connect to MPD for relative volume adjustment.")
-                return 'Error: MPD connection failed', 500
-        except Exception as e:
-            print(f"Error fetching current volume for relative adjustment: {e}")
-            return f'Error: {e}', 500
-    
-    # Validate volume is set
-    if volume is None:
-        print("No volume or change parameter provided")
-        return 'Error: Missing volume or change parameter', 400
-    
-    # Clamp volume between 0 and 100
-    volume = max(0, min(100, volume))
-    
-    try:
-        client = connect_mpd_client()
-        if client:
-            client.setvol(volume)
-            client.disconnect()
-            print(f"[Volume Control] Set volume to {volume}%")
-            # After setting volume, immediately trigger an update
-            socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))
-            return 'OK', 200
-        else:
-            print("Failed to connect to MPD for set_volume.")
-            return 'Error: MPD connection failed', 500
-    except Exception as e:
-        print(f"Error setting volume: {e}")
-        return f'Error setting volume: {e}', 500
-        return f'Error setting volume: {e}', 500
+    """Route handler for /set_volume - delegates to routes.playback module"""
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client,
+        'socketio': socketio,
+        'get_mpd_status_for_display': get_mpd_status_for_display
+    }
+    return set_volume_handler(app_ctx)
+
 
 @app.route('/restart_mpd')
 def restart_mpd():
-    try:
-        # Try to restart MPD service with timeout
-        result = subprocess.run(['sudo', 'systemctl', 'restart', 'mpd.service'], 
-                              check=True, capture_output=True, text=True, timeout=10)
-        print("MPD service restart command sent successfully.")
-        
-        # Wait a moment for MPD to restart before checking status
-        time.sleep(2)
-        
-        # Emit success message and trigger status update
-        socketio.emit('server_message', {'type': 'success', 'text': 'MPD service restarted successfully'})
-        socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))
-        
-        return redirect(url_for('index'))
-        
-    except subprocess.TimeoutExpired:
-        error_msg = "MPD restart timed out"
-        print(f"Error restarting MPD service: {error_msg}")
-        socketio.emit('server_message', {'type': 'error', 'text': error_msg})
-        return redirect(url_for('index'))
-        
-    except subprocess.CalledProcessError as e:
-        error_msg = f"MPD restart failed: {e.stderr.strip() if e.stderr else 'Unknown error'}"
-        print(f"Error restarting MPD service: {error_msg}")
-        socketio.emit('server_message', {'type': 'error', 'text': error_msg})
-        return redirect(url_for('index'))
-        
-    except Exception as e:
-        error_msg = f"General error restarting MPD: {str(e)}"
-        print(error_msg)
-        socketio.emit('server_message', {'type': 'error', 'text': error_msg})
-        return redirect(url_for('index'))
+    """Route handler for /restart_mpd - delegates to routes.playback module"""
+    app_ctx = {
+        'socketio': socketio,
+        'get_mpd_status_for_display': get_mpd_status_for_display
+    }
+    return restart_mpd_handler(app_ctx)
 
 @app.route('/update_mpd_db')
 def update_mpd_db():
@@ -2601,32 +2075,10 @@ def update_mpd_db():
 @app.route('/api/db_update_status')
 def db_update_status():
     """Check if MPD database update is in progress."""
-    try:
-        client = connect_mpd_client()
-        if client:
-            status = client.status()
-            client.disconnect()
-            
-            # Check if 'updating_db' key exists in status
-            is_updating = 'updating_db' in status
-            job_id = status.get('updating_db', None)
-            
-            return jsonify({
-                'status': 'success',
-                'updating': is_updating,
-                'job_id': job_id
-            })
-        else:
-            return jsonify({
-                'status': 'error',
-                'message': 'Could not connect to MPD'
-            }), 500
-            
-    except Exception as e:
-        return jsonify({
-            'status': 'error',
-            'message': str(e)
-        }), 500
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client
+    }
+    return db_update_status_handler(app_ctx)
 
 @app.route('/add_music')
 def add_music_page():
@@ -2698,204 +2150,84 @@ def get_genres():
 @app.route('/api/genre_stations', methods=['GET'])
 def get_genre_stations():
     """Get all saved genre stations."""
-    try:
-        stations = load_genre_stations()
-        return jsonify({'status': 'success', 'stations': stations})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': f'Error loading stations: {str(e)}'}), 500
+    app_ctx = {
+        'load_genre_stations': load_genre_stations
+    }
+    return get_genre_stations_handler(app_ctx)
 
 @app.route('/api/genre_stations', methods=['POST'])
 def save_genre_station():
     """Save a new genre station."""
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'status': 'error', 'message': 'No data provided'}), 400
-        
-        station_name = data.get('name', '').strip()
-        genres = data.get('genres', [])
-        
-        if not station_name:
-            return jsonify({'status': 'error', 'message': 'Station name is required'}), 400
-        
-        if not genres or not isinstance(genres, list):
-            return jsonify({'status': 'error', 'message': 'At least one genre is required'}), 400
-        
-        # Load existing stations
-        stations = load_genre_stations()
-        
-        # Add new station
-        stations[station_name] = {
-            'genres': genres,
-            'created': int(time.time())
-        }
-        
-        # Save stations
-        if save_genre_stations(stations):
-            return jsonify({'status': 'success', 'message': f'Station "{station_name}" saved'})
-        else:
-            return jsonify({'status': 'error', 'message': 'Failed to save station'}), 500
-            
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': f'Error saving station: {str(e)}'}), 500
+    app_ctx = {
+        'load_genre_stations': load_genre_stations,
+        'save_genre_stations': save_genre_stations
+    }
+    return save_genre_station_handler(app_ctx)
 
 @app.route('/api/genre_stations/<station_name>', methods=['GET'])
 def get_genre_station(station_name):
     """Get a specific genre station."""
-    try:
-        stations = load_genre_stations()
-        
-        if station_name not in stations:
-            return jsonify({'status': 'error', 'message': 'Station not found'}), 404
-        
-        return jsonify({'status': 'success', 'station': stations[station_name]})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': f'Error loading station: {str(e)}'}), 500
+    app_ctx = {
+        'load_genre_stations': load_genre_stations
+    }
+    return get_genre_station_handler(app_ctx, station_name)
 
 @app.route('/api/genre_stations/<station_name>', methods=['DELETE'])
 def delete_genre_station(station_name):
     """Delete a genre station."""
-    try:
-        stations = load_genre_stations()
-        
-        if station_name not in stations:
-            return jsonify({'status': 'error', 'message': 'Station not found'}), 404
-        
-        del stations[station_name]
-        
-        if save_genre_stations(stations):
-            return jsonify({'status': 'success', 'message': f'Station "{station_name}" deleted'})
-        else:
-            return jsonify({'status': 'error', 'message': 'Failed to delete station'}), 500
-            
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': f'Error deleting station: {str(e)}'}), 500
+    app_ctx = {
+        'load_genre_stations': load_genre_stations,
+        'save_genre_stations': save_genre_stations
+    }
+    return delete_genre_station_handler(app_ctx, station_name)
 
 @app.route('/api/genre_station_mode', methods=['POST'])
 def set_genre_station_mode():
     """Set genre station mode for auto-fill."""
     global genre_station_mode, genre_station_name, genre_station_genres
     
-    try:
-        data = request.get_json()
-        station_name = data.get('station_name', '')
-        genres = data.get('genres', [])
-        
-        if station_name and genres:
+    app_ctx = {}
+    result = set_genre_station_mode_handler(app_ctx)
+    
+    # Parse response and update globals
+    import json
+    if hasattr(result, 'get_json'):
+        data = result.get_json()
+        if data.get('action') == 'set_mode':
             genre_station_mode = True
-            genre_station_name = station_name
-            genre_station_genres = genres
-            print(f"Genre station mode activated: '{station_name}' with genres {genres}")
-            return jsonify({'status': 'success', 'message': f'Genre station mode set to "{station_name}"'})
+            genre_station_name = data.get('station_name', '')
+            genre_station_genres = data.get('genres', [])
+            print(f"Genre station mode activated: '{genre_station_name}' with genres {genre_station_genres}")
         else:
-            # Clear genre station mode
             genre_station_mode = False
             genre_station_name = ""
             genre_station_genres = []
             print("Genre station mode deactivated")
-            return jsonify({'status': 'success', 'message': 'Genre station mode cleared'})
-            
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': f'Error setting genre station mode: {str(e)}'}), 500
+    
+    return result
 
-# --- EXPERIMENTAL: Internet Radio Streaming ---
 @app.route('/api/streaming_radio/test', methods=['POST'])
 def test_streaming_radio():
-    """
-    EXPERIMENTAL: Test internet radio streaming.
-    Clears playlist and plays the provided stream URL.
-    """
-    try:
-        data = request.get_json()
-        stream_url = data.get('url', '').strip()
-        
-        if not stream_url:
-            return jsonify({'status': 'error', 'message': 'Stream URL is required'}), 400
-        
-        # Basic URL validation
-        if not stream_url.startswith(('http://', 'https://')):
-            return jsonify({'status': 'error', 'message': 'Invalid URL. Must start with http:// or https://'}), 400
-        
-        # Connect to MPD
-        client = connect_mpd_client()
-        if not client:
-            return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
-        
-        try:
-            # Clear playlist and add stream
-            client.clear()
-            client.add(stream_url)
-            # Start playback
-            client.play(0)
-            
-            client.disconnect()
-            
-            socketio.emit('server_message', {
-                'type': 'success',
-                'text': f'🔴 LIVE: Tuned into stream'
-            })
-            
-            # Trigger status update
-            socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))
-            
-            return jsonify({'status': 'success', 'message': 'Stream started'})
-            
-        except Exception as e:
-            client.disconnect()
-            return jsonify({'status': 'error', 'message': f'MPD error: {str(e)}'}), 500
-            
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    """Test internet radio streaming."""
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client,
+        'socketio': socketio,
+        'get_mpd_status_for_display': get_mpd_status_for_display
+    }
+    return test_streaming_radio_handler(app_ctx)
 
 # --- Radio Browser API Integration ---
 @app.route('/api/radio/detect-country', methods=['GET'])
 def detect_radio_country():
-    """Detect user's country from IP address for radio station defaults."""
-    try:
-        # Try to get country from IP
-        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-        if ip:
-            # Use ipapi.co for geolocation (free, no API key needed)
-            response = requests.get(f'https://ipapi.co/{ip}/country/', timeout=3)
-            if response.status_code == 200:
-                country_code = response.text.strip()
-                return jsonify({'country': country_code})
-        
-        # Default to US if detection fails
-        return jsonify({'country': 'US'})
-    except Exception as e:
-        print(f"Country detection error: {e}")
-        return jsonify({'country': 'US'})
+    """Detect user's country from IP address."""
+    app_ctx = {}
+    return detect_radio_country_handler(app_ctx)
 
 @app.route('/api/radio/countries', methods=['GET'])
 def get_radio_countries():
     """Get list of countries with radio stations."""
-    # Comprehensive list of countries with flags
-    countries = [
-        {'code': 'US', 'name': 'United States', 'flag': '🇺🇸'},
-        {'code': 'GB', 'name': 'United Kingdom', 'flag': '🇬🇧'},
-        {'code': 'IT', 'name': 'Italy', 'flag': '🇮🇹'},
-        {'code': 'DE', 'name': 'Germany', 'flag': '🇩🇪'},
-        {'code': 'FR', 'name': 'France', 'flag': '🇫🇷'},
-        {'code': 'ES', 'name': 'Spain', 'flag': '🇪🇸'},
-        {'code': 'PT', 'name': 'Portugal', 'flag': '🇵🇹'},
-        {'code': 'CA', 'name': 'Canada', 'flag': '🇨🇦'},
-        {'code': 'AU', 'name': 'Australia', 'flag': '🇦🇺'},
-        {'code': 'NL', 'name': 'Netherlands', 'flag': '🇳🇱'},
-        {'code': 'BR', 'name': 'Brazil', 'flag': '🇧🇷'},
-        {'code': 'MX', 'name': 'Mexico', 'flag': '🇲🇽'},
-        {'code': 'JP', 'name': 'Japan', 'flag': '🇯🇵'},
-        {'code': 'KR', 'name': 'South Korea', 'flag': '🇰🇷'},
-        {'code': 'SE', 'name': 'Sweden', 'flag': '🇸🇪'},
-        {'code': 'NO', 'name': 'Norway', 'flag': '🇳🇴'},
-        {'code': 'DK', 'name': 'Denmark', 'flag': '🇩🇰'},
-        {'code': 'FI', 'name': 'Finland', 'flag': '🇫🇮'},
-        {'code': 'PL', 'name': 'Poland', 'flag': '🇵🇱'},
-        {'code': 'RU', 'name': 'Russia', 'flag': '🇷🇺'},
-        {'code': 'IN', 'name': 'India', 'flag': '🇮🇳'},
-        {'code': 'CN', 'name': 'China', 'flag': '🇨🇳'},
-    ]
-    return jsonify(countries)
+    app_ctx = {}
+    return get_radio_countries_handler(app_ctx)
 
 # Simple cache for radio stations (country/search -> stations, timestamp)
 radio_stations_cache = {}
@@ -3008,202 +2340,32 @@ def filter_backup_stations(stations, country=None, name_search=None, limit=50):
 @app.route('/api/radio/backup/download', methods=['POST'])
 def download_radio_backup():
     """Download the latest radio browser backup database."""
-    try:
-        print(f"Downloading radio backup database from {BACKUP_DB_URL}")
-        
-        response = requests.get(BACKUP_DB_URL, timeout=60, stream=True)
-        
-        if response.status_code == 200:
-            # Save to file
-            with open(BACKUP_DB_FILE, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
-            
-            file_size_mb = os.path.getsize(BACKUP_DB_FILE) / (1024 * 1024)
-            print(f"Downloaded backup database: {file_size_mb:.1f} MB")
-            
-            # Test loading it
-            stations = load_backup_database()
-            if stations:
-                return jsonify({
-                    'status': 'success',
-                    'message': f'Downloaded backup with {len(stations)} stations',
-                    'size_mb': round(file_size_mb, 1),
-                    'stations_count': len(stations)
-                })
-            else:
-                return jsonify({'status': 'error', 'message': 'Downloaded but failed to parse'}), 500
-        else:
-            return jsonify({'status': 'error', 'message': f'Download failed: HTTP {response.status_code}'}), 500
-            
-    except Exception as e:
-        print(f"Error downloading backup: {e}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    app_ctx = {
+        'BACKUP_DB_URL': BACKUP_DB_URL,
+        'BACKUP_DB_FILE': BACKUP_DB_FILE,
+        'load_backup_database': load_backup_database
+    }
+    return download_radio_backup_handler(app_ctx)
 
 @app.route('/api/radio/backup/status', methods=['GET'])
 def get_backup_status():
     """Check if backup database exists and get its info."""
-    try:
-        if os.path.exists(BACKUP_DB_FILE):
-            import time
-            file_age_days = (time.time() - os.path.getmtime(BACKUP_DB_FILE)) / 86400
-            file_size_mb = os.path.getsize(BACKUP_DB_FILE) / (1024 * 1024)
-            
-            # Try to count stations
-            stations = load_backup_database()
-            station_count = len(stations) if stations else 0
-            
-            return jsonify({
-                'exists': True,
-                'age_days': round(file_age_days, 1),
-                'size_mb': round(file_size_mb, 1),
-                'stations_count': station_count,
-                'file_path': BACKUP_DB_FILE
-            })
-        else:
-            return jsonify({
-                'exists': False,
-                'message': 'No backup database found. Click "Download Backup" to get one.'
-            })
-    except Exception as e:
-        return jsonify({'exists': False, 'error': str(e)}), 500
+    app_ctx = {
+        'BACKUP_DB_FILE': BACKUP_DB_FILE,
+        'load_backup_database': load_backup_database
+    }
+    return get_backup_status_handler(app_ctx)
 
 @app.route('/api/radio/stations', methods=['GET'])
 def get_radio_stations():
-    """Get radio stations from Radio Browser API with retry logic and persistent caching."""
-    try:
-        country = request.args.get('country', 'US')
-        limit = request.args.get('limit', '50')
-        name_search = request.args.get('name', '')
-        bypass_cache = request.args.get('nocache', None)  # Check if cache bypass requested
-        
-        # Create cache key
-        cache_key = f"{country}:{name_search}:{limit}"
-        
-        # Skip cache if bypass requested
-        if bypass_cache:
-            print(f"Cache bypass requested for {cache_key}")
-        else:
-            # Check in-memory cache first (fast)
-            import time
-            current_time = time.time()
-            if cache_key in radio_stations_cache:
-                cached_data, cache_time = radio_stations_cache[cache_key]
-                if current_time - cache_time < CACHE_DURATION:
-                    print(f"Returning in-memory cached radio stations for {cache_key}")
-                    return jsonify(cached_data)
-            
-            # Check persistent disk cache (slower but survives restarts)
-            persistent_data = load_from_persistent_cache(cache_key)
-            if persistent_data:
-                # Update in-memory cache too
-                radio_stations_cache[cache_key] = (persistent_data, current_time)
-                return jsonify(persistent_data)
-        
-        # Need to fetch from API
-        import time
-        current_time = time.time()
-        
-        # Radio Browser API endpoint (uses public servers)
-        # Documentation: https://api.radio-browser.info/
-        # Try multiple API servers for redundancy
-        import random
-        api_servers = [
-            'https://de1.api.radio-browser.info',
-            'https://nl1.api.radio-browser.info',
-            'https://at1.api.radio-browser.info'
-        ]
-        # Shuffle to distribute load and avoid always hitting same slow server
-        random.shuffle(api_servers)
-        
-        # If searching by name, use the search endpoint
-        if name_search:
-            endpoint = f'/json/stations/byname/{requests.utils.quote(name_search)}'
-            params = {
-                'limit': limit,
-                'hidebroken': 'true'
-            }
-        else:
-            # Otherwise get by country
-            endpoint = f'/json/stations/bycountrycodeexact/{country}'
-            params = {
-                'limit': limit,
-                'order': 'votes',  # Most popular first
-                'reverse': 'true',
-                'hidebroken': 'true'  # Only working stations
-            }
-        
-        # Try each API server until one works
-        last_error = None
-        for api_server in api_servers:
-            try:
-                api_url = api_server + endpoint
-                print(f"Trying Radio Browser API: {api_url}")
-                # Reduced timeout to 7 seconds - fail fast and try next server
-                response = requests.get(api_url, params=params, timeout=7)
-                
-                if response.status_code == 200:
-                    stations = response.json()
-                    print(f"Successfully fetched {len(stations)} stations from {api_server}")
-                    
-                    # Format for our UI
-                    formatted = []
-                    for s in stations:
-                        formatted.append({
-                            'name': s.get('name', 'Unknown Station'),
-                            'url': s.get('url_resolved') or s.get('url', ''),
-                            'favicon': s.get('favicon', ''),
-                            'country': s.get('country', ''),
-                            'tags': s.get('tags', ''),
-                            'genre': s.get('tags', '').split(',')[0] if s.get('tags') else '',
-                            'bitrate': s.get('bitrate', 0),
-                            'codec': s.get('codec', ''),
-                            'homepage': s.get('homepage', '')
-                        })
-                    
-                    # Cache the results in memory and on disk
-                    import time
-                    radio_stations_cache[cache_key] = (formatted, time.time())
-                    save_to_persistent_cache(cache_key, formatted)
-                    
-                    return jsonify(formatted)
-                else:
-                    print(f"API server {api_server} returned status {response.status_code}")
-                    last_error = f"HTTP {response.status_code}"
-                    
-            except requests.exceptions.Timeout:
-                print(f"Timeout connecting to {api_server}")
-                last_error = "Timeout"
-                continue
-            except requests.exceptions.RequestException as e:
-                print(f"Error with {api_server}: {e}")
-                last_error = str(e)
-                continue
-        
-        # All servers failed - try backup database as last resort
-        print(f"All Radio Browser API servers failed. Last error: {last_error}")
-        print("Attempting to use backup database...")
-        
-        backup_stations = load_backup_database()
-        if backup_stations:
-            # Filter the backup data
-            filtered = filter_backup_stations(backup_stations, country, name_search, limit)
-            if filtered:
-                # Cache the results
-                import time
-                radio_stations_cache[cache_key] = (filtered, time.time())
-                save_to_persistent_cache(cache_key, filtered)
-                print(f"Returned {len(filtered)} stations from backup database")
-                return jsonify(filtered)
-        
-        # No backup available either
-        return jsonify({'error': 'API servers unavailable and no backup database found', 'message': last_error}), 503
-            
-    except Exception as e:
-        print(f"Radio station fetch error: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify([])
+    """Get radio stations from Radio Browser API with caching."""
+    app_ctx = {
+        'radio_stations_cache': radio_stations_cache,
+        'CACHE_DURATION': CACHE_DURATION,
+        'load_backup_database': load_backup_database,
+        'filter_backup_stations': filter_backup_stations
+    }
+    return get_radio_stations_handler(app_ctx)
 
 # Cache for stream favicons (stream_url -> favicon_url)
 stream_favicon_cache = {}
@@ -3214,117 +2376,34 @@ bandcamp_metadata_cache = {}
 
 @app.route('/api/radio/play', methods=['POST'])
 def play_radio_station():
-    """Play a radio station by clearing queue and adding stream."""
-    try:
-        data = request.get_json()
-        url = data.get('url', '').strip()
-        name = data.get('name', 'Radio Station')
-        favicon = data.get('favicon', '').strip()  # Get favicon URL
-        
-        if not url:
-            return jsonify({'status': 'error', 'message': 'URL required'}), 400
-        
-        # Validate URL
-        if not url.startswith(('http://', 'https://')):
-            return jsonify({'status': 'error', 'message': 'Invalid URL'}), 400
-        
-        # Store favicon and name for this stream in cache
-        if favicon and favicon.startswith('http'):
-            stream_favicon_cache[url] = favicon
-            print(f"Cached favicon for {url}: {favicon}")
-        
-        if name:
-            stream_name_cache[url] = name
-            print(f"Cached station name for {url}: {name}")
-        
-        # Connect to MPD
-        client = connect_mpd_client()
-        if not client:
-            return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
-        
-        try:
-            # Clear and play stream
-            client.clear()
-            client.add(url)
-            client.play(0)
-            client.disconnect()
-            
-            # Emit success message
-            socketio.emit('server_message', {
-                'type': 'success',
-                'text': f'📻 Now playing: {name}'
-            })
-            
-            # Update status
-            socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))
-            
-            return jsonify({'status': 'success', 'message': f'Playing {name}'})
-            
-        except Exception as e:
-            client.disconnect()
-            return jsonify({'status': 'error', 'message': f'MPD error: {str(e)}'}), 500
-            
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    """Play a radio station."""
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client,
+        'socketio': socketio,
+        'get_mpd_status_for_display': get_mpd_status_for_display,
+        'stream_favicon_cache': stream_favicon_cache,
+        'stream_name_cache': stream_name_cache
+    }
+    return play_radio_station_handler(app_ctx)
 
 # --- Manual Radio Stations API ---
 @app.route('/api/radio/manual/list', methods=['GET'])
 def get_manual_stations():
-    """Get list of manually added radio stations"""
-    try:
-        stations = load_manual_stations()
-        return jsonify(stations)
-    except Exception as e:
-        print(f"Error listing manual stations: {e}")
-        return jsonify({'error': str(e)}), 500
+    """Get list of manually added radio stations."""
+    app_ctx = {'load_manual_stations': load_manual_stations}
+    return get_manual_stations_handler(app_ctx)
 
 @app.route('/api/radio/manual/save', methods=['POST'])
 def save_manual_station():
-    """Save a manually added radio station"""
-    try:
-        data = request.get_json()
-        name = data.get('name', '').strip()
-        url = data.get('url', '').strip()
-        favicon = data.get('favicon', '').strip()
-        
-        if not name:
-            return jsonify({'status': 'error', 'message': 'Station name required'}), 400
-        if not url:
-            return jsonify({'status': 'error', 'message': 'Station URL required'}), 400
-        
-        # Validate URL format
-        if not url.startswith(('http://', 'https://')):
-            return jsonify({'status': 'error', 'message': 'Invalid URL - must start with http:// or https://'}), 400
-        
-        success, message = add_manual_station(name, url, favicon)
-        if success:
-            return jsonify({'status': 'success', 'message': message})
-        else:
-            return jsonify({'status': 'error', 'message': message}), 400
-            
-    except Exception as e:
-        print(f"Error saving manual station: {e}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    """Save a manually added radio station."""
+    app_ctx = {'add_manual_station': add_manual_station}
+    return save_manual_station_handler(app_ctx)
 
 @app.route('/api/radio/manual/remove', methods=['POST'])
 def remove_manual_station_endpoint():
-    """Remove a manually added station by URL"""
-    try:
-        data = request.get_json()
-        url = data.get('url', '').strip()
-        
-        if not url:
-            return jsonify({'status': 'error', 'message': 'URL required'}), 400
-        
-        success, message = remove_manual_station(url)
-        if success:
-            return jsonify({'status': 'success', 'message': message})
-        else:
-            return jsonify({'status': 'error', 'message': message}), 404
-            
-    except Exception as e:
-        print(f"Error removing manual station: {e}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    """Remove a manually added station by URL."""
+    app_ctx = {'remove_manual_station': remove_manual_station}
+    return remove_manual_station_handler(app_ctx)
 
 # --- Safer actions for Last.fm artist items (Charts page) ---
 @app.route('/add_top_albums_by_artist', methods=['POST'])
@@ -3672,357 +2751,25 @@ def adjust_file_paths_for_disc(songs, disc_map):
 @app.route('/add_album_to_playlist', methods=['POST'])
 def add_album_to_playlist():
     """Add an entire album to the playlist."""
-    try:
-        import re
-        def _norm(s: str) -> str:
-            """Normalize strings for fuzzy comparison: lowercase and strip non-alnum."""
-            if not s:
-                return ''
-            return re.sub(r"[^a-z0-9]+", "", s.lower())
-        
-        # Handle both JSON and form data
-        if request.is_json:
-            data = request.get_json()
-            artist = data.get('original_artist') or data.get('artist')  # Try original_artist first
-            album = data.get('album')
-            disc_number = data.get('disc_number')  # New: optional disc number
-            album_dir = data.get('album_dir')  # New: directory filter for disambiguation
-        else:
-            artist = request.form.get('original_artist') or request.form.get('artist')
-            album = request.form.get('album')
-            disc_number = request.form.get('disc_number')  # New: optional disc number
-            album_dir = request.form.get('album_dir')  # New: directory filter
-        
-        if not artist or not album:
-            if request.is_json:
-                return jsonify({'status': 'error', 'message': 'Artist and album are required'}), 400
-            return redirect(url_for('index'))
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client,
+        'socketio': socketio,
+        'get_mpd_status_for_display': get_mpd_status_for_display,
+        'organize_album_by_disc': organize_album_by_disc
+    }
+    return add_album_to_playlist_handler(app_ctx)
 
-        client = connect_mpd_client()
-        if not client:
-            if request.is_json:
-                return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
-            return redirect(url_for('index'))
-
-        try:
-            print(f"[DEBUG] Searching for album: artist='{artist}', album='{album}'" + 
-                  (f", disc={disc_number}" if disc_number else "") +
-                  (f", dir='{album_dir}'" if album_dir else ""), flush=True)
-            # Find all songs from this album - try AlbumArtist first, then Artist
-            songs = []
-            try:
-                songs = client.find('albumartist', artist, 'album', album)
-                if songs:
-                    print(f"[DEBUG] Found {len(songs)} songs using AlbumArtist", flush=True)
-                    # Filter by directory if provided (to handle multiple albums with same name)
-                    if album_dir:
-                        original_count = len(songs)
-                        songs = [s for s in songs if s.get('file', '').startswith(album_dir + '/')]
-                        print(f"[DEBUG] Filtered by directory '{album_dir}': {original_count} -> {len(songs)} songs", flush=True)
-            except Exception as e:
-                print(f"[DEBUG] AlbumArtist search failed: {e}", flush=True)
-                    
-            # If no songs found by AlbumArtist, try by Artist
-            if not songs:
-                songs = client.find('artist', artist, 'album', album)
-                if songs:
-                    print(f"[DEBUG] Found {len(songs)} songs using Artist", flush=True)
-                    # Filter by directory if provided
-                    if album_dir:
-                        original_count = len(songs)
-                        songs = [s for s in songs if s.get('file', '').startswith(album_dir + '/')]
-                        print(f"[DEBUG] Filtered by directory '{album_dir}': {original_count} -> {len(songs)} songs", flush=True)
-                else:
-                    print(f"[DEBUG] No songs found with Artist search either", flush=True)
-
-            # Fallback 1: Use MPD 'search' (partial match) by album, then filter by artist
-            if not songs:
-                try:
-                    candidates = client.search('album', album) or []
-                    print(f"[DEBUG] Fallback search('album', '{album}') returned {len(candidates)} tracks", flush=True)
-                    if candidates and artist:
-                        na = _norm(artist)
-                        # Prefer exact normalized album match and matching artist/albumartist
-                        filtered = [t for t in candidates
-                                    if (_norm(t.get('artist', '')) == na or _norm(t.get('albumartist', '')) == na)
-                                    and _norm(t.get('album', '')) == _norm(album)]
-                        if not filtered:
-                            # Relax: keep same artist and album contains
-                            filtered = [t for t in candidates
-                                        if (_norm(t.get('artist', '')) == na or _norm(t.get('albumartist', '')) == na)
-                                        and (_norm(album) in _norm(t.get('album', '')) or _norm(t.get('album', '')) in _norm(album))]
-                        if filtered:
-                            songs = filtered
-                            print(f"[DEBUG] Fallback1 matched {len(songs)} tracks after filtering by artist", flush=True)
-                        elif candidates:
-                            # As a last resort, if no artist constraint helped, accept exact album-normalized match
-                            exact_album = [t for t in candidates if _norm(t.get('album', '')) == _norm(album)]
-                            if exact_album:
-                                songs = exact_album
-                                print(f"[DEBUG] Fallback1 matched {len(songs)} tracks by album-only exact norm", flush=True)
-                except Exception as e:
-                    print(f"[DEBUG] Fallback search error: {e}", flush=True)
-
-            # Fallback 2: Inspect artist's album list and re-query with closest match
-            if not songs and artist:
-                try:
-                    artist_albums = client.list('album', 'artist', artist) or []
-                    # mpd may return list of dicts {'album': 'Name'} or list of strings; normalize
-                    norm_target = _norm(album)
-                    best = None
-                    for entry in artist_albums:
-                        name = entry.get('album') if isinstance(entry, dict) else entry
-                        if not name:
-                            continue
-                        if _norm(name) == norm_target:
-                            best = name
-                            break
-                    if not best:
-                        # Relax: contains either way
-                        for entry in artist_albums:
-                            name = entry.get('album') if isinstance(entry, dict) else entry
-                            if not name:
-                                continue
-                            nn = _norm(name)
-                            if norm_target in nn or nn in norm_target:
-                                best = name
-                                break
-                    if best:
-                        print(f"[DEBUG] Fallback2 selected album name '{best}' for artist '{artist}'", flush=True)
-                        songs = client.find('artist', artist, 'album', best)
-                        if songs:
-                            print(f"[DEBUG] Fallback2 found {len(songs)} tracks with adjusted album name", flush=True)
-                except Exception as e:
-                    print(f"[DEBUG] Fallback2 error while listing artist albums: {e}", flush=True)
-                
-            if not songs:
-                print(f"[DEBUG] Total failure - no songs found for '{album}' by '{artist}'", flush=True)
-                client.disconnect()
-                if request.is_json:
-                    return jsonify({'status': 'error', 'message': f'No songs found for "{album}" by {artist}'}), 404
-                return redirect(url_for('index'))
-                
-            # ========================================================================
-            # MULTI-DISC ALBUM: Detect if album spans multiple discs
-            # Note: File paths already include Disc XX/ directories on disk, 
-            # so we don't need to adjust paths - just detect for metadata purposes
-            # ========================================================================
-            print(f"[DEBUG] Found {len(songs)} total songs before disc detection", flush=True)
-            if songs and len(songs) > 0:
-                # Print first song's disc metadata for debugging
-                print(f"[DEBUG] Sample song: disc={songs[0].get('disc', 'NONE')}, file={songs[0].get('file', 'NONE')}", flush=True)
-            
-            disc_structure = organize_album_by_disc(songs)
-            if disc_structure:
-                print(f"[DEBUG] Disc structure found: {list(disc_structure.keys())} with {sum(len(v) for v in disc_structure.values())} total tracks", flush=True)
-            else:
-                print(f"[DEBUG] No disc structure detected (organize_album_by_disc returned None)", flush=True)
-                
-            if disc_number:
-                # User requested a specific disc - only add that disc
-                disc_num = int(disc_number)
-                if disc_structure and disc_num in disc_structure:
-                    songs = disc_structure[disc_num]
-                    print(f"[DISC] Adding only Disc {disc_num} with {len(songs)} tracks", flush=True)
-                elif not disc_structure:
-                    # No disc structure detected - this shouldn't happen if display shows discs
-                    # but add all songs as fallback
-                    print(f"[DISC] WARNING: No disc structure found when adding Disc {disc_num}, adding all {len(songs)} songs", flush=True)
-                else:
-                    # Disc structure exists but requested disc not in it
-                    print(f"[DISC] ERROR: Disc {disc_number} not found. Available: {sorted(disc_structure.keys())}", flush=True)
-                    client.disconnect()
-                    if request.is_json:
-                        return jsonify({'status': 'error', 'message': f'Disc {disc_number} not found. Available discs: {sorted(disc_structure.keys())}'}), 404
-                    return redirect(url_for('index'))
-            else:
-                # No specific disc requested - add all tracks
-                if disc_structure:
-                    disc_count = len(disc_structure)
-                    track_info = ", ".join([f"Disc {d}: {len(disc_structure[d])} tracks" for d in sorted(disc_structure.keys())])
-                    print(f"[DISC] Multi-disc album detected: {disc_count} discs - {track_info}", flush=True)
-                else:
-                    print(f"[DISC] Single-disc album (or no disc metadata) - all tracks on one disc", flush=True)
-                
-            # Add selected songs to playlist
-            added_count = 0
-            for song in songs:
-                file_path = song.get('file')
-                if file_path:
-                    try:
-                        client.add(file_path)
-                        added_count += 1
-                    except CommandError as e:
-                        print(f"Error adding {file_path}: {e}")
-            
-            # Check if MPD is playing, if not auto-play
-            status = client.status()
-            mpd_state = status.get('state', 'stop')
-            should_auto_play = mpd_state in ['stop', 'pause']
-            
-            if should_auto_play and added_count > 0:
-                try:
-                    client.play()
-                    print(f"[DEBUG] Auto-started playback after adding album", flush=True)
-                except Exception as e:
-                    print(f"[DEBUG] Error auto-playing: {e}", flush=True)
-                
-            client.disconnect()
-            
-            if added_count > 0:
-                if should_auto_play:
-                    success_message = f'Added {added_count} songs from "{album}" by {artist} and started playing.'
-                else:
-                    success_message = f'Added {added_count} songs from "{album}" by {artist} to playlist.'
-                socketio.emit('server_message', {'type': 'success', 'text': success_message})
-                # Trigger a status update
-                socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))
-                
-                if request.is_json:
-                    return jsonify({'status': 'success', 'message': success_message})
-                return redirect(url_for('index'))
-            else:
-                if request.is_json:
-                    return jsonify({'status': 'error', 'message': 'No songs were added to playlist'}), 500
-                return redirect(url_for('index'))
-                
-        except Exception as e:
-            client.disconnect()
-            print(f"Error adding album songs: {e}")
-            if request.is_json:
-                return jsonify({'status': 'error', 'message': f'Error adding album: {str(e)}'}), 500
-            return redirect(url_for('index'))
-                
-    except Exception as e:
-        print(f"Error in add_album_to_playlist: {e}")
-        if request.is_json:
-            return jsonify({'status': 'error', 'message': f'Error processing request: {str(e)}'}), 500
-        return redirect(url_for('index'))
 
 @app.route('/clear_and_add_album', methods=['POST'])
 def clear_and_add_album():
     """Clear playlist and add an entire album (or just a disc)."""
-    try:
-        # Handle both JSON and form data
-        if request.is_json:
-            data = request.get_json()
-            artist = data.get('original_artist') or data.get('artist')
-            album = data.get('album')
-            disc_number = data.get('disc_number')  # New: optional disc number
-        else:
-            artist = request.form.get('original_artist') or request.form.get('artist')
-            album = request.form.get('album')
-            disc_number = request.form.get('disc_number')  # New: optional disc number
-        
-        if not artist or not album:
-            if request.is_json:
-                return jsonify({'status': 'error', 'message': 'Artist and album are required'}), 400
-            return redirect(url_for('index'))
-
-        client = connect_mpd_client()
-        if not client:
-            if request.is_json:
-                return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
-            return redirect(url_for('index'))
-
-        try:
-            print(f"[DEBUG] Clear+Add - Searching for album: artist='{artist}', album='{album}'" + 
-                  (f", disc={disc_number}" if disc_number else ""), flush=True)
-            # Get current playlist size before clearing
-            current_playlist = client.playlist()
-            tracks_cleared = len(current_playlist)
-            
-            # First, clear the current playlist
-            client.clear()
-            
-            # Find all songs from this album - try AlbumArtist first, then Artist
-            songs = []
-            try:
-                songs = client.find('albumartist', artist, 'album', album)
-                if songs:
-                    print(f"[DEBUG] Clear+Add - Found {len(songs)} songs using AlbumArtist", flush=True)
-            except Exception as e:
-                print(f"[DEBUG] Clear+Add - AlbumArtist search failed: {e}", flush=True)
-                
-            # If no songs found by AlbumArtist, try by Artist
-            if not songs:
-                songs = client.find('artist', artist, 'album', album)
-                if songs:
-                    print(f"[DEBUG] Clear+Add - Found {len(songs)} songs using Artist", flush=True)
-                else:
-                    print(f"[DEBUG] Clear+Add - No songs found with Artist search either", flush=True)
-            
-            if not songs:
-                client.disconnect()
-                if request.is_json:
-                    return jsonify({'status': 'error', 'message': f'No songs found for "{album}" by {artist}'}), 404
-                return redirect(url_for('index'))
-            
-            # If disc number specified, filter to just that disc
-            if disc_number:
-                disc_structure = organize_album_by_disc(songs)
-                disc_num = int(disc_number)
-                if disc_structure and disc_num in disc_structure:
-                    songs = disc_structure[disc_num]
-                    print(f"[DISC] Clear+Add - Adding only Disc {disc_num} with {len(songs)} tracks", flush=True)
-                elif not disc_structure:
-                    # No disc structure detected - add all songs as fallback
-                    print(f"[DISC] Clear+Add - WARNING: No disc structure found, adding all {len(songs)} songs", flush=True)
-                else:
-                    # Disc structure exists but requested disc not in it
-                    print(f"[DISC] Clear+Add - ERROR: Disc {disc_number} not found. Available: {sorted(disc_structure.keys())}", flush=True)
-                    client.disconnect()
-                    if request.is_json:
-                        return jsonify({'status': 'error', 'message': f'Disc {disc_number} not found. Available discs: {sorted(disc_structure.keys())}'}), 404
-                    return redirect(url_for('index'))
-            
-            # Add all songs to playlist
-            added_count = 0
-            for song in songs:
-                file_path = song.get('file')
-                if file_path:
-                    try:
-                        client.add(file_path)
-                        added_count += 1
-                    except CommandError as e:
-                        print(f"Error adding {file_path}: {e}")
-            
-            # Start playing the first song if songs were added
-            if added_count > 0:
-                try:
-                    client.play(0)  # Start playing from position 0 (first song)
-                    print(f"[DEBUG] Started playing playlist after replacing with album")
-                except Exception as e:
-                    print(f"Error starting playback: {e}")
-            
-            client.disconnect()
-            
-            if added_count > 0:
-                disc_text = f" (Disc {disc_number})" if disc_number else ""
-                socketio.emit('server_message', {'type': 'success', 'text': f'Playlist cleared and added {added_count} songs from "{album}"{disc_text} by {artist}. Now playing!'})
-                # Trigger a status update
-                socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))
-                
-                if request.is_json:
-                    return jsonify({'status': 'success', 'message': f'Playlist replaced with {added_count} songs from album and started playing', 'tracks_cleared': tracks_cleared})
-                return redirect(url_for('index'))
-            else:
-                if request.is_json:
-                    return jsonify({'status': 'error', 'message': 'No songs were added to playlist'}), 500
-                return redirect(url_for('index'))
-                
-        except Exception as e:
-            client.disconnect()
-            print(f"Error clearing and adding album songs: {e}")
-            if request.is_json:
-                return jsonify({'status': 'error', 'message': f'Error replacing playlist: {str(e)}'}), 500
-            return redirect(url_for('index'))
-            
-    except Exception as e:
-        print(f"Error in clear_and_add_album: {e}")
-        if request.is_json:
-            return jsonify({'status': 'error', 'message': f'Error processing request: {str(e)}'}), 500
-        return redirect(url_for('index'))
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client,
+        'socketio': socketio,
+        'get_mpd_status_for_display': get_mpd_status_for_display,
+        'organize_album_by_disc': organize_album_by_disc
+    }
+    return clear_and_add_album_handler(app_ctx)
 
 @app.route('/get_album_songs', methods=['POST'])
 def get_album_songs():
@@ -4111,54 +2858,12 @@ def get_album_songs():
 @app.route('/add_song_to_playlist', methods=['POST'])
 def add_song_to_playlist():
     """Add a single song to the playlist."""
-    try:
-        file_path = request.form.get('file')
-        
-        if not file_path:
-            print("[DEBUG] No file path provided for add_song_to_playlist")
-            if request.is_json or request.headers.get('Content-Type') == 'application/x-www-form-urlencoded':
-                return jsonify({'status': 'error', 'message': 'No file path provided'}), 400
-            return redirect(url_for('index'))
-
-        print(f"[DEBUG] Adding song to playlist: {file_path}")
-        client = connect_mpd_client()
-        if not client:
-            print("[DEBUG] Could not connect to MPD in add_song_to_playlist")
-            if request.is_json or request.headers.get('Content-Type') == 'application/x-www-form-urlencoded':
-                return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
-            return redirect(url_for('index'))
-
-        try:
-            client.add(file_path)
-            client.disconnect()
-            
-            print(f"[DEBUG] Successfully added song to playlist: {file_path}")
-            socketio.emit('server_message', {'type': 'info', 'text': 'Song added to playlist.'})
-            # Trigger a status update
-            socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))
-            
-            if request.is_json or request.headers.get('Content-Type') == 'application/x-www-form-urlencoded':
-                return jsonify({'status': 'success', 'message': 'Song added to playlist'}), 200
-            return redirect(url_for('index'))
-            
-        except CommandError as e:
-            client.disconnect()
-            print(f"[DEBUG] MPD CommandError in add_song_to_playlist: {e}")
-            if request.is_json or request.headers.get('Content-Type') == 'application/x-www-form-urlencoded':
-                return jsonify({'status': 'error', 'message': f'MPD error: {str(e)}'}), 500
-            return redirect(url_for('index'))
-        except Exception as e:
-            client.disconnect()
-            print(f"[DEBUG] Exception in add_song_to_playlist: {e}")
-            if request.is_json or request.headers.get('Content-Type') == 'application/x-www-form-urlencoded':
-                return jsonify({'status': 'error', 'message': f'Error adding song: {str(e)}'}), 500
-            return redirect(url_for('index'))
-            
-    except Exception as e:
-        print(f"Error in add_song_to_playlist: {e}")
-        if request.is_json or request.headers.get('Content-Type') == 'application/x-www-form-urlencoded':
-            return jsonify({'status': 'error', 'message': f'Server error: {str(e)}'}), 500
-        return redirect(url_for('index'))
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client,
+        'socketio': socketio,
+        'get_mpd_status_for_display': get_mpd_status_for_display
+    }
+    return add_song_to_playlist_handler(app_ctx)
 
 def get_mpd_playlist():
     """Fetches the current MPD playlist."""
@@ -4179,8 +2884,40 @@ def get_mpd_playlist():
 @app.route('/playlist')
 def playlist_page():
     """Renders the playlist HTML page."""
-    playlist = get_mpd_playlist()
-    return render_template('playlist.html', playlist=playlist)
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client
+    }
+    return playlist_page_handler(app_ctx)
+
+@app.route('/history')
+def history_page():
+    """Renders the history HTML page."""
+    app_ctx = {
+        'get_mpd_status_for_display': get_mpd_status_for_display,
+        'last_mpd_status': last_mpd_status,
+        'app': app,
+        'play_history': play_history
+    }
+    return history_page_handler(app_ctx)
+
+@app.route('/api/history', methods=['GET'])
+def get_history():
+    """Return play history as JSON."""
+    app_ctx = {
+        'play_history': play_history
+    }
+    return get_history_handler(app_ctx)
+
+@app.route('/api/history/clear', methods=['POST'])
+def clear_history():
+    """Clear play history."""
+    global play_history, last_tracked_song_id
+    app_ctx = {}
+    result = clear_history_handler(app_ctx)
+    # Actually clear the history
+    play_history = []
+    last_tracked_song_id = None
+    return result
 
 @app.route('/radio')
 def radio_page():
@@ -4660,14 +3397,15 @@ def static_placeholder_art():
 @app.route('/toggle_auto_fill', methods=['POST'])
 def toggle_auto_fill():
     global auto_fill_active
+    app_ctx = {'socketio': socketio}
+    result = toggle_auto_fill_handler(app_ctx)
+    
+    # Update global state
     data = request.get_json()
     new_state = data.get('active')
-    
     if isinstance(new_state, bool):
         auto_fill_active = new_state
-        status_text = "enabled" if auto_fill_active else "disabled"
-        socketio.emit('server_message', {'type': 'info', 'text': f'Auto-fill has been {status_text}.'})
-        # Emit updated auto-fill status to all clients
+        # Emit updated status to all clients
         socketio.emit('auto_fill_status', {
             'active': auto_fill_active,
             'min_queue_length': auto_fill_min_queue_length,
@@ -4675,22 +3413,32 @@ def toggle_auto_fill():
             'num_tracks_max': auto_fill_num_tracks_max,
             'genre_filter_enabled': auto_fill_genre_filter_enabled
         })
-        return jsonify({'status': 'success', 'active': auto_fill_active})
-    return jsonify({'status': 'error', 'message': 'Invalid state'}), 400
+    
+    return result
+
 
 @app.route('/set_auto_fill_settings', methods=['POST'])
 def set_auto_fill_settings():
     global auto_fill_min_queue_length, auto_fill_num_tracks_min, auto_fill_num_tracks_max, auto_fill_genre_filter_enabled
+    
+    app_ctx = {
+        'socketio': socketio,
+        'auto_fill_min_queue_length': auto_fill_min_queue_length,
+        'auto_fill_num_tracks_min': auto_fill_num_tracks_min,
+        'auto_fill_num_tracks_max': auto_fill_num_tracks_max,
+        'auto_fill_genre_filter_enabled': auto_fill_genre_filter_enabled
+    }
+    result = set_auto_fill_settings_handler(app_ctx)
+    
+    # Update global state from request
     data = request.get_json()
-
     try:
         auto_fill_min_queue_length = int(data.get('min_queue_length', auto_fill_min_queue_length))
         auto_fill_num_tracks_min = int(data.get('num_tracks_min', auto_fill_num_tracks_min))
         auto_fill_num_tracks_max = int(data.get('num_tracks_max', auto_fill_num_tracks_max))
         auto_fill_genre_filter_enabled = bool(data.get('genre_filter_enabled', auto_fill_genre_filter_enabled))
-
-        socketio.emit('server_message', {'type': 'info', 'text': 'Auto-fill settings updated.'})
-        # Emit updated auto-fill status to all clients
+        
+        # Emit updated status to all clients
         socketio.emit('auto_fill_status', {
             'active': auto_fill_active,
             'min_queue_length': auto_fill_min_queue_length,
@@ -4703,330 +3451,82 @@ def set_auto_fill_settings():
         })
         return ('', 200)
     except ValueError:
-        socketio.emit('server_message', {'type': 'error', 'text': 'Invalid auto-fill settings provided.'})
         return ('', 400)
+
 
 # Playlist Management Routes
 @app.route('/remove_from_playlist', methods=['POST'])
 def remove_from_playlist():
     """Removes a song from the playlist by its position."""
-    pos = request.form.get('pos', type=int)
-    if pos is None:
-        return jsonify({'status': 'error', 'message': 'Position not provided'}), 400
-
-    client = connect_mpd_client()
-    if not client:
-        return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
-    try:
-        client.delete(pos)
-        client.disconnect()
-        socketio.emit('server_message', {'type': 'info', 'text': f'Removed song at position {pos+1} from playlist.'})
-        # Trigger a refresh of the playlist on all connected clients
-        socketio.emit('playlist_updated', get_mpd_playlist())
-        return jsonify({'status': 'success', 'message': 'Song removed'})
-    except CommandError as e:
-        print(f"MPD CommandError removing song at {pos}: {e}")
-        return jsonify({'status': 'error', 'message': f'MPD error: {e}'}), 500
-    except Exception as e:
-        print(f"Error removing song from playlist at {pos}: {e}")
-        return jsonify({'status': 'error', 'message': f'Error removing song: {e}'}), 500
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client,
+        'socketio': socketio
+    }
+    return remove_from_playlist_handler(app_ctx)
 
 @app.route('/move_track', methods=['POST'])
 def move_track():
     """Moves a track up/down or to a specific position in the playlist."""
-    data = request.get_json()
-    if not data or 'pos' not in data:
-        return jsonify({'status': 'error', 'message': 'Position required'}), 400
-    
-    pos = data['pos']
-    
-    client = connect_mpd_client()
-    if not client:
-        return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
-    
-    try:
-        # Get playlist length to validate boundaries
-        playlist = client.playlistinfo()
-        playlist_length = len(playlist)
-        
-        # Check if moving to specific position (drag-and-drop) or by direction (up/down buttons)
-        if 'to' in data:
-            # Drag-and-drop to specific position
-            new_pos = data['to']
-            if new_pos < 0 or new_pos >= playlist_length:
-                client.disconnect()
-                return jsonify({'status': 'error', 'message': 'Invalid target position'}), 400
-            if pos == new_pos:
-                client.disconnect()
-                return jsonify({'status': 'success', 'message': 'Track already in position'})
-        elif 'direction' in data:
-            # Up/down button movement
-            direction = data['direction']
-            if direction not in ['up', 'down']:
-                client.disconnect()
-                return jsonify({'status': 'error', 'message': 'Direction must be "up" or "down"'}), 400
-            
-            # Calculate new position
-            if direction == 'up':
-                if pos == 0:
-                    client.disconnect()
-                    return jsonify({'status': 'error', 'message': 'Already at top of playlist'}), 400
-                new_pos = pos - 1
-            else:  # down
-                if pos >= playlist_length - 1:
-                    client.disconnect()
-                    return jsonify({'status': 'error', 'message': 'Already at bottom of playlist'}), 400
-                new_pos = pos + 1
-        else:
-            client.disconnect()
-            return jsonify({'status': 'error', 'message': 'Either "direction" or "to" parameter required'}), 400
-        
-        # Move the track
-        client.move(pos, new_pos)
-        client.disconnect()
-        
-        # Emit updates to all clients
-        socketio.emit('playlist_updated', get_mpd_playlist())
-        
-        return jsonify({
-            'status': 'success',
-            'message': 'Track moved',
-            'new_pos': new_pos
-        })
-    
-    except CommandError as e:
-        print(f"MPD CommandError moving track: {e}")
-        return jsonify({'status': 'error', 'message': f'MPD error: {e}'}), 500
-    except Exception as e:
-        print(f"Error moving track: {e}")
-        return jsonify({'status': 'error', 'message': f'Error: {e}'}), 500
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client,
+        'socketio': socketio
+    }
+    return move_track_handler(app_ctx)
 
 @app.route('/clear_playlist', methods=['POST'])
 def clear_playlist():
     """Clears the entire MPD playlist."""
-    global genre_station_mode, genre_station_name, genre_station_genres
-    
-    client = connect_mpd_client()
-    if not client:
-        return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
-    try:
-        client.clear()
-        client.disconnect()
-        
-        # Clear genre station mode when playlist is manually cleared
-        genre_station_mode = False
-        genre_station_name = ""
-        genre_station_genres = []
-        print("Genre station mode cleared due to manual playlist clear")
-        
-        socketio.emit('server_message', {'type': 'info', 'text': 'MPD playlist cleared.'})
-        # Trigger a refresh of the playlist on all connected clients
-        socketio.emit('playlist_updated', get_mpd_playlist())
-        return jsonify({'status': 'success', 'message': 'Playlist cleared'})
-    except CommandError as e:
-        print(f"MPD CommandError clearing playlist: {e}")
-        return jsonify({'status': 'error', 'message': f'MPD error: {e}'}), 500
-    except Exception as e:
-        print(f"Error clearing playlist: {e}")
-        return jsonify({'status': 'error', 'message': f'Error clearing playlist: {e}'}), 500
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client,
+        'socketio': socketio
+    }
+    return clear_playlist_handler(app_ctx)
 
 @app.route('/save_playlist', methods=['POST'])
 def save_playlist():
     """Save the current MPD playlist to an M3U file."""
-    data = request.get_json()
-    if not data or 'name' not in data:
-        return jsonify({'status': 'error', 'message': 'Playlist name is required'}), 400
-    
-    playlist_name = data['name'].strip()
-    if not playlist_name:
-        return jsonify({'status': 'error', 'message': 'Playlist name cannot be empty'}), 400
-    
-    # Sanitize filename to prevent directory traversal
-    playlist_name = playlist_name.replace('/', '_').replace('\\', '_')
-    
-    # Ensure .m3u extension
-    if not playlist_name.lower().endswith('.m3u'):
-        playlist_name += '.m3u'
-    
-    playlist_path = os.path.join(PLAYLISTS_DIR, playlist_name)
-    
-    client = connect_mpd_client()
-    if not client:
-        return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
-    
-    try:
-        playlist_songs = client.playlistinfo()
-        client.disconnect()
-        
-        if not playlist_songs:
-            return jsonify({'status': 'error', 'message': 'Current playlist is empty'}), 400
-        
-        # Write M3U playlist file
-        with open(playlist_path, 'w', encoding='utf-8') as f:
-            f.write('#EXTM3U\n')
-            for song in playlist_songs:
-                # Write extended info line
-                artist = song.get('artist', 'Unknown Artist')
-                title = song.get('title', 'Unknown Title')
-                duration = int(song.get('time', '0'))
-                f.write(f'#EXTINF:{duration},{artist} - {title}\n')
-                # Write file path
-                f.write(f"{song.get('file', '')}\n")
-        
-        print(f"Saved playlist: {playlist_name} ({len(playlist_songs)} songs)")
-        return jsonify({
-            'status': 'success',
-            'message': f'Playlist "{playlist_name}" saved',
-            'song_count': len(playlist_songs)
-        })
-    
-    except Exception as e:
-        print(f"Error saving playlist: {e}")
-        return jsonify({'status': 'error', 'message': f'Error saving playlist: {e}'}), 500
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client,
+        'playlists_dir': PLAYLISTS_DIR
+    }
+    return save_playlist_handler(app_ctx)
 
 @app.route('/list_playlists', methods=['GET'])
 def list_playlists():
     """List all saved M3U playlists."""
-    try:
-        playlists = []
-        if os.path.exists(PLAYLISTS_DIR):
-            for filename in sorted(os.listdir(PLAYLISTS_DIR)):
-                if filename.lower().endswith('.m3u'):
-                    filepath = os.path.join(PLAYLISTS_DIR, filename)
-                    # Get file stats
-                    stat_info = os.stat(filepath)
-                    modified_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(stat_info.st_mtime))
-                    
-                    # Count songs in playlist
-                    song_count = 0
-                    try:
-                        with open(filepath, 'r', encoding='utf-8') as f:
-                            for line in f:
-                                if line.strip() and not line.startswith('#'):
-                                    song_count += 1
-                    except Exception as e:
-                        print(f"Error reading playlist {filename}: {e}")
-                    
-                    playlists.append({
-                        'name': filename,
-                        'modified': modified_time,
-                        'song_count': song_count
-                    })
-        
-        return jsonify({'status': 'success', 'playlists': playlists})
-    
-    except Exception as e:
-        print(f"Error listing playlists: {e}")
-        return jsonify({'status': 'error', 'message': f'Error listing playlists: {e}'}), 500
+    app_ctx = {
+        'playlists_dir': PLAYLISTS_DIR
+    }
+    return list_playlists_handler(app_ctx)
 
 @app.route('/load_playlist', methods=['POST'])
 def load_playlist():
     """Load a saved M3U playlist into MPD, clearing the current playlist."""
-    data = request.get_json()
-    if not data or 'name' not in data:
-        return jsonify({'status': 'error', 'message': 'Playlist name is required'}), 400
-    
-    playlist_name = data['name']
-    playlist_path = os.path.join(PLAYLISTS_DIR, playlist_name)
-    
-    if not os.path.exists(playlist_path):
-        return jsonify({'status': 'error', 'message': 'Playlist not found'}), 404
-    
-    client = connect_mpd_client()
-    if not client:
-        return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
-    
-    try:
-        # Clear current playlist
-        client.clear()
-        
-        # Read M3U file and add songs
-        songs_added = 0
-        songs_failed = 0
-        with open(playlist_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                line = line.strip()
-                # Skip comments and empty lines
-                if not line or line.startswith('#'):
-                    continue
-                
-                # Add song to MPD playlist
-                try:
-                    client.add(line)
-                    songs_added += 1
-                except CommandError as e:
-                    print(f"Failed to add song '{line}': {e}")
-                    songs_failed += 1
-        
-        client.disconnect()
-        
-        # Emit updates
-        socketio.emit('server_message', {
-            'type': 'info',
-            'text': f'Loaded playlist "{playlist_name}" ({songs_added} songs)'
-        })
-        socketio.emit('playlist_updated', get_mpd_playlist())
-        
-        message = f'Loaded {songs_added} songs'
-        if songs_failed > 0:
-            message += f' ({songs_failed} songs not found)'
-        
-        return jsonify({
-            'status': 'success',
-            'message': message,
-            'songs_added': songs_added,
-            'songs_failed': songs_failed
-        })
-    
-    except Exception as e:
-        print(f"Error loading playlist: {e}")
-        return jsonify({'status': 'error', 'message': f'Error loading playlist: {e}'}), 500
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client,
+        'socketio': socketio,
+        'playlists_dir': PLAYLISTS_DIR
+    }
+    return load_playlist_handler(app_ctx)
 
 @app.route('/delete_playlist', methods=['POST'])
 def delete_playlist():
     """Delete a saved M3U playlist."""
-    data = request.get_json()
-    if not data or 'name' not in data:
-        return jsonify({'status': 'error', 'message': 'Playlist name is required'}), 400
-    
-    playlist_name = data['name']
-    playlist_path = os.path.join(PLAYLISTS_DIR, playlist_name)
-    
-    if not os.path.exists(playlist_path):
-        return jsonify({'status': 'error', 'message': 'Playlist not found'}), 404
-    
-    try:
-        os.remove(playlist_path)
-        print(f"Deleted playlist: {playlist_name}")
-        return jsonify({'status': 'success', 'message': f'Playlist "{playlist_name}" deleted'})
-    
-    except Exception as e:
-        print(f"Error deleting playlist: {e}")
-        return jsonify({'status': 'error', 'message': f'Error deleting playlist: {e}'}), 500
+    app_ctx = {
+        'playlists_dir': PLAYLISTS_DIR
+    }
+    return delete_playlist_handler(app_ctx)
 
 @app.route('/play_song_at_pos', methods=['POST'])
 def play_song_at_pos():
     """Plays a song at a specific position in the playlist."""
-    pos = request.form.get('pos', type=int)
-    if pos is None:
-        return jsonify({'status': 'error', 'message': 'Position not provided'}), 400
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client,
+        'socketio': socketio,
+        'get_mpd_status_for_display': get_mpd_status_for_display
+    }
+    return play_song_at_pos_handler(app_ctx)
 
-    client = connect_mpd_client()
-    if not client:
-        return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
-    try:
-        client.play(pos)
-        client.disconnect()
-        socketio.emit('server_message', {'type': 'info', 'text': f'Playing song at position {pos+1}.'})
-        # Trigger a status update on the main page after playing a song
-        socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))
-        return jsonify({'status': 'success', 'message': 'Playing song'})
-    except CommandError as e:
-        print(f"MPD CommandError playing song at {pos}: {e}")
-        return jsonify({'status': 'error', 'message': f'MPD error: {e}'}), 500
-    except Exception as e:
-        print(f"Error playing song from playlist at {pos}: {e}")
-        return jsonify({'status': 'error', 'message': f'Error playing song: {e}'}), 500
 
 @app.route('/toggle_consume_mode', methods=['POST'])
 def toggle_consume_mode():
@@ -5114,109 +3614,33 @@ def toggle_crossfade():
 @app.route('/get_mpd_status')
 def get_mpd_status():
     """API endpoint to get current MPD status."""
-    status = get_mpd_status_for_display()
-    response = make_response(jsonify(status))
-    # Disable caching to ensure fresh playlist data
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
-    
-    if status:
-        return response
-    return make_response(jsonify(last_mpd_status if last_mpd_status else {
-        'state': 'unknown', 
-        'message': 'No status available', 
-        'volume': 0, 
-        'queue_length': 0, 
-        'consume_mode': False,
-        'shuffle_mode': False,
-        'crossfade_enabled': False,
-        'crossfade_seconds': 0
-    }))
+    app_ctx = {
+        'get_mpd_status_for_display': get_mpd_status_for_display,
+        'last_mpd_status': last_mpd_status
+    }
+    return get_mpd_status_handler(app_ctx)
 
 @app.route('/recent_albums')
 def recent_albums():
     """Get recently added albums from MPD database."""
-    try:
-        # Check for force refresh parameter (accept both 'force' and 'force_refresh')
-        force_refresh = (request.args.get('force', '0') == '1' or 
-                        request.args.get('force_refresh', '0') == '1')
-        recent_albums_data = get_recent_albums_from_mpd(force_refresh=force_refresh)
-        return jsonify({
-            'status': 'success',
-            'albums': recent_albums_data,
-            'count': len(recent_albums_data)
-        })
-    except Exception as e:
-        print(f"Error getting recent albums: {e}")
-        return jsonify({
-            'status': 'error',
-            'message': f'Error retrieving recent albums: {str(e)}',
-            'albums': []
-        }), 500
+    app_ctx = {
+        'get_recent_albums_from_mpd': get_recent_albums_from_mpd
+    }
+    return recent_albums_handler(app_ctx)
+
 
 @app.route('/recent')
 def recent_albums_page():
     """Display the recent albums page."""
-    return render_template('recent_albums.html')
+    return recent_albums_page_handler({})
+
 
 @app.route('/api/list_music_directories')
 def list_music_directories():
-    """
-    List available directories within the music library for recent albums browsing.
-    Returns directory structure for folder picker in settings.
-    """
-    try:
-        path = request.args.get('path', '/media/music')
-        
-        # Security: Only allow browsing within standard music directories
-        allowed_root_paths = ['/media/music', '/var/lib/mpd/music', '/mnt/music']
-        
-        # Validate path is within allowed roots
-        if not any(path.startswith(root) for root in allowed_root_paths):
-            return jsonify({'success': False, 'error': 'Access denied'}), 403
-        
-        # Check if directory exists
-        if not os.path.isdir(path):
-            return jsonify({'success': False, 'error': f'Directory not found: {path}'}), 404
-        
-        items = []
-        try:
-            for entry in os.scandir(path):
-                if entry.is_dir(follow_symlinks=False):
-                    try:
-                        item = {
-                            'name': entry.name,
-                            'path': entry.path,
-                            'is_dir': True,
-                            'modified': entry.stat().st_mtime
-                        }
-                        items.append(item)
-                    except (PermissionError, OSError):
-                        # Skip directories we can't read
-                        pass
-        except (PermissionError, OSError) as e:
-            print(f"Error listing directory {path}: {e}")
-        
-        # Sort alphabetically
-        items.sort(key=lambda x: x['name'].lower())
-        
-        # Determine parent directory (don't go above music root)
-        parent = None
-        if path not in allowed_root_paths:
-            parent_path = os.path.dirname(path)
-            if any(parent_path.startswith(root) for root in allowed_root_paths):
-                parent = parent_path
-        
-        return jsonify({
-            'success': True,
-            'path': path,
-            'parent': parent,
-            'items': items
-        })
-    except Exception as e:
-        print(f"Error in list_music_directories: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    """List available directories within the music library for recent albums browsing."""
+    app_ctx = {}
+    return list_music_directories_handler(app_ctx)
+
 
 def get_recent_albums_from_mpd(limit=25, force_refresh=False):
     """
@@ -5493,17 +3917,20 @@ def test_disconnect():
 @app.route('/browse')
 def browse_genres_page():
     """Browse genres page."""
-    return render_template('browse_genres.html')
+    app_ctx = {}
+    return browse_genres_page_handler(app_ctx)
 
 @app.route('/browse/artists')
 def browse_artists_page():
     """Browse artists page."""
-    return render_template('browse_artists.html')
+    app_ctx = {}
+    return browse_artists_page_handler(app_ctx)
 
 @app.route('/browse/albums')
 def browse_albums_page():
     """Browse albums page."""
-    return render_template('browse_albums.html')
+    app_ctx = {}
+    return browse_albums_page_handler(app_ctx)
 
 @app.route('/bandcamp')
 def bandcamp_page():
@@ -5514,575 +3941,70 @@ def bandcamp_page():
 @app.route('/api/browse/genres', methods=['GET'])
 def api_browse_genres():
     """Return all genres - simple fast version without counting."""
-    print("[DEBUG] /api/browse/genres called", flush=True)
-    
-    client = connect_mpd_client()
-    if not client:
-        print("[DEBUG] Could not connect to MPD")
-        return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
-
-    try:
-        # Just get genres, no expensive counting
-        genres = client.list('genre')
-        print(f"[DEBUG] Found {len(genres)} genres", flush=True)
-        
-        genre_data = []
-        
-        for genre_item in genres:
-            # Handle both string and dict responses from MPD
-            if isinstance(genre_item, dict):
-                genre = genre_item.get('genre', '')
-            else:
-                genre = genre_item
-                
-            if not genre or str(genre).strip() == '':
-                continue  # Skip empty genres
-                
-            genre_data.append({
-                'name': str(genre),
-                'artist_count': '?',  # Don't count to avoid slow queries
-                'album_count': '?'    # Don't count to avoid slow queries
-            })
-
-        # Sort genres alphabetically
-        genre_data.sort(key=lambda x: x['name'].lower())
-        
-        client.disconnect()
-        print(f"[DEBUG] Returning {len(genre_data)} genres", flush=True)
-        return jsonify({'status': 'success', 'genres': genre_data, 'count': len(genre_data)})
-
-    except Exception as e:
-        try:
-            client.disconnect()
-        except Exception:
-            pass
-        print(f"[DEBUG] Exception in /api/browse/genres: {e}", flush=True)
-        return jsonify({'status': 'error', 'message': f'Error fetching genres: {str(e)}'}), 500
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client
+    }
+    return api_browse_genres_handler(app_ctx)
 
 @app.route('/debug/albumartists')
 def debug_albumartists():
     """Debug route to see what AlbumArtist values MPD has."""
-    client = connect_mpd_client()
-    if not client:
-        return "Could not connect to MPD"
-    
-    try:
-        # Get all AlbumArtist values
-        all_albumartists_raw = client.list('albumartist')
-        
-        # Handle both string and dict responses
-        all_albumartists = []
-        for item in all_albumartists_raw:
-            if isinstance(item, dict):
-                albumartist = item.get('albumartist', '')
-            else:
-                albumartist = item
-            if albumartist:
-                all_albumartists.append(str(albumartist))
-        
-        client.disconnect()
-        
-        output = f"Total AlbumArtist entries: {len(all_albumartists)}<br><br>"
-        for aa in sorted(set(all_albumartists)):
-            output += f"'{aa}'<br>"
-        
-        return output
-    except Exception as e:
-        if client:
-            client.disconnect()
-        return f"Error: {e}"
+    app_ctx = {'connect_mpd_client': connect_mpd_client}
+    return debug_albumartists_handler(app_ctx)
+
 
 @app.route('/debug/album/<album_name>')
 def debug_album(album_name):
     """Debug specific album to see its Artist vs AlbumArtist tags."""
-    client = connect_mpd_client()
-    if not client:
-        return "Could not connect to MPD"
-    
-    try:
-        # Find all songs from this album
-        songs = client.find('album', album_name)
-        client.disconnect()
-        
-        output = f"<h2>Debug: '{album_name}'</h2>"
-        output += f"Found {len(songs)} songs<br><br>"
-        
-        artists = set()
-        albumartists = set()
-        
-        for i, song in enumerate(songs[:10]):  # Show first 10 tracks
-            artist = song.get('artist', 'N/A')
-            albumartist = song.get('albumartist', 'N/A')
-            title = song.get('title', 'N/A')
-            
-            artists.add(artist)
-            albumartists.add(albumartist)
-            
-            output += f"Track {i+1}: {title}<br>"
-            output += f"&nbsp;&nbsp;Artist: '{artist}'<br>"
-            output += f"&nbsp;&nbsp;AlbumArtist: '{albumartist}'<br><br>"
-        
-        output += f"<h3>Summary:</h3>"
-        output += f"Unique Artists: {list(artists)}<br>"
-        output += f"Unique AlbumArtists: {list(albumartists)}<br>"
-        
-        return output
-    except Exception as e:
-        if client:
-            client.disconnect()
-        return f"Error: {e}"
+    app_ctx = {'connect_mpd_client': connect_mpd_client}
+    return debug_album_handler(app_ctx, album_name)
+
 
 @app.route('/debug/album_genre/<album_name>')
 def debug_album_genre(album_name):
     """Debug what genre(s) an album is tagged with."""
-    client = connect_mpd_client()
-    if not client:
-        return "Could not connect to MPD"
-    
-    try:
-        # Find all songs from this album
-        songs = client.find('album', album_name)
-        client.disconnect()
-        
-        output = f"<h2>Genre Debug: '{album_name}'</h2>"
-        output += f"Found {len(songs)} songs<br><br>"
-        
-        genres = set()
-        artists = set()
-        albumartists = set()
-        
-        for i, song in enumerate(songs[:10]):  # Show first 10 tracks
-            genre = song.get('genre', 'N/A')
-            artist = song.get('artist', 'N/A')
-            albumartist = song.get('albumartist', 'N/A')
-            title = song.get('title', 'N/A')
-            
-            genres.add(genre)
-            artists.add(artist)
-            albumartists.add(albumartist)
-            
-            output += f"Track {i+1}: {title}<br>"
-            output += f"&nbsp;&nbsp;Genre: '{genre}'<br>"
-            output += f"&nbsp;&nbsp;Artist: '{artist}'<br>"
-            output += f"&nbsp;&nbsp;AlbumArtist: '{albumartist}'<br><br>"
-        
-        output += f"<h3>Summary:</h3>"
-        output += f"Unique Genres: {list(genres)}<br>"
-        output += f"Unique Artists: {list(artists)}<br>"
-        output += f"Unique AlbumArtists: {list(albumartists)}<br>"
-        
-        return output
-    except Exception as e:
-        if client:
-            client.disconnect()
-        return f"Error: {e}"
+    app_ctx = {'connect_mpd_client': connect_mpd_client}
+    return debug_album_genre_handler(app_ctx, album_name)
+
 
 @app.route('/debug/album_search/<search_term>')
 def debug_album_search(search_term):
     """Debug albums containing a search term to see their tags."""
-    client = connect_mpd_client()
-    if not client:
-        return "Could not connect to MPD"
-    
-    try:
-        # Find songs with album names containing the search term
-        all_songs = client.search('album', search_term)
-        client.disconnect()
-        
-        output = f"<h2>Album Search Debug: '{search_term}'</h2>"
-        output += f"Found {len(all_songs)} songs<br><br>"
-        
-        albums_info = {}  # album_name -> {genres, artists, albumartists}
-        
-        for song in all_songs:
-            album = song.get('album', 'Unknown Album')
-            genre = song.get('genre', 'N/A')
-            artist = song.get('artist', 'N/A')
-            albumartist = song.get('albumartist', 'N/A')
-            
-            if album not in albums_info:
-                albums_info[album] = {'genres': set(), 'artists': set(), 'albumartists': set()}
-            
-            albums_info[album]['genres'].add(genre)
-            albums_info[album]['artists'].add(artist)
-            albums_info[album]['albumartists'].add(albumartist)
-        
-        for album, info in albums_info.items():
-            output += f"<h3>Album: '{album}'</h3>"
-            output += f"Genres: {list(info['genres'])}<br>"
-            output += f"Artists: {list(info['artists'])[:10]}{'...' if len(info['artists']) > 10 else ''}<br>"
-            output += f"AlbumArtists: {list(info['albumartists'])}<br><br>"
-        
-        return output
-    except Exception as e:
-        if client:
-            client.disconnect()
-        return f"Error: {e}"
+    app_ctx = {'connect_mpd_client': connect_mpd_client}
+    return debug_album_search_handler(app_ctx, search_term)
+
 
 @app.route('/debug/genre_various_artists/<genre_name>')
 def debug_genre_various_artists(genre_name):
     """Debug which Various Artists albums are in a specific genre."""
-    client = connect_mpd_client()
-    if not client:
-        return "Could not connect to MPD"
-    
-    try:
-        # Find all songs in this genre where AlbumArtist = "Various Artists"
-        all_songs = client.find('genre', genre_name, 'albumartist', 'Various Artists')
-        client.disconnect()
-        
-        output = f"<h2>Various Artists Albums in '{genre_name}' Genre</h2>"
-        output += f"Found {len(all_songs)} songs<br><br>"
-        
-        albums_info = {}  # album_name -> song count
-        
-        for song in all_songs:
-            album = song.get('album', 'Unknown Album')
-            if album not in albums_info:
-                albums_info[album] = 0
-            albums_info[album] += 1
-        
-        output += f"<h3>Albums found:</h3>"
-        for album, song_count in albums_info.items():
-            output += f"• <strong>{album}</strong> ({song_count} songs)<br>"
-        
-        if not albums_info:
-            output += "<em>No Various Artists albums found in this genre.</em><br><br>"
-            # Also check regular artist tag
-            fallback_songs = client.find('genre', genre_name, 'artist', 'Various Artists')
-            if fallback_songs:
-                output += f"<h3>Found {len(fallback_songs)} songs with Artist='Various Artists' instead:</h3>"
-                fallback_albums = {}
-                for song in fallback_songs:
-                    album = song.get('album', 'Unknown Album')
-                    if album not in fallback_albums:
-                        fallback_albums[album] = 0
-                    fallback_albums[album] += 1
-                
-                for album, song_count in fallback_albums.items():
-                    output += f"• <strong>{album}</strong> ({song_count} songs)<br>"
-        
-        return output
-    except Exception as e:
-        if client:
-            client.disconnect()
-        return f"Error: {e}"
+    app_ctx = {'connect_mpd_client': connect_mpd_client}
+    return debug_genre_various_artists_handler(app_ctx, genre_name)
 
 @app.route('/api/browse/artists', methods=['GET'])
 def api_browse_artists():
     """Return artists for a specific genre - simple fast version."""
-    genre = request.args.get('genre', '').strip()
-    print(f"[DEBUG] /api/browse/artists called with genre='{genre}'", flush=True)
-    
-    if not genre:
-        return jsonify({'status': 'error', 'message': 'Missing genre parameter'}), 400
-
-    client = connect_mpd_client()
-    if not client:
-        return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
-
-    try:
-        # Get all songs for this genre first
-        all_songs = client.find('genre', genre)
-        print(f"[DEBUG] Found {len(all_songs)} songs for genre '{genre}'", flush=True)
-        
-        artist_albums = {}  # artist_name -> set of albums
-        
-        for song in all_songs:
-            # Prefer AlbumArtist over Artist for each song
-            albumartist_raw = song.get('albumartist')
-            artist_raw = song.get('artist', 'Unknown Artist')
-            
-
-            
-            # Handle cases where MPD returns lists instead of strings
-            if isinstance(albumartist_raw, list):
-                albumartist_name = albumartist_raw[0] if albumartist_raw else None
-            else:
-                albumartist_name = albumartist_raw
-            
-            if isinstance(artist_raw, list):
-                artist_name = artist_raw[0] if artist_raw else 'Unknown Artist'
-            else:
-                artist_name = artist_raw
-            
-            # Use AlbumArtist if available, otherwise use Artist
-            final_artist_name = albumartist_name or artist_name
-            album_name = song.get('album', 'Unknown Album')
-            
-            # Handle album name if it's also a list
-            if isinstance(album_name, list):
-                album_name = album_name[0] if album_name else 'Unknown Album'
-            
-            if final_artist_name not in artist_albums:
-                artist_albums[final_artist_name] = set()
-            artist_albums[final_artist_name].add(album_name)
-        
-        all_artists = list(artist_albums.keys())
-        print(f"[DEBUG] Total unique artists: {len(all_artists)}", flush=True)
-        print(f"[DEBUG] Sample artists: {all_artists[:10] if all_artists else 'None'}", flush=True)
-        
-        artist_data = []
-        
-        for artist in all_artists:
-            if not artist or str(artist).strip() == '':
-                continue
-                
-            artist_data.append({
-                'name': str(artist),
-                'album_count': '?',  # Don't count to avoid slow queries
-                'song_count': '?'    # Don't count to avoid slow queries
-            })
-
-        # Sort by name, ignoring leading "The"
-        def sort_key_ignore_the(artist_dict):
-            name = artist_dict['name'].lower()
-            # If name starts with "the " (case insensitive), ignore it for sorting
-            if name.startswith('the '):
-                return name[4:]  # Remove "the " (4 characters)
-            return name
-            
-        artist_data.sort(key=sort_key_ignore_the)
-        
-        client.disconnect()
-        print(f"[DEBUG] Returning {len(artist_data)} artists", flush=True)
-        return jsonify({'status': 'success', 'artists': artist_data, 'count': len(artist_data)})
-        
-    except Exception as e:
-        try:
-            client.disconnect()
-        except Exception:
-            pass
-        print(f"[DEBUG] Exception in /api/browse/artists: {e}", flush=True)
-        return jsonify({'status': 'error', 'message': f'Error fetching artists: {str(e)}'}), 500
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client
+    }
+    return api_browse_artists_handler(app_ctx)
 
 @app.route('/api/browse/albums', methods=['GET'])
 def api_browse_albums():
     """Return albums for a specific artist with track counts - uses AlbumArtist when available."""
-    artist = request.args.get('artist', '').strip()
-    genre = request.args.get('genre', '').strip()
-    print(f"[DEBUG] /api/browse/albums called with artist='{artist}', genre='{genre}'", flush=True)
-    
-    if not artist:
-        return jsonify({'status': 'error', 'message': 'Missing artist parameter'}), 400
-
-    client = connect_mpd_client()
-    if not client:
-        return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
-
-    try:
-        # If genre is specified, filter by it
-        if genre:
-            # Get albums by AlbumArtist AND genre
-            try:
-                albums_by_albumartist = client.list('album', 'albumartist', artist, 'genre', genre)
-                print(f"[DEBUG] Found {len(albums_by_albumartist)} albums by AlbumArtist for '{artist}' in genre '{genre}'", flush=True)
-            except:
-                albums_by_albumartist = []
-            
-            # Get albums by Artist AND genre
-            albums_by_artist = client.list('album', 'artist', artist, 'genre', genre)
-            print(f"[DEBUG] Found {len(albums_by_artist)} albums by Artist for '{artist}' in genre '{genre}'", flush=True)
-        else:
-            # No genre filter - get all albums for this artist
-            try:
-                albums_by_albumartist = client.list('album', 'albumartist', artist)
-                print(f"[DEBUG] Found {len(albums_by_albumartist)} albums by AlbumArtist for '{artist}'", flush=True)
-            except:
-                albums_by_albumartist = []
-            
-            # Get albums by regular artist tag
-            albums_by_artist = client.list('album', 'artist', artist)
-            print(f"[DEBUG] Found {len(albums_by_artist)} albums by Artist for '{artist}'", flush=True)
-        
-        # Combine and deduplicate albums
-        all_albums_raw = albums_by_albumartist + albums_by_artist
-        all_albums = []
-        seen_albums = set()
-        
-        for album_item in all_albums_raw:
-            # Handle both string and dict responses from MPD
-            if isinstance(album_item, dict):
-                album_name = album_item.get('album', '')
-            else:
-                album_name = album_item
-            
-            # Only add if we haven't seen this album name before
-            if album_name and album_name.lower() not in seen_albums:
-                all_albums.append(album_name)
-                seen_albums.add(album_name.lower())
-                
-        print(f"[DEBUG] Total unique albums: {len(all_albums)}", flush=True)
-        
-        # Group albums by directory to show each physical copy separately (like search does)
-        album_data = []
-        for album in all_albums:
-            if not album or str(album).strip() == '':
-                continue
-                
-            try:
-                # For each album, check if it should use AlbumArtist or Artist
-                # First try to find songs by AlbumArtist
-                songs_by_albumartist = []
-                try:
-                    songs_by_albumartist = client.find('albumartist', artist, 'album', album)
-                except:
-                    pass
-                    
-                # If no songs found by AlbumArtist, try by Artist
-                if not songs_by_albumartist:
-                    songs = client.find('artist', artist, 'album', album)
-                else:
-                    songs = songs_by_albumartist
-                
-                # Group songs by directory to handle multiple physical copies
-                albums_by_dir = {}
-                for song in songs:
-                    song_file = song.get('file', '')
-                    album_dir = os.path.dirname(song_file) if song_file else ''
-                    
-                    if album_dir not in albums_by_dir:
-                        albums_by_dir[album_dir] = {
-                            'songs': [],
-                            'date': song.get('date', ''),
-                            'sample_file': song_file
-                        }
-                    albums_by_dir[album_dir]['songs'].append(song)
-                
-                # Add an entry for each directory (each physical copy)
-                for album_dir, dir_data in albums_by_dir.items():
-                    album_data.append({
-                        'album': str(album),
-                        'artist': str(artist),
-                        'track_count': len(dir_data['songs']),
-                        'date': str(dir_data['date']),
-                        'sample_file': str(dir_data['sample_file'])
-                    })
-                    
-            except Exception as e:
-                print(f"[DEBUG] Error getting info for album '{album}': {e}")
-                continue
-        
-        # Sort by album name
-        album_data.sort(key=lambda x: x['album'].lower())
-        
-        client.disconnect()
-        return jsonify({'status': 'success', 'albums': album_data, 'count': len(album_data)})
-        
-    except Exception as e:
-        try:
-            client.disconnect()
-        except Exception:
-            pass
-        print(f"[DEBUG] Exception in /api/browse/albums: {e}", flush=True)
-        return jsonify({'status': 'error', 'message': f'Error fetching albums: {str(e)}'}), 500
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client
+    }
+    return api_browse_albums_handler(app_ctx)
 
 # --- API endpoint for album tracks (for Show Tracks button) ---
 @app.route('/api/album_tracks', methods=['GET'])
 def api_album_tracks():
     """Return all tracks for a given album and artist as JSON."""
-
-    album = request.args.get('album', '')  # Don't strip - preserve trailing spaces
-    artist = request.args.get('artist', '').strip()
-    print(f"[DEBUG] /api/album_tracks called with album='{album}', artist='{artist}'")
-    
-    if not album or not album.strip():
-        print("[DEBUG] Missing album parameter")
-        return jsonify({'status': 'error', 'message': 'Missing album parameter'}), 400
-
-    client = connect_mpd_client()
-    if not client:
-        print("[DEBUG] Could not connect to MPD")
-        return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
-
-    try:
-        # If artist specified, search by both artist and album for exact match
-        if artist:
-            tracks = client.find('album', album, 'artist', artist)
-            print(f"[DEBUG] Album+Artist exact search returned {len(tracks) if tracks else 0} tracks")
-            
-            # If no exact match, try with trailing space
-            if not tracks:
-                tracks = client.find('album', album + ' ', 'artist', artist)
-                print(f"[DEBUG] Album+Artist search with trailing space returned {len(tracks) if tracks else 0} tracks")
-        else:
-            # No artist specified, search by album only
-            tracks = client.find('album', album)
-            print(f"[DEBUG] Album-only exact search returned {len(tracks) if tracks else 0} tracks")
-            
-            # If no results, try with trailing space
-            if not tracks:
-                tracks = client.find('album', album + ' ')
-                print(f"[DEBUG] Album-only search with trailing space returned {len(tracks) if tracks else 0} tracks")
-        
-        print(f"[DEBUG] Final track count: {len(tracks) if tracks else 0}", flush=True)
-        
-        client.disconnect()
-        
-        if not tracks:
-            print("[DEBUG] No tracks found for given album", flush=True)
-            return jsonify({'status': 'error', 'message': 'No tracks found for this album'}), 404
-        
-        # Check if this is a multi-disc album
-        disc_structure = organize_album_by_disc(tracks)
-        
-        # Sort tracks by track number if available
-        def get_track_number(track):
-            track_num = track.get('track', '0')
-            try:
-                # Handle track numbers like "1/12" or just "1"
-                return int(track_num.split('/')[0])
-            except (ValueError, AttributeError):
-                return 0
-        
-        tracks.sort(key=get_track_number)
-        
-        # Only return relevant fields
-        track_list = []
-        for idx, track in enumerate(tracks):
-            track_list.append({
-                'title': track.get('title', f'Track {idx+1}'),
-                'file': track.get('file', ''),
-                'time': track.get('time', None),
-                'artist': track.get('artist', ''),
-                'track': track.get('track', str(idx+1))
-            })
-        
-        # Build response with disc structure if multi-disc
-        response = {
-            'status': 'success',
-            'tracks': track_list
-        }
-        
-        if disc_structure and len(disc_structure) > 1:
-            print(f"[DEBUG] Multi-disc album detected: {len(disc_structure)} discs", flush=True)
-            # Convert disc_structure to serializable format
-            disc_structure_serializable = {}
-            for disc_num, disc_tracks in disc_structure.items():
-                disc_structure_serializable[str(disc_num)] = [
-                    {
-                        'title': track.get('title', ''),
-                        'file': track.get('file', ''),
-                        'time': track.get('time', None),
-                        'artist': track.get('artist', ''),
-                        'track': track.get('track', '')
-                    }
-                    for track in disc_tracks
-                ]
-            response['disc_structure'] = disc_structure_serializable
-        
-        print(f"[DEBUG] Returning {len(track_list)} tracks" + 
-              (f" organized into {len(disc_structure)} discs" if disc_structure and len(disc_structure) > 1 else ""), 
-              flush=True)
-        return jsonify(response)
-        
-    except Exception as e:
-        try:
-            client.disconnect()
-        except Exception:
-            pass
-        print(f"[DEBUG] Exception in /api/album_tracks: {e}", flush=True)
-        return jsonify({'status': 'error', 'message': f'Error fetching tracks: {str(e)}'}), 500
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client,
+        'organize_album_by_disc': organize_album_by_disc
+    }
+    return api_album_tracks_handler(app_ctx)
 
 # --- SocketIO Event Handlers ---
 @socketio.on('connect')
@@ -6117,140 +4039,39 @@ def get_lms_client():
 
 @app.route('/api/lms/players')
 def api_lms_players():
-    """Get list of available Squeezebox players"""
-    try:
-        client = get_lms_client()
-        if not client:
-            return jsonify({'status': 'error', 'message': 'LMS not configured or unavailable'}), 400
-        
-        players = client.get_players()
-        return jsonify({'status': 'success', 'players': players})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    """Get list of available Squeezebox players."""
+    app_ctx = {'get_lms_client': get_lms_client}
+    return api_lms_players_handler(app_ctx)
 
 @app.route('/api/lms/sync', methods=['POST'])
 def api_lms_sync():
-    """Sync MPD stream to selected Squeezebox players"""
-    try:
-        data = request.json
-        player_ids = data.get('players', [])
-        
-        if not player_ids:
-            return jsonify({'status': 'error', 'message': 'No players selected'}), 400
-        
-        client = get_lms_client()
-        if not client:
-            return jsonify({'status': 'error', 'message': 'LMS not configured'}), 400
-        
-        # Get MPD stream URL (assuming HTTP stream on port 8000)
-        # You can make this configurable later
-        mpd_stream_url = f"http://{request.host.split(':')[0]}:8000"
-        
-        # Play stream on all selected players
-        success_count = 0
-        failed_players = []
-        
-        for player_id in player_ids:
-            if client.play_url(player_id, mpd_stream_url):
-                success_count += 1
-            else:
-                failed_players.append(player_id)
-        
-        if success_count > 0:
-            message = f'Started streaming to {success_count} player(s)'
-            if failed_players:
-                message += f', {len(failed_players)} failed'
-            return jsonify({'status': 'success', 'message': message})
-        else:
-            return jsonify({'status': 'error', 'message': 'Failed to start streaming on any player'}), 500
-            
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    """Sync MPD stream to selected Squeezebox players."""
+    app_ctx = {
+        'get_lms_client': get_lms_client,
+        'request': request
+    }
+    return api_lms_sync_handler(app_ctx)
 
 @app.route('/api/lms/unsync', methods=['POST'])
 def api_lms_unsync():
-    """Stop streaming on selected Squeezebox players"""
-    try:
-        data = request.json
-        player_ids = data.get('players', [])
-        
-        if not player_ids:
-            return jsonify({'status': 'error', 'message': 'No players selected'}), 400
-        
-        client = get_lms_client()
-        if not client:
-            return jsonify({'status': 'error', 'message': 'LMS not configured'}), 400
-        
-        # Stop playback on all selected players
-        success_count = 0
-        failed_players = []
-        
-        for player_id in player_ids:
-            if client.stop(player_id):
-                success_count += 1
-            else:
-                failed_players.append(player_id)
-        
-        if success_count > 0:
-            message = f'Stopped streaming on {success_count} player(s)'
-            if failed_players:
-                message += f', {len(failed_players)} failed'
-            return jsonify({'status': 'success', 'message': message})
-        else:
-            return jsonify({'status': 'error', 'message': 'Failed to stop any player'}), 500
-            
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    """Stop streaming on selected Squeezebox players."""
+    app_ctx = {'get_lms_client': get_lms_client}
+    return api_lms_unsync_handler(app_ctx)
 
 @app.route('/api/lms/status')
 def api_lms_status():
-    """Get LMS enabled status and player information"""
-    try:
-        settings = load_settings()
-        lms_enabled = settings.get('lms_enabled', False)
-        
-        if not lms_enabled:
-            return jsonify({'status': 'success', 'enabled': False, 'players': []})
-        
-        client = get_lms_client()
-        if not client:
-            return jsonify({'status': 'success', 'enabled': True, 'available': False, 'players': []})
-        
-        players = client.get_players()
-        return jsonify({
-            'status': 'success',
-            'enabled': True,
-            'available': True,
-            'players': players
-        })
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    """Get LMS enabled status and player information."""
+    app_ctx = {
+        'load_settings': load_settings,
+        'get_lms_client': get_lms_client
+    }
+    return api_lms_status_handler(app_ctx)
 
 @app.route('/api/lms/volume', methods=['POST'])
 def api_lms_volume():
-    """Set volume on a Squeezebox player"""
-    try:
-        data = request.json
-        player_id = data.get('player')
-        volume = data.get('volume')
-        
-        if not player_id:
-            return jsonify({'status': 'error', 'message': 'Player ID required'}), 400
-        
-        if volume is None or not (0 <= volume <= 100):
-            return jsonify({'status': 'error', 'message': 'Volume must be between 0 and 100'}), 400
-        
-        client = get_lms_client()
-        if not client:
-            return jsonify({'status': 'error', 'message': 'LMS not configured'}), 400
-        
-        if client.set_volume(player_id, volume):
-            return jsonify({'status': 'success', 'message': f'Volume set to {volume}%'})
-        else:
-            return jsonify({'status': 'error', 'message': 'Failed to set volume'}), 500
-            
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    """Set volume on a Squeezebox player."""
+    app_ctx = {'get_lms_client': get_lms_client}
+    return api_lms_volume_handler(app_ctx)
 
 # ============================================================================
 # BANDCAMP INTEGRATION
@@ -6277,111 +4098,30 @@ def get_bandcamp_client():
 
 @app.route('/api/bandcamp/collection')
 def bandcamp_collection():
-    """Get user's Bandcamp collection"""
-    try:
-        client = get_bandcamp_client()
-        if not client:
-            return jsonify({'status': 'error', 'message': 'Bandcamp not configured'}), 400
-        
-        collection = client.get_collection()
-        return jsonify({
-            'status': 'success',
-            'albums': collection
-        })
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    """Get user's Bandcamp collection."""
+    app_ctx = {'get_bandcamp_client': get_bandcamp_client}
+    return bandcamp_collection_handler(app_ctx)
 
 @app.route('/api/bandcamp/album/<int:album_id>')
 def bandcamp_album(album_id):
-    """Get album details including tracks"""
-    try:
-        client = get_bandcamp_client()
-        if not client:
-            return jsonify({'status': 'error', 'message': 'Bandcamp not configured'}), 400
-        
-        album = client.get_album_info(album_id)
-        if not album:
-            return jsonify({'status': 'error', 'message': 'Album not found'}), 404
-        
-        return jsonify({
-            'status': 'success',
-            'album': album
-        })
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    """Get album details including tracks."""
+    app_ctx = {'get_bandcamp_client': get_bandcamp_client}
+    return bandcamp_album_handler(app_ctx, album_id)
 
 @app.route('/api/bandcamp/add_track', methods=['POST'])
 def bandcamp_add_track():
-    """Add Bandcamp track to MPD playlist"""
-    try:
-        data = request.json
-        streaming_url = data.get('streaming_url')
-        title = data.get('title', 'Unknown')
-        artist = data.get('artist', 'Unknown')
-        album = data.get('album', 'Unknown')
-        artwork_url = data.get('artwork_url', '')
-        
-        if not streaming_url:
-            return jsonify({'status': 'error', 'message': 'Streaming URL required'}), 400
-        
-        # Cache metadata for this Bandcamp stream
-        # Extract track_id from URL for caching (Bandcamp URLs have changing timestamps)
-        import re
-        track_id_match = re.search(r'track_id=(\d+)', streaming_url)
-        cache_key = f"track_{track_id_match.group(1)}" if track_id_match else streaming_url
-        
-        bandcamp_metadata_cache[cache_key] = {
-            'artist': artist,
-            'title': title,
-            'album': album,
-            'artwork_url': artwork_url
-        }
-        print(f"Cached Bandcamp metadata with key: {cache_key}")
-        print(f"  Artist: {artist}, Title: {title}")
-        print(f"  Album: {album}, Artwork: {artwork_url}", flush=True)
-        
-        client = connect_mpd_client()
-        if not client:
-            return jsonify({'status': 'error', 'message': 'MPD connection failed'}), 500
-        
-        try:
-            # Add URL to MPD playlist
-            client.add(streaming_url)
-            client.disconnect()
-            
-            return jsonify({
-                'status': 'success',
-                'message': f'Added {artist} - {title} to playlist'
-            })
-        except Exception as e:
-            client.disconnect()
-            return jsonify({'status': 'error', 'message': f'Failed to add track: {str(e)}'}), 500
-            
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    """Add Bandcamp track to MPD playlist."""
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client,
+        'bandcamp_metadata_cache': bandcamp_metadata_cache
+    }
+    return bandcamp_add_track_handler(app_ctx)
 
 @app.route('/api/bandcamp/artwork/<int:art_id>')
 def bandcamp_artwork(art_id):
-    """Proxy Bandcamp artwork"""
-    try:
-        client = get_bandcamp_client()
-        if not client:
-            return '', 404
-        
-        size = request.args.get('size', '5')  # Default 700x700
-        url = client.get_artwork_url(art_id, int(size))
-        
-        if not url:
-            return '', 404
-        
-        # Proxy the image
-        response = requests.get(url, timeout=5)
-        response.raise_for_status()
-        
-        return Response(response.content, mimetype=response.headers.get('content-type', 'image/jpeg'))
-    except Exception as e:
-        print(f"Error fetching Bandcamp artwork: {e}")
-        return '', 404
+    """Proxy Bandcamp artwork."""
+    app_ctx = {'get_bandcamp_client': get_bandcamp_client}
+    return bandcamp_artwork_handler(app_ctx, art_id)
 
 # --- Application Startup ---
 if __name__ == '__main__':

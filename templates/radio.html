@@ -981,13 +981,17 @@
             let socket = null;
 
             // Initialize
-            document.addEventListener('DOMContentLoaded', function () {
-                loadFavorites();
-                loadManualStations();
-                detectLocation();
-                setupTabs();
-                setupSearch();
-                initializeSocket();
+            document.addEventListener('DOMContentLoaded', async function () {
+                try {
+                    loadFavorites();
+                    await loadManualStations();
+                    await detectLocation();
+                    setupTabs();
+                    setupSearch();
+                    initializeSocket();
+                } catch (err) {
+                    console.error('Initialization error:', err);
+                }
             });
 
             // Initialize SocketIO connection
@@ -1147,10 +1151,9 @@
                             currentCountry = data.country;
                         }
                     } catch (error) {
-                        console.error('Could not detect country:', error);
+                        console.log('IP detection failed:', error.message);
                     }
                 }
-
                 await loadCountries();
                 loadStations();
             }
@@ -1163,34 +1166,45 @@
 
             // Load countries list
             async function loadCountries() {
+                console.log('[loadCountries] starting');
                 try {
                     const response = await fetch('/api/radio/countries');
+                    console.log('[loadCountries] response status:', response.status);
                     const countries = await response.json();
+                    console.log('[loadCountries] countries loaded, count:', countries.length);
 
                     const selector = document.getElementById('country-selector');
+                    console.log('[loadCountries] selector element:', selector);
                     selector.innerHTML = countries.map(c =>
                         `<option value="${c.code}" ${c.code === currentCountry ? 'selected' : ''}>${c.flag} ${c.name}</option>`
                     ).join('');
+                    console.log('[loadCountries] selector populated');
 
                     selector.addEventListener('change', function () {
+                        console.log('[loadCountries] country changed to:', this.value);
                         currentCountry = this.value;
                         localStorage.setItem('maestro_radio_country', currentCountry);
                         loadStations();
                     });
+                    console.log('[loadCountries] done');
                 } catch (error) {
-                    console.error('Failed to load countries:', error);
+                    console.error('[loadCountries] Error:', error);
                 }
             }
 
             // Load stations for current country
             async function loadStations(bypassCache = false) {
                 const container = document.getElementById('station-list');
+                if (!container) {
+                    return;
+                }
                 container.innerHTML = '<div class="loading">🔄 <span data-i18n="loading_stations">Loading stations</span>...</div>';
 
                 try {
                     // Add cache-busting parameter if refresh requested
                     const cacheBuster = bypassCache ? `&nocache=${Date.now()}` : '';
-                    const response = await fetch(`/api/radio/stations?country=${currentCountry}&limit=50${cacheBuster}`);
+                    const url = `/api/radio/stations?country=${currentCountry}&limit=50${cacheBuster}`;
+                    const response = await fetch(url);
 
                     // Check if API returned error status
                     if (!response.ok) {
@@ -1205,18 +1219,18 @@
                         </button>
                     </div>
                 `;
-                        console.error('API error:', errorMsg);
                         return;
                     }
 
-                    allStations = await response.json();
+                    const response_data = await response.json();
+                    console.log('[loadStations] response:', response_data);
 
                     // Check if it's an error object (legacy handling)
-                    if (allStations.error) {
+                    if (response_data.error) {
                         container.innerHTML = `
                     <div class="empty-state">
                         ❌ Failed to load stations<br>
-                        <small>${allStations.message || 'API error'}</small><br><br>
+                        <small>${response_data.message || 'API error'}</small><br><br>
                         <button onclick="loadStations()" style="padding: 10px 20px; cursor: pointer; background: #3498db; color: white; border: none; border-radius: 5px;">
                             🔄 Retry
                         </button>
@@ -1225,18 +1239,20 @@
                         return;
                     }
 
+                    // Extract stations array from API response
+                    allStations = response_data.stations || response_data;
                     renderStations(allStations);
                 } catch (error) {
+                    console.error('[loadStations] Exception:', error);
                     container.innerHTML = `
                 <div class="empty-state">
                     ❌ Failed to load stations<br>
-                    <small>Network error or timeout</small><br><br>
+                    <small>${error.message || 'Unknown error'}</small><br><br>
                     <button onclick="loadStations()" style="padding: 10px 20px; cursor: pointer; background: #3498db; color: white; border: none; border-radius: 5px;">
                         🔄 Retry
                     </button>
                 </div>
             `;
-                    console.error('Failed to load stations:', error);
                 }
             }
 
@@ -1244,19 +1260,26 @@
             function renderStations(stations) {
                 const container = document.getElementById('station-list');
 
+                // Ensure stations is an array
+                if (!Array.isArray(stations)) {
+                    stations = [];
+                }
+
                 if (stations.length === 0) {
-                    container.innerHTML = '<div class="empty-state">No stations found</div>';
+                    container.innerHTML = '<div class="empty-state">❌ No stations found</div>';
                     return;
                 }
 
-                container.innerHTML = stations.map(station => {
-                    // Use placeholder by default, only try favicon if it looks valid
-                    const logoSrc = (station.favicon && station.favicon.startsWith('http'))
-                        ? station.favicon
+                let html = '';
+                for (const station of stations) {
+                    const stationUrl = station.url_stream || station.url || '';
+                    const stationFavicon = station.url_favicon || station.favicon || '';
+                    
+                    const logoSrc = (stationFavicon && stationFavicon.startsWith('http'))
+                        ? stationFavicon
                         : '/static/placeholder-radio.png';
 
-                    return `
-            <div class="station-card">
+                    html += `<div class="station-card">
                 <img class="station-logo" src="${logoSrc}" 
                      onerror="this.onerror=null; this.src='/static/placeholder-radio.png';" 
                      alt="${escapeHtml(station.name)}">
@@ -1268,17 +1291,18 @@
                     </div>
                 </div>
                 <div class="station-actions">
-                    <button class="btn-play" onclick="playStation('${escapeHtml(station.url)}', '${escapeHtml(station.name)}', '${escapeHtml(station.favicon || '')}')">
+                    <button class="btn-play" onclick="playStation('${escapeHtml(stationUrl)}', '${escapeHtml(station.name)}', '${escapeHtml(stationFavicon || '')}')">
                         ▶️ Play
                     </button>
-                    <button class="btn-favorite ${isFavorite(station.url) ? 'active' : ''}" 
+                    <button class="btn-favorite ${isFavorite(stationUrl) ? 'active' : ''}" 
                             onclick="toggleFavorite('${escapeHtml(JSON.stringify(station))}')">
                         ⭐
                     </button>
                 </div>
-            </div>
-        `;
-                }).join('');
+            </div>`;
+                }
+                
+                container.innerHTML = html;
             }
 
             // Search stations
@@ -1504,8 +1528,14 @@
 
             // Favorites management
             function loadFavorites() {
-                const saved = localStorage.getItem('maestro_radio_favorites');
-                favorites = saved ? JSON.parse(saved) : [];
+                try {
+                    const saved = localStorage.getItem('maestro_radio_favorites');
+                    favorites = saved ? JSON.parse(saved) : [];
+                    console.log('[loadFavorites] Loaded', favorites.length, 'favorites');
+                } catch (err) {
+                    console.error('[loadFavorites] Error:', err);
+                    favorites = [];
+                }
             }
 
             function saveFavorites() {
@@ -1513,12 +1543,20 @@
             }
 
             function isFavorite(url) {
-                return favorites.some(f => f.url === url);
+                return favorites.some(f => {
+                    // Normalize comparison - handle both API and manual stations
+                    const favUrl = f.url_stream || f.url;
+                    return favUrl === url;
+                });
             }
 
             function toggleFavorite(stationJson) {
                 const station = JSON.parse(stationJson);
-                const index = favorites.findIndex(f => f.url === station.url);
+                const stationUrl = station.url_stream || station.url || '';
+                const index = favorites.findIndex(f => {
+                    const favUrl = f.url_stream || f.url;
+                    return favUrl === stationUrl;
+                });
 
                 if (index >= 0) {
                     favorites.splice(index, 1);

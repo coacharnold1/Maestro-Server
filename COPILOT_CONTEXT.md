@@ -400,6 +400,117 @@ When clicking "Replace Playlist" (🔄) button on browse_albums or recent_albums
 
 **When Ready:** Ping with "refactor time" and we'll start Phase 1 immediately
 
+### Phase 4: Library Maintenance Tool in Admin Panel (2-3 days)
+**Goal:** Integrate cover standardization script into admin UI
+- Create `/admin/library_maintenance.html` page
+  - Section 1: Cover Standardization
+    - "Scan for cover images" button (triggers `/api/library/scan_covers`)
+    - Live progress log (WebSocket/Server-Sent Events)
+    - Shows files found, copied, resized, converted, skipped
+    - "Auto-fill missing covers from parent dirs" checkbox
+    - Resize threshold selector (default 500x500)
+  - Section 2: Cleanup Tools
+    - "Remove .cue and .m3u files" button
+    - "Scan for orphaned artwork" button
+- Backend API endpoints:
+  - `POST /api/library/scan_covers` - Start cover scan (async, background)
+  - `GET /api/library/scan_status` - Get progress (JSON or SSE)
+  - `POST /api/library/cleanup_playlists` - Remove CUE/M3U files
+  - `GET /api/library/stats` - Return library statistics
+- Convert bash script to Python module (`library_maintenance.py` in services/)
+  - Reusable functions: `find_covers()`, `standardize_cover()`, `resize_image()`, etc.
+  - Progress callbacks for UI updates
+  - Logging to file + memory for history
+- UI Features:
+  - Real-time progress bar
+  - Log viewer (scrollable, tail last 100 entries)
+  - Cancel button (terminate background task)
+  - Success/error summary
+  - "Last run" timestamp
+- Testing: Run on dev, verify 100+ files processed correctly
+
+### Phase 5: Advanced Library Management Features (3-4 days)
+**Goal:** Expand library maintenance with automation & advanced tools
+- **Scheduling System:**
+  - Allow users to schedule cover scan/cleanup on a cron-like schedule
+  - UI: Select day/time, repeat intervals (daily, weekly, monthly)
+  - Background job processor (using APScheduler or similar)
+  - Email/notification alerts on completion
+- **Additional Maintenance Tools:**
+  - Duplicate album detection (same artist/album name in multiple locations)
+  - Metadata validator (missing artist, album, title tags)
+  - ID3 tag editor/bulk updater
+  - Missing album art detector with auto-fetch from Genius/Last.fm
+  - Bitrate analyzer (report files below threshold)
+- **Performance Optimization:**
+  - Index/cache library structure for faster scans
+  - Parallel processing for image operations
+  - Database tracking of last-modified-date per file (skip unchanged)
+- **History & Reports:**
+  - Log all maintenance actions to database
+  - Generate maintenance reports (x covers processed, y duplicates found, etc.)
+  - Rollback capability (undo last operation)
+- **Integration with Music Players:**
+  - Rescan MPD database after maintenance
+  - Update playlist counts if files were removed
+
+### Phase 6: Playlist Export & Download with Transcoding (2-3 days)
+**Goal:** Enable users to download playlists to USB/portable devices with custom options
+- **Export Modal UI:**
+  - Select songs/albums in playlist editor, click "📥 Export Playlist"
+  - Modal with options:
+    - "Create folder structure?" checkbox → Artist/Album/song.mp3
+    - "Include cover art?" checkbox → cover.jpg per album folder
+    - "Transcode to:" dropdown → None / MP3 / AAC / FLAC / OGG
+    - Bitrate selector (128k, 192k, 256k, 320k)
+    - Progress bar during processing
+- **Folder Structure:**
+  ```
+  playlist.zip
+  ├── Artist Name/
+  │   ├── Album Name/
+  │   │   ├── cover.jpg (if selected)
+  │   │   ├── 01 - Song Title.mp3
+  │   │   └── 02 - Song Title.mp3
+  │   └── Another Album/
+  └── Various Artists/ (for multi-artist playlists)
+  ```
+- **Backend API:**
+  - `POST /api/export/playlist` - Generate ZIP with options
+  - Endpoint accepts: song list, folder_structure flag, cover_art flag, transcode_format, bitrate
+  - Returns ZIP file as download
+  - Uses FFmpeg for transcoding (CPU-intensive, sequential)
+  - Validates file paths (security)
+  - Rate limiting per client
+  - Cleanup of temp files after download
+- **Transcoding:**
+  - Leverage FFmpeg (likely already installed)
+  - Conversion happens server-side before ZIPping
+  - Time: ~5-10 seconds per song
+  - Large playlists: Could take 5-10 minutes total
+  - Options: MP3, AAC, FLAC, OGG with variable bitrates
+- **Cover Art:**
+  - Extract from album metadata (cover.jpg from folder)
+  - Fallback: Genius/Bandcamp album art if not found locally
+  - Save as `cover.jpg` in each album folder
+- **Files Modified:**
+  - `templates/playlist.html` - Add Export button, modal UI
+  - `static/playlist.js` - Handle export modal, API calls, progress
+  - `app.py` - New endpoint `/api/export/playlist`
+  - `services/export_service.py` (new) - ZIP creation, transcoding logic
+- **Limitations & Mitigations:**
+  - Large playlists: Streaming response (don't load whole ZIP in memory)
+  - File size caps: Max 2GB ZIP per export
+  - Cleanup: Temp files deleted after successful download or timeout
+  - CPU: Transcoding happens sequentially (no parallel to avoid server overload)
+- **Security:**
+  - Path validation (can't escape music directory)
+  - Rate limiting (max 3 exports per hour per client)
+  - File size limits
+  - Input validation (bitrate, format options only allow whitelist values)
+
+**When Ready:** Ping with "refactor time" and we'll start Phase 1 immediately
+
 ---
 
 **Recent Work (March 2-4, 2026):**
