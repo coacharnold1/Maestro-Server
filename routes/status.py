@@ -23,7 +23,6 @@ def db_update_status_handler(app_ctx):
         client = connect_mpd_client()
         if client:
             status = client.status()
-            client.disconnect()
             
             # Check if 'updating_db' key exists in status
             is_updating = 'updating_db' in status

@@ -1705,10 +1705,10 @@
             {% endif %}
         </div>
 
-        {# Album Art Display - now uses album_art_url from Flask context #}
+        {# Album Art Display - set src via JS after error handler ready to avoid race condition #}
         <div class="album-art" id="album-art-container">
             <a href="#" onclick="window.open('/album_art_view', '_blank'); return false;" id="album-art-link" title="Click to view full size">
-                <img id="album-art-img" src="{{ album_art_url }}" alt="Album Art" data-current-song-id="{{ mpd_info.file }}|{{ mpd_info.artist }}|{{ mpd_info.album }}">
+                <img id="album-art-img" alt="Album Art" data-current-song-id="{{ mpd_info.file }}|{{ mpd_info.artist }}|{{ mpd_info.album }}" data-initial-art-url="{{ album_art_url }}">
             </a>
         </div>
 
@@ -1956,6 +1956,23 @@
             const songProgressBar = document.getElementById('song-progress-bar');
             const maestroLogo = document.getElementById('maestro-logo');
             messageArea = document.getElementById('message-area'); // Message area element (initialize global variable)
+            
+            // Initialize album art onerror handler once on page load, THEN set src
+            // This prevents race condition where image could fail before handler is attached
+            if (albumArtImg) {
+                albumArtImg.onerror = function () {
+                    console.log('Album art initial load failed, using fallback');
+                    this.onerror = null;  // Prevent infinite loop
+                    this.src = "{{ url_for('static_placeholder_art') }}";
+                };
+                // NOW set the src after handler is ready - this prevents race condition
+                const initialArtUrl = albumArtImg.dataset.initialArtUrl;
+                // Guard against N/A placeholder values in initial URL
+                if (initialArtUrl && !initialArtUrl.includes('N%2FA')) {
+                    console.log('Setting initial album art URL:', initialArtUrl);
+                    albumArtImg.src = initialArtUrl;
+                }
+            }
 
             // Initialize progress bar width from data attributes (avoids inline Jinja in style)
             if (songProgressBar && songProgressBar.dataset) {
@@ -2106,6 +2123,9 @@
             }
 
             // Function to update the UI with new MPD status data
+            let lastAlbumArtUpdateTime = 0;  // Debounce album art updates
+            const ALBUM_ART_UPDATE_DEBOUNCE_MS = 2000;  // Wait 2s between album art updates
+            
             function updateUI(data) {
                 // Update logo based on playback state
                 if (maestroLogo) {
@@ -2189,27 +2209,44 @@
 
                     // Update album art - store song identifier to detect actual changes
                     const newSongId = `${data.song_file}|${data.artist}|${data.album}`;
+                    const currentTime = Date.now();
                     
-                    // Check if song has actually changed
-                    if (!albumArtImg.dataset.currentSongId || albumArtImg.dataset.currentSongId !== newSongId) {
-                        // Song changed - update the album art
-                        console.log('Song changed, updating album art');
+                    // Guard against N/A placeholder values - don't attempt image requests with placeholder data
+                    const hasValidSongData = data.song_file && data.song_file !== 'N/A' && 
+                                            data.artist && data.artist !== 'N/A' && 
+                                            data.album && data.album !== 'N/A';
+                    
+                    // Check if song has actually changed AND enough time has passed since last update
+                    if ((!albumArtImg.dataset.currentSongId || albumArtImg.dataset.currentSongId !== newSongId) &&
+                        (currentTime - lastAlbumArtUpdateTime) > ALBUM_ART_UPDATE_DEBOUNCE_MS &&
+                        hasValidSongData) {
+                        // Song changed with valid data - update the album art
+                        console.log('Song changed, updating album art', { song_file: data.song_file, artist: data.artist, album: data.album });
+                        lastAlbumArtUpdateTime = currentTime;
+                        
+                        // Always clear the error handler first to avoid stale handlers
+                        albumArtImg.onerror = null;
+                        
                         const newArtSrc = `/album_art?song_file=${encodeURIComponent(data.song_file)}&artist=${encodeURIComponent(data.artist)}&album=${encodeURIComponent(data.album)}&title=${encodeURIComponent(data.song_title)}&_t=${Date.now()}`;
+                        console.log('New album art URL:', newArtSrc);
                         
-                        albumArtImg.src = newArtSrc;
-                        albumArtImg.dataset.currentSongId = newSongId;
-                        
-                        // Set up error handler with fallback to stream favicon
+                        // Set up error handler BEFORE changing src - try stream favicon first, then fallback
                         albumArtImg.onerror = function () {
-                            this.onerror = null;
+                            console.log('Album art failed to load, trying fallback options');
+                            this.onerror = null;  // Prevent infinite loop
                             // Use stream favicon as fallback if available
                             if (data.is_stream && data.stream_favicon) {
-                                console.log('No album art found, using stream favicon:', data.stream_favicon);
+                                console.log('Using stream favicon:', data.stream_favicon);
                                 this.src = data.stream_favicon;
                             } else {
+                                console.log('Using placeholder image');
                                 this.src = "{{ url_for('static_placeholder_art') }}";
                             }
                         };
+                        
+                        // Now set the source - will trigger onerror if it fails
+                        albumArtImg.src = newArtSrc;
+                        albumArtImg.dataset.currentSongId = newSongId;
                     }
                     albumArtContainer.style.display = 'block';
 

@@ -35,17 +35,12 @@ def debug_albumartists_handler(app_ctx):
             if albumartist:
                 all_albumartists.append(str(albumartist))
         
-        client.disconnect()
-        
         output = f"Total AlbumArtist entries: {len(all_albumartists)}<br><br>"
         for aa in sorted(set(all_albumartists)):
             output += f"'{aa}'<br>"
         
         return output
-    except Exception as e:
-        if client:
-            client.disconnect()
-        return f"Error: {e}"
+    except Exception as e:                 f"Error: {e}"
 
 
 def debug_album_handler(app_ctx, album_name):
@@ -59,7 +54,6 @@ def debug_album_handler(app_ctx, album_name):
     try:
         # Find all songs from this album
         songs = client.find('album', album_name)
-        client.disconnect()
         
         output = f"<h2>Debug: '{album_name}'</h2>"
         output += f"Found {len(songs)} songs<br><br>"
@@ -84,10 +78,7 @@ def debug_album_handler(app_ctx, album_name):
         output += f"Unique AlbumArtists: {list(albumartists)}<br>"
         
         return output
-    except Exception as e:
-        if client:
-            client.disconnect()
-        return f"Error: {e}"
+    except Exception as e:                 f"Error: {e}"
 
 
 def debug_album_genre_handler(app_ctx, album_name):
@@ -101,7 +92,6 @@ def debug_album_genre_handler(app_ctx, album_name):
     try:
         # Find all songs from this album
         songs = client.find('album', album_name)
-        client.disconnect()
         
         output = f"<h2>Genre Debug: '{album_name}'</h2>"
         output += f"Found {len(songs)} songs<br><br>"
@@ -131,10 +121,7 @@ def debug_album_genre_handler(app_ctx, album_name):
         output += f"Unique AlbumArtists: {list(albumartists)}<br>"
         
         return output
-    except Exception as e:
-        if client:
-            client.disconnect()
-        return f"Error: {e}"
+    except Exception as e:                 f"Error: {e}"
 
 
 def debug_album_search_handler(app_ctx, search_term):
@@ -148,7 +135,6 @@ def debug_album_search_handler(app_ctx, search_term):
     try:
         # Find songs with album names containing the search term
         all_songs = client.search('album', search_term)
-        client.disconnect()
         
         output = f"<h2>Album Search Debug: '{search_term}'</h2>"
         output += f"Found {len(all_songs)} songs<br><br>"
@@ -175,10 +161,7 @@ def debug_album_search_handler(app_ctx, search_term):
             output += f"AlbumArtists: {list(info['albumartists'])}<br><br>"
         
         return output
-    except Exception as e:
-        if client:
-            client.disconnect()
-        return f"Error: {e}"
+    except Exception as e:                 f"Error: {e}"
 
 
 def debug_genre_various_artists_handler(app_ctx, genre_name):
@@ -192,7 +175,6 @@ def debug_genre_various_artists_handler(app_ctx, genre_name):
     try:
         # Find all songs in this genre where AlbumArtist = "Various Artists"
         all_songs = client.find('genre', genre_name, 'albumartist', 'Various Artists')
-        client.disconnect()
         
         output = f"<h2>Various Artists Albums in '{genre_name}' Genre</h2>"
         output += f"Found {len(all_songs)} songs<br><br>"
@@ -213,7 +195,4 @@ def debug_genre_various_artists_handler(app_ctx, genre_name):
             output += "<em>No Various Artists albums found in this genre.</em><br><br>"
         
         return output
-    except Exception as e:
-        if client:
-            client.disconnect()
-        return f"Error: {e}"
+    except Exception as e:                 f"Error: {e}"

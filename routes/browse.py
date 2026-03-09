@@ -4,36 +4,95 @@ Browse and search routes - genres, artists, albums, tracks
 from flask import jsonify, request, render_template
 import os
 import random
+import time
 
 def search_autocomplete_handler(app_ctx):
     """Handle /api/search/autocomplete route"""
     connect_mpd_client = app_ctx['connect_mpd_client']
+    client = None
     
     try:
         client = connect_mpd_client()
         if not client:
             return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
         
-        # Get all unique artists, albums, and titles
-        artists_raw = client.list('artist')
-        artists = sorted(set([
-            (a if isinstance(a, str) else a.get('artist', '')) 
-            for a in artists_raw if a
-        ]))
+        # Get all unique artists, albums, and titles with fallback for malformed metadata
+        artists = []
+        albums = []
+        titles = []
         
-        albums_raw = client.list('album')
-        albums = sorted(set([
-            (a if isinstance(a, str) else a.get('album', '')) 
-            for a in albums_raw if a
-        ]))
+        # Try to get artists list
+        try:
+            artists_raw = client.list('artist')
+            artists = sorted(set([
+                (a if isinstance(a, str) else a.get('artist', '')) 
+                for a in artists_raw if a
+            ]))
+        except Exception as artist_error:
+            print(f"[DEBUG] client.list('artist') failed, falling back to song scan: {artist_error}", flush=True)
+            # Fallback: scan all songs to extract unique artists
+            try:
+                all_songs = client.listallinfo()
+                artist_set = set()
+                for song in all_songs:
+                    artist = song.get('artist', '').strip()
+                    if artist:
+                        artist_set.add(artist)
+                artists = sorted(list(artist_set))
+            except Exception as fallback_error:
+                print(f"[DEBUG] Artist fallback also failed: {fallback_error}", flush=True)
+                artists = []
         
-        titles_raw = client.list('title')
-        titles = sorted(set([
-            (t if isinstance(t, str) else t.get('title', '')) 
-            for t in titles_raw if t
-        ]))[:1000]  # Limit to 1000
+        # Try to get albums list
+        try:
+            albums_raw = client.list('album')
+            albums = sorted(set([
+                (a if isinstance(a, str) else a.get('album', '')) 
+                for a in albums_raw if a
+            ]))
+        except Exception as album_error:
+            print(f"[DEBUG] client.list('album') failed, falling back to song scan: {album_error}", flush=True)
+            # Fallback: scan all songs to extract unique albums
+            try:
+                all_songs = client.listallinfo()
+                album_set = set()
+                for song in all_songs:
+                    album = song.get('album', '').strip()
+                    if album:
+                        album_set.add(album)
+                albums = sorted(list(album_set))
+            except Exception as fallback_error:
+                print(f"[DEBUG] Album fallback also failed: {fallback_error}", flush=True)
+                albums = []
         
-        client.disconnect()
+        # Try to get titles list
+        try:
+            titles_raw = client.list('title')
+            titles = sorted(set([
+                (t if isinstance(t, str) else t.get('title', '')) 
+                for t in titles_raw if t
+            ]))[:1000]  # Limit to 1000
+        except Exception as title_error:
+            print(f"[DEBUG] client.list('title') failed, falling back to song scan: {title_error}", flush=True)
+            # Fallback: scan all songs to extract unique titles
+            try:
+                all_songs = client.listallinfo()
+                title_set = set()
+                for song in all_songs:
+                    title = song.get('title', '').strip()
+                    if title:
+                        title_set.add(title)
+                titles = sorted(list(title_set))[:1000]
+            except Exception as fallback_error:
+                print(f"[DEBUG] Title fallback also failed: {fallback_error}", flush=True)
+                titles = []
+        
+        # Disconnect BEFORE returning
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
         
         return jsonify({
             'status': 'success',
@@ -42,6 +101,13 @@ def search_autocomplete_handler(app_ctx):
             'titles': [t for t in titles if t]
         })
     except Exception as e:
+        # Disconnect on error too
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
+        
         print(f"Error fetching autocomplete data: {e}", flush=True)
         import traceback
         traceback.print_exc()
@@ -52,6 +118,8 @@ def search_handler(app_ctx):
     """Handle /search route"""
     connect_mpd_client = app_ctx['connect_mpd_client']
     perform_search = app_ctx['perform_search']
+    bandcamp_service = app_ctx.get('bandcamp_service')
+    client = None
     
     print(f"Request method: {request.method}, Request form: {dict(request.form)}, Request args: {dict(request.args)}", flush=True)
     
@@ -73,8 +141,14 @@ def search_handler(app_ctx):
                 return render_template('search.html', error="Could not connect to MPD")
 
             try:
-                search_results = perform_search(client, search_tag, query)
-                client.disconnect()
+                search_results = perform_search(client, search_tag, query, bandcamp_service)
+                
+                # Disconnect before returning template
+                if client:
+                    try:
+                        client.disconnect()
+                    except:
+                        pass
                 
                 result = render_template('search_results.html', 
                                      results=search_results, 
@@ -82,7 +156,13 @@ def search_handler(app_ctx):
                                      search_tag=search_tag)
                 return result
             except Exception as e:
-                client.disconnect()
+                # Disconnect on error
+                if client:
+                    try:
+                        client.disconnect()
+                    except:
+                        pass
+                
                 import traceback
                 return render_template('search.html', error=f"Search failed: {e}")
 
@@ -97,6 +177,7 @@ def search_handler(app_ctx):
 def random_albums_handler(app_ctx):
     """Handle /random_albums route"""
     connect_mpd_client = app_ctx['connect_mpd_client']
+    client = None
     
     try:
         client = connect_mpd_client()
@@ -150,21 +231,38 @@ def random_albums_handler(app_ctx):
                     print(f"[DEBUG] Error getting info for album '{album_name}': {e}", flush=True)
                     continue
             
-            client.disconnect()
-            
             print(f"[DEBUG] Returning {len(albums_list)} albums", flush=True)
+            # Disconnect before returning template
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            
             return render_template('search_results.html', 
                                  results=albums_list, 
                                  query='Random Selection', 
                                  search_tag='album')
         except Exception as e:
+            # Disconnect on error
             if client:
-                client.disconnect()
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            
             import traceback
             traceback.print_exc()
             return render_template('search.html', error=f"Random albums failed: {e}")
             
     except Exception as e:
+        # Disconnect on error
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
+        
         print(f"Error in random_albums: {e}")
         return render_template('search.html', error=f"Error: {e}")
 
@@ -190,48 +288,101 @@ def api_browse_genres_handler(app_ctx):
     
     print("[DEBUG] /api/browse/genres called", flush=True)
     
-    client = connect_mpd_client()
-    if not client:
-        print("[DEBUG] Could not connect to MPD")
-        return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
-
-    try:
-        # Just get genres, no expensive counting
-        genres = client.list('genre')
-        print(f"[DEBUG] Found {len(genres)} genres", flush=True)
-        
-        genre_data = []
-        
-        for genre_item in genres:
-            # Handle both string and dict responses from MPD
-            if isinstance(genre_item, dict):
-                genre = genre_item.get('genre', '')
-            else:
-                genre = genre_item
-                
-            if not genre or str(genre).strip() == '':
-                continue  # Skip empty genres
-                
-            genre_data.append({
-                'name': str(genre),
-                'artist_count': '?',
-                'album_count': '?'
-            })
-
-        # Sort genres alphabetically
-        genre_data.sort(key=lambda x: x['name'].lower())
-        
-        client.disconnect()
-        print(f"[DEBUG] Returning {len(genre_data)} genres", flush=True)
-        return jsonify({'status': 'success', 'genres': genre_data, 'count': len(genre_data)})
-
-    except Exception as e:
+    # Retry logic with exponential backoff to handle race condition on first load
+    max_retries = 3
+    retry_delay = 0.1  # Start with 100ms
+    
+    for attempt in range(max_retries):
+        client = None
         try:
-            client.disconnect()
-        except Exception:
-            pass
-        print(f"[DEBUG] Exception in /api/browse/genres: {e}", flush=True)
-        return jsonify({'status': 'error', 'message': f'Error fetching genres: {str(e)}'}), 500
+            client = connect_mpd_client()
+            if not client:
+                print("[DEBUG] Could not connect to MPD")
+                return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
+
+            # Try to get genres from MPD list command
+            genres = []
+            try:
+                print("[DEBUG] Attempting client.list('genre')...", flush=True)
+                genres = client.list('genre')
+                print(f"[DEBUG] Found {len(genres)} genres using list command", flush=True)
+            except Exception as list_error:
+                # If list fails (due to malformed genres in DB), fallback to getting genres from all songs
+                print(f"[DEBUG] list('genre') failed ({type(list_error).__name__}: {list_error}), falling back to scanning all songs", flush=True)
+                try:
+                    all_songs = client.listallinfo()
+                    genre_set = set()
+                    for song in all_songs:
+                        genre = song.get('genre', '').strip()
+                        if genre:
+                            genre_set.add(genre)
+                    genres = sorted(list(genre_set))
+                    print(f"[DEBUG] Found {len(genres)} genres from song scan fallback", flush=True)
+                except Exception as fallback_error:
+                    print(f"[DEBUG] Fallback also failed ({fallback_error}), ", end="", flush=True)
+                    # If this is not the last retry, wait and try again
+                    if attempt < max_retries - 1:
+                        print(f"retrying in {retry_delay}s (attempt {attempt + 1}/{max_retries})", flush=True)
+                        time.sleep(retry_delay)
+                        retry_delay *= 2  # Exponential backoff
+                        continue
+                    else:
+                        print("returning error", flush=True)
+                        raise
+            
+            genre_data = []
+            
+            for genre_item in genres:
+                # Handle both string and dict responses from MPD
+                if isinstance(genre_item, dict):
+                    genre = genre_item.get('genre', '')
+                else:
+                    genre = str(genre_item).strip()
+                    
+                if not genre:
+                    continue  # Skip empty genres
+                    
+                genre_data.append({
+                    'name': genre,
+                    'artist_count': '?',
+                    'album_count': '?'
+                })
+
+            # Sort genres alphabetically
+            genre_data.sort(key=lambda x: x['name'].lower())
+            print(f"[DEBUG] Returning {len(genre_data)} genres", flush=True)
+            
+            # Disconnect BEFORE returning to avoid response corruption
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            
+            return jsonify({'status': 'success', 'genres': genre_data, 'count': len(genre_data)})
+
+        except Exception as e:
+            # Disconnect on error too
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            
+            import traceback
+            print(f"[DEBUG] Exception in /api/browse/genres (attempt {attempt + 1}/{max_retries}): {type(e).__name__}: {e}", flush=True)
+            
+            # If this is not the last retry, wait and try again
+            if attempt < max_retries - 1:
+                print(f"[DEBUG] Retrying in {retry_delay}s...", flush=True)
+                time.sleep(retry_delay)
+                retry_delay *= 2  # Exponential backoff
+                continue
+            else:
+                # Last retry failed, return error
+                traceback.print_exc()
+                return jsonify({'status': 'error', 'message': f'Error fetching genres: {str(e)}'}), 500
+                return jsonify({'status': 'error', 'message': f'Error fetching genres: {str(e)}'}), 500
 
 
 def api_browse_artists_handler(app_ctx):
@@ -306,16 +457,25 @@ def api_browse_artists_handler(app_ctx):
             return name
             
         artist_data.sort(key=sort_key_ignore_the)
-        
-        client.disconnect()
         print(f"[DEBUG] Returning {len(artist_data)} artists", flush=True)
+        
+        # Disconnect BEFORE returning
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
+        
         return jsonify({'status': 'success', 'artists': artist_data, 'count': len(artist_data)})
         
     except Exception as e:
-        try:
-            client.disconnect()
-        except Exception:
-            pass
+        # Disconnect on error too
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
+        
         print(f"[DEBUG] Exception in /api/browse/artists: {e}", flush=True)
         return jsonify({'status': 'error', 'message': f'Error fetching artists: {str(e)}'}), 500
 
@@ -423,14 +583,23 @@ def api_browse_albums_handler(app_ctx):
         # Sort by album name
         album_data.sort(key=lambda x: x['album'].lower())
         
-        client.disconnect()
+        # Disconnect BEFORE returning
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
+        
         return jsonify({'status': 'success', 'albums': album_data, 'count': len(album_data)})
         
     except Exception as e:
-        try:
-            client.disconnect()
-        except Exception:
-            pass
+        # Disconnect on error too
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
+        
         print(f"[DEBUG] Exception in /api/browse/albums: {e}", flush=True)
         return jsonify({'status': 'error', 'message': f'Error fetching albums: {str(e)}'}), 500
 
@@ -448,12 +617,13 @@ def api_album_tracks_handler(app_ctx):
         print("[DEBUG] Missing album parameter")
         return jsonify({'status': 'error', 'message': 'Missing album parameter'}), 400
 
-    client = connect_mpd_client()
-    if not client:
-        print("[DEBUG] Could not connect to MPD")
-        return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
-
+    client = None
     try:
+        client = connect_mpd_client()
+        if not client:
+            print("[DEBUG] Could not connect to MPD")
+            return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
+
         # If artist specified, search by both
         if artist:
             tracks = client.find('album', album, 'artist', artist)
@@ -474,8 +644,6 @@ def api_album_tracks_handler(app_ctx):
                 print(f"[DEBUG] Album-only search with trailing space returned {len(tracks) if tracks else 0} tracks")
         
         print(f"[DEBUG] Final track count: {len(tracks) if tracks else 0}", flush=True)
-        
-        client.disconnect()
         
         if not tracks:
             print("[DEBUG] No tracks found for given album", flush=True)
@@ -531,13 +699,24 @@ def api_album_tracks_handler(app_ctx):
         print(f"[DEBUG] Returning {len(track_list)} tracks" + 
               (f" organized into {len(disc_structure)} discs" if disc_structure and len(disc_structure) > 1 else ""), 
               flush=True)
+        
+        # Disconnect BEFORE returning
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
+        
         return jsonify(response)
         
     except Exception as e:
-        try:
-            client.disconnect()
-        except Exception:
-            pass
+        # Disconnect on error too
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
+        
         print(f"[DEBUG] Exception in /api/album_tracks: {e}", flush=True)
         return jsonify({'status': 'error', 'message': f'Error fetching tracks: {str(e)}'}), 500
 

@@ -9,6 +9,7 @@ def play_handler(app_ctx):
     """Handle /play route"""
     connect_mpd_client = app_ctx['connect_mpd_client']
     
+    client = None
     try:
         client = connect_mpd_client()
         if client:
@@ -16,92 +17,180 @@ def play_handler(app_ctx):
             playlist_length = int(status.get('playlistlength', 0))
             
             if playlist_length == 0:
-                client.disconnect()
                 error_msg = 'Cannot play: playlist is empty'
                 if request.args.get('ajax') == '1' or request.method == 'POST':
+                    if client:
+                        try:
+                            client.disconnect()
+                        except:
+                            pass
                     return jsonify({'status': 'error', 'message': error_msg})
+                if client:
+                    try:
+                        client.disconnect()
+                    except:
+                        pass
                 return redirect(url_for('index'))
             
             client.play()
-            client.disconnect()
         if request.args.get('ajax') == '1' or request.method == 'POST':
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
             return jsonify({'status': 'success', 'message': 'Play command sent'})
     except Exception as e:
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
         print(f"Error playing: {e}")
         if request.args.get('ajax') == '1' or request.method == 'POST':
             return jsonify({'status': 'error', 'message': f'Error playing: {e}'})
+    
+    if client:
+        try:
+            client.disconnect()
+        except:
+            pass
     return redirect(url_for('index'))
 
 
 def pause_handler(app_ctx):
     """Handle /pause route"""
     connect_mpd_client = app_ctx['connect_mpd_client']
+    client = None
     
     try:
         client = connect_mpd_client()
         if client:
             client.pause()
-            client.disconnect()
         if request.args.get('ajax') == '1':
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
             return jsonify({'status': 'success', 'message': 'Pause command sent'})
     except Exception as e:
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
         print(f"Error pausing: {e}")
         if request.args.get('ajax') == '1':
             return jsonify({'status': 'error', 'message': f'Error pausing: {e}'})
+    
+    if client:
+        try:
+            client.disconnect()
+        except:
+            pass
     return redirect(url_for('index'))
 
 
 def stop_handler(app_ctx):
     """Handle /stop route"""
     connect_mpd_client = app_ctx['connect_mpd_client']
+    client = None
     
     try:
         client = connect_mpd_client()
         if client:
             client.stop()
-            client.disconnect()
         if request.args.get('ajax') == '1':
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
             return jsonify({'status': 'success', 'message': 'Stop command sent'})
     except Exception as e:
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
         print(f"Error stopping: {e}")
         if request.args.get('ajax') == '1':
             return jsonify({'status': 'error', 'message': f'Error stopping: {e}'})
+    
+    if client:
+        try:
+            client.disconnect()
+        except:
+            pass
     return redirect(url_for('index'))
 
 
 def next_song_handler(app_ctx):
     """Handle /next route"""
     connect_mpd_client = app_ctx['connect_mpd_client']
+    client = None
     
     try:
         client = connect_mpd_client()
         if client:
             client.next()
-            client.disconnect()
         if request.args.get('ajax') == '1':
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
             return jsonify({'status': 'success', 'message': 'Next command sent'})
     except Exception as e:
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
         print(f"Error nexting: {e}")
         if request.args.get('ajax') == '1':
             return jsonify({'status': 'error', 'message': f'Error nexting: {e}'})
+    
+    if client:
+        try:
+            client.disconnect()
+        except:
+            pass
     return redirect(url_for('index'))
 
 
 def previous_song_handler(app_ctx):
     """Handle /previous route"""
     connect_mpd_client = app_ctx['connect_mpd_client']
+    client = None
     
     try:
         client = connect_mpd_client()
         if client:
             client.previous()
-            client.disconnect()
         if request.args.get('ajax') == '1':
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
             return jsonify({'status': 'success', 'message': 'Previous command sent'})
     except Exception as e:
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
         print(f"Error previousing: {e}")
         if request.args.get('ajax') == '1':
             return jsonify({'status': 'error', 'message': f'Error previousing: {e}'})
+    
+    if client:
+        try:
+            client.disconnect()
+        except:
+            pass
     return redirect(url_for('index'))
 
 
@@ -127,12 +216,10 @@ def seek_position_handler(app_ctx):
         try:
             status = client.status()
             if status.get('state') not in ['play', 'pause']:
-                client.disconnect()
                 return jsonify({'status': 'error', 'message': 'No song playing'}), 400
             
             current_song = int(status.get('song', 0))
             client.seek(current_song, position)
-            client.disconnect()
             
             return jsonify({
                 'status': 'success',
@@ -168,7 +255,6 @@ def set_volume_handler(app_ctx):
             if client:
                 status = client.status()
                 current_vol = int(status.get('volume', '0'))
-                client.disconnect()
                 volume = current_vol + change
             else:
                 print("Failed to connect to MPD for relative volume adjustment.")
@@ -189,7 +275,6 @@ def set_volume_handler(app_ctx):
         client = connect_mpd_client()
         if client:
             client.setvol(volume)
-            client.disconnect()
             print(f"[Volume Control] Set volume to {volume}%")
             # After setting volume, immediately trigger an update
             socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))

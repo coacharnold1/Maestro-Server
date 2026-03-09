@@ -513,6 +513,12 @@
             const container = document.getElementById('albums-container');
             container.innerHTML = '';
 
+            // Log albums without artwork
+            const albumsWithoutArt = albums.filter(a => !a.art_id);
+            if (albumsWithoutArt.length > 0) {
+                console.warn(`[Bandcamp] ${albumsWithoutArt.length} albums missing artwork:`, albumsWithoutArt.map(a => a.album_title));
+            }
+
             albums.forEach(album => {
                 const card = document.createElement('div');
                 card.className = 'album-card';
@@ -520,11 +526,15 @@
 
                 const artworkUrl = album.art_id ?
                     `/api/bandcamp/artwork/${album.art_id}?size=5` : '';
+                
+                if (!artworkUrl && album.album_title) {
+                    console.warn(`[Bandcamp] No artwork for: ${album.album_title}`);
+                }
 
                 card.innerHTML = `
                     <div class="album-artwork">
                         ${artworkUrl ?
-                        `<img src="${artworkUrl}" alt="${album.album_title}">` :
+                        `<img src="${artworkUrl}" alt="${album.album_title}" onerror="this.style.display='none'">` :
                         '🎵'}
                     </div>
                     <div class="album-info">

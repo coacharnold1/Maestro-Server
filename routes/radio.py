@@ -150,7 +150,6 @@ def test_streaming_radio_handler(app_ctx):
             client.clear()
             client.add(stream_url)
             client.play(0)
-            client.disconnect()
             
             socketio.emit('server_message', {
                 'type': 'success',
@@ -162,7 +161,6 @@ def test_streaming_radio_handler(app_ctx):
             return jsonify({'status': 'success', 'message': 'Stream started'})
             
         except Exception as e:
-            client.disconnect()
             return jsonify({'status': 'error', 'message': f'MPD error: {str(e)}'}), 500
             
     except Exception as e:
@@ -467,7 +465,6 @@ def play_radio_station_handler(app_ctx):
             client.clear()
             client.add(url)
             client.play(0)
-            client.disconnect()
             
             socketio.emit('server_message', {
                 'type': 'success',
@@ -479,7 +476,6 @@ def play_radio_station_handler(app_ctx):
             return jsonify({'status': 'success', 'message': f'Playing {name}'})
             
         except Exception as e:
-            client.disconnect()
             return jsonify({'status': 'error', 'message': f'MPD error: {str(e)}'}), 500
             
     except Exception as e:

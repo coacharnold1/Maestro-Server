@@ -200,14 +200,13 @@ def api_charts_handler(app_ctx, chart_type):
 
 def bandcamp_collection_handler(app_ctx):
     """Get user's Bandcamp collection."""
-    get_bandcamp_client = app_ctx['get_bandcamp_client']
+    bandcamp_service = app_ctx.get('bandcamp_service')
     
     try:
-        client = get_bandcamp_client()
-        if not client:
+        if not bandcamp_service or not bandcamp_service.is_enabled:
             return jsonify({'status': 'error', 'message': 'Bandcamp not configured'}), 400
         
-        collection = client.get_collection()
+        collection = bandcamp_service.get_collection()
         return jsonify({
             'status': 'success',
             'albums': collection
@@ -218,14 +217,13 @@ def bandcamp_collection_handler(app_ctx):
 
 def bandcamp_album_handler(app_ctx, album_id):
     """Get album details including tracks."""
-    get_bandcamp_client = app_ctx['get_bandcamp_client']
+    bandcamp_service = app_ctx.get('bandcamp_service')
     
     try:
-        client = get_bandcamp_client()
-        if not client:
+        if not bandcamp_service or not bandcamp_service.is_enabled:
             return jsonify({'status': 'error', 'message': 'Bandcamp not configured'}), 400
         
-        album = client.get_album_info(album_id)
+        album = bandcamp_service.get_album_info(album_id)
         if not album:
             return jsonify({'status': 'error', 'message': 'Album not found'}), 404
         
@@ -240,7 +238,7 @@ def bandcamp_album_handler(app_ctx, album_id):
 def bandcamp_add_track_handler(app_ctx):
     """Add Bandcamp track to MPD playlist."""
     connect_mpd_client = app_ctx['connect_mpd_client']
-    bandcamp_metadata_cache = app_ctx.get('bandcamp_metadata_cache', {})
+    bandcamp_service = app_ctx.get('bandcamp_service')
     
     import re
     
@@ -256,27 +254,18 @@ def bandcamp_add_track_handler(app_ctx):
         if not streaming_url:
             return jsonify({'status': 'error', 'message': 'Streaming URL required'}), 400
         
-        # Create consistent cache keys using track_id if available, otherwise extract from URL
-        if track_id:
-            cache_key = f"track_{track_id}"
-        else:
-            # Fallback: try to extract track_id from streaming_url
-            track_id_match = re.search(r'track_id=(\d+)', streaming_url)
-            cache_key = f"track_{track_id_match.group(1)}" if track_id_match else streaming_url
-        
-        # Cache metadata - use BOTH the track_id key AND the streaming URL as fallback
-        metadata = {
-            'artist': artist,
-            'title': title,
-            'album': album,
-            'artwork_url': artwork_url
-        }
-        bandcamp_metadata_cache[cache_key] = metadata
-        # Always also cache by streaming_url directly since that's what we'll have when playing
-        bandcamp_metadata_cache[streaming_url] = metadata
+        # Cache metadata through the service
+        if bandcamp_service and bandcamp_service.is_enabled:
+            bandcamp_service.cache_track_metadata(
+                streaming_url=streaming_url,
+                track_id=track_id,
+                title=title,
+                artist=artist,
+                album=album,
+                artwork_url=artwork_url
+            )
         
         print(f"Cached Bandcamp metadata")
-        print(f"  Keys: {cache_key} | {streaming_url}")
         print(f"  Track ID: {track_id}, Artist: {artist}, Title: {title}")
         print(f"  Album: {album}, Artwork: {artwork_url}", flush=True)
         
@@ -302,15 +291,14 @@ def bandcamp_add_track_handler(app_ctx):
 
 def bandcamp_artwork_handler(app_ctx, art_id):
     """Proxy Bandcamp artwork."""
-    get_bandcamp_client = app_ctx['get_bandcamp_client']
+    bandcamp_service = app_ctx.get('bandcamp_service')
     
     try:
-        client = get_bandcamp_client()
-        if not client:
+        if not bandcamp_service or not bandcamp_service.is_enabled:
             return '', 404
         
         size = request.args.get('size', '5')
-        url = client.get_artwork_url(art_id, int(size))
+        url = bandcamp_service.get_artwork_url(art_id, int(size))
         
         if not url:
             return '', 404
@@ -323,6 +311,7 @@ def bandcamp_artwork_handler(app_ctx, art_id):
     except Exception as e:
         print(f"Error proxying Bandcamp artwork: {e}")
         return '', 404
+
 
 
 # ============================================================================

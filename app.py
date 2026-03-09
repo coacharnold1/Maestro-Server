@@ -25,6 +25,10 @@ import random
 import re
 import html
 
+# Import services
+from services.mpd_service import MPDService
+from services.bandcamp_service import BandcampService
+
 # Import settings utilities
 from utils.settings import (
     load_settings, save_settings,
@@ -136,13 +140,46 @@ try:
 except ImportError:
     print("rudimentary_search not available. Search functionality will be limited.")
     SEARCH_AVAILABLE = False
-    def perform_search(client, search_tag, query):
+    def perform_search(client, search_tag, query, bandcamp_service=None):
         """Smart search function - groups by albums for artist/album searches"""
         try:
+            import re
+            
             if search_tag == 'any':
                 results = client.search('any', query)
             else:
                 results = client.search(search_tag, query)
+            
+            # Helper function to enrich metadata with Bandcamp info if available
+            def enrich_with_bandcamp_metadata(metadata_dict, song_file):
+                """Enrich metadata with cached Bandcamp data if available."""
+                if not bandcamp_service or not bandcamp_service.is_enabled or not song_file:
+                    return metadata_dict
+                
+                # Check if this is a Bandcamp stream
+                if 'bandcamp.com' not in song_file:
+                    return metadata_dict
+                
+                # Try to get cached metadata
+                bc_meta = None
+                
+                # First try: direct URL lookup
+                bc_meta = bandcamp_service.get_cached_metadata(song_file)
+                
+                # Second try: extract track_id from URL
+                if not bc_meta and 'track_id=' in song_file:
+                    track_id_match = re.search(r'track_id=(\d+)', song_file)
+                    if track_id_match:
+                        cache_key = f"track_{track_id_match.group(1)}"
+                        bc_meta = bandcamp_service.get_cached_metadata(cache_key)
+                
+                # Apply metadata if found
+                if bc_meta:
+                    metadata_dict['artist'] = bc_meta.get('artist', metadata_dict.get('artist', 'Unknown Artist'))
+                    metadata_dict['title'] = bc_meta.get('title', metadata_dict.get('title', 'Unknown Title'))
+                    metadata_dict['album'] = bc_meta.get('album', metadata_dict.get('album', 'Unknown Album'))
+                
+                return metadata_dict
             
             # For artist or album searches, group by albums
             if search_tag in ['artist', 'album']:
@@ -152,6 +189,16 @@ except ImportError:
                     artist_name = song.get('artist', 'Unknown Artist')
                     song_file = song.get('file', '')
                     genre = song.get('genre', 'Unknown Genre')
+                    
+                    # Enrich with Bandcamp metadata if available
+                    enriched = enrich_with_bandcamp_metadata({
+                        'artist': artist_name,
+                        'album': album_name,
+                        'genre': genre
+                    }, song_file)
+                    artist_name = enriched['artist']
+                    album_name = enriched['album']
+                    
                     # Group by artist, album, AND directory to show each physical copy separately
                     album_dir = os.path.dirname(song_file) if song_file else ''
                     album_key = f"{artist_name}|||{album_name}|||{album_dir}"
@@ -172,7 +219,7 @@ except ImportError:
             # For title/any searches, return individual songs
             formatted_results = []
             for song in results:
-                formatted_results.append({
+                song_metadata = {
                     'item_type': 'song',
                     'artist': song.get('artist', 'Unknown Artist'),
                     'title': song.get('title', 'Unknown Title'),
@@ -180,10 +227,18 @@ except ImportError:
                     'genre': song.get('genre', 'Unknown Genre'),
                     'file': song.get('file', ''),
                     'time': song.get('time', '0'),
-                })
+                }
+                
+                # Enrich with Bandcamp metadata if available
+                song_file = song.get('file', '')
+                enriched = enrich_with_bandcamp_metadata(song_metadata, song_file)
+                formatted_results.append(enriched)
+            
             return formatted_results
         except Exception as e:
             print(f"Error in search: {e}")
+            import traceback
+            traceback.print_exc()
             return []
 
 # Load configuration from environment variables or use defaults
@@ -262,6 +317,15 @@ os.makedirs(PLAYLISTS_DIR, exist_ok=True)
 play_history = []
 MAX_HISTORY_ITEMS = 100  # Keep last 100 songs
 last_tracked_song_id = None  # Track song ID to avoid duplicates
+
+# Initialize MPD Service with configuration
+mpd_service = MPDService(host=MPD_HOST, port=MPD_PORT, timeout=30)
+
+# Initialize Bandcamp Service with credentials from settings
+bandcamp_service = BandcampService(
+    username=_settings.get('bandcamp_username', ''),
+    identity_token=_settings.get('bandcamp_identity_token', '')
+)
 
 # Configure SocketIO to use threading for async support (no eventlet issues)
 socketio = SocketIO(app, async_mode='threading', cors_allowed_origins="*")
@@ -426,19 +490,24 @@ def parse_stream_metadata(title_field, name_field=None):
     return None, None, station_name
 
 def connect_mpd_client():
-    """Helper function to connect to MPD and return the client object."""
-    client = MPDClient()
-    client.timeout = 30  # Increased from 10 to 30 seconds for large queries
-    client.idletimeout = None
+    """
+    Helper function to get MPD client connection.
+    
+    Create a FRESH client connection for each request to avoid socket buffer
+    corruption from concurrent requests. Callers are responsible for closing.
+    
+    Returns:
+        MPDClient: Fresh connected MPD client instance, or None if connection failed
+    """
     try:
+        client = MPDClient()
+        client.timeout = 30
         client.connect(MPD_HOST, MPD_PORT)
         return client
-    except ConnectionError as e:
-        print(f"Could not connect to MPD: {e}")
-        return None
     except Exception as e:
-        print(f"An unexpected error occurred while connecting to MPD: {e}")
+        print(f"[CRITICAL] Failed to create fresh MPD connection: {e}", flush=True)
         return None
+
 
 def get_mpd_status_for_display():
     """Fetches and returns the current MPD status and song info, formatted for display."""
@@ -1227,7 +1296,6 @@ def settings_genius_page():
 def api_get_lyrics():
     """Get lyrics for a track."""
     app_ctx = {
-        'get_current_track': get_current_track,
         '_fetch_lyrics_genius': _fetch_lyrics_genius,
         '_try_lyrics_providers': _try_lyrics_providers,
         '_is_likely_instrumental': _is_likely_instrumental
@@ -1810,10 +1878,21 @@ def index():
             'crossfade_seconds': 0
         }
 
-    album_art_url = url_for('get_album_art', 
-                            song_file=mpd_info.get('song_file', ''),
-                            artist=mpd_info.get('artist', ''),
-                            album=mpd_info.get('album', ''))
+    # Generate album art URL with cache-busting timestamp to prevent browser cache issues
+    # Include title parameter for better Last.fm stream matching (same as socket.io updates)
+    # Guard against N/A placeholder values - don't generate URL if song data is incomplete
+    if (mpd_info.get('song_file') and mpd_info.get('song_file') != 'N/A' and 
+        mpd_info.get('artist') and mpd_info.get('artist') != 'N/A' and 
+        mpd_info.get('album') and mpd_info.get('album') != 'N/A'):
+        album_art_url = url_for('get_album_art', 
+                                song_file=mpd_info.get('song_file', ''),
+                                artist=mpd_info.get('artist', ''),
+                                album=mpd_info.get('album', ''),
+                                title=mpd_info.get('song_title', ''),
+                                _t=int(time.time() * 1000))  # Cache-busting timestamp in milliseconds
+    else:
+        # For placeholder songs or disconnected state, use static placeholder
+        album_art_url = url_for('static_placeholder_art')
 
     return render_template('index.html', 
                          mpd_info=mpd_info, 
@@ -1832,11 +1911,13 @@ def album_art_view():
             'song_file': ''
         }
     
+    # Generate album art URL with cache-busting timestamp
     album_art_url = url_for('get_album_art', 
                             song_file=mpd_info.get('song_file', ''),
                             artist=mpd_info.get('artist', ''),
                             album=mpd_info.get('album', ''),
-                            prefer_lastfm='true')
+                            prefer_lastfm='true',
+                            _t=int(time.time() * 1000))  # Cache-busting timestamp in milliseconds
     
     return render_template('album_art_view.html',
                          artist=mpd_info.get('artist', 'Unknown Artist'),
@@ -2895,7 +2976,7 @@ def playlist_page():
     """Renders the playlist HTML page."""
     app_ctx = {
         'connect_mpd_client': connect_mpd_client,
-        'bandcamp_metadata_cache': bandcamp_metadata_cache
+        'bandcamp_service': bandcamp_service
     }
     return playlist_page_handler(app_ctx)
 
@@ -2959,7 +3040,7 @@ def get_album_art():
     prefer_lastfm = request.args.get('prefer_lastfm', 'false').lower() == 'true'  # High-quality mode
 
     # DEBUG: Log all requests to /album_art
-    print(f"[ALBUM_ART] Request: song_file={bool(song_file)}, artist={artist[:20] if artist else 'NONE'}, album={album[:20] if album else 'NONE'}, size={size}")
+    print(f"[ALBUM_ART] Request: song_file={bool(song_file)}, artist={artist[:20] if artist else 'NONE'}, album={album[:20] if album else 'NONE'}, size={size}, client_ip={request.remote_addr}")
 
     # Rate limiting: prevent client loops from hammering NFS with identical requests
     client_ip = request.remote_addr
@@ -3089,6 +3170,8 @@ def get_album_art():
                         # Fall through to serve original file
                 
                 return send_from_directory(album_dir, filename, mimetype='image/jpeg')
+    
+    print(f"[ALBUM_ART] No local art found, checking streams and Last.fm")
     
     # 2. For streams with artist but no album, try Last.fm track.getInfo
     if is_stream and artist and artist != 'N/A' and LASTFM_API_KEY:
@@ -3329,6 +3412,7 @@ def get_album_art():
             print(f"Error fetching favicon: {e}")
 
     # 5. If no local or Last.fm art or favicon, redirect to the placeholder art
+    print(f"[ALBUM_ART] No art found anywhere, returning placeholder redirect")
     return redirect(url_for('static_placeholder_art'))
 
 @app.route('/static_placeholder_art')
@@ -4087,35 +4171,20 @@ def api_lms_volume():
 # BANDCAMP INTEGRATION
 # ============================================================================
 
-def get_bandcamp_client():
-    """Get configured Bandcamp client or None"""
-    try:
-        settings = load_settings()
-        if not settings.get('bandcamp_enabled'):
-            return None
-        
-        username = settings.get('bandcamp_username', '').strip()
-        token = settings.get('bandcamp_identity_token', '').strip()
-        
-        if not username or not token:
-            return None
-        
-        from bandcamp_client import BandcampClient
-        return BandcampClient(username, token)
-    except Exception as e:
-        print(f"Error creating Bandcamp client: {e}")
-        return None
+# ============================================================================
+# BANDCAMP INTEGRATION
+# ============================================================================
 
 @app.route('/api/bandcamp/collection')
 def bandcamp_collection():
     """Get user's Bandcamp collection."""
-    app_ctx = {'get_bandcamp_client': get_bandcamp_client}
+    app_ctx = {'bandcamp_service': bandcamp_service}
     return bandcamp_collection_handler(app_ctx)
 
 @app.route('/api/bandcamp/album/<int:album_id>')
 def bandcamp_album(album_id):
     """Get album details including tracks."""
-    app_ctx = {'get_bandcamp_client': get_bandcamp_client}
+    app_ctx = {'bandcamp_service': bandcamp_service}
     return bandcamp_album_handler(app_ctx, album_id)
 
 @app.route('/api/bandcamp/add_track', methods=['POST'])
@@ -4123,14 +4192,14 @@ def bandcamp_add_track():
     """Add Bandcamp track to MPD playlist."""
     app_ctx = {
         'connect_mpd_client': connect_mpd_client,
-        'bandcamp_metadata_cache': bandcamp_metadata_cache
+        'bandcamp_service': bandcamp_service
     }
     return bandcamp_add_track_handler(app_ctx)
 
 @app.route('/api/bandcamp/artwork/<int:art_id>')
 def bandcamp_artwork(art_id):
     """Proxy Bandcamp artwork."""
-    app_ctx = {'get_bandcamp_client': get_bandcamp_client}
+    app_ctx = {'bandcamp_service': bandcamp_service}
     return bandcamp_artwork_handler(app_ctx, art_id)
 
 # --- Application Startup ---
