@@ -19,6 +19,7 @@ def db_update_status_handler(app_ctx):
     """Check if MPD database update is in progress."""
     connect_mpd_client = app_ctx['connect_mpd_client']
     
+    client = None
     try:
         client = connect_mpd_client()
         if client:
@@ -44,6 +45,12 @@ def db_update_status_handler(app_ctx):
             'status': 'error',
             'message': str(e)
         }), 500
+    finally:
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
 
 
 def get_mpd_status_handler(app_ctx):

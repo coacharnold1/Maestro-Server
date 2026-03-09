@@ -242,6 +242,7 @@ def bandcamp_add_track_handler(app_ctx):
     
     import re
     
+    client = None
     try:
         data = request.json
         streaming_url = data.get('streaming_url')
@@ -275,17 +276,31 @@ def bandcamp_add_track_handler(app_ctx):
         
         try:
             client.add(streaming_url)
-            client.disconnect()
+            
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
             
             return jsonify({
                 'status': 'success',
                 'message': f'Added {artist} - {title} to playlist'
             })
         except Exception as e:
-            client.disconnect()
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
             return jsonify({'status': 'error', 'message': f'Failed to add track: {str(e)}'}), 500
             
     except Exception as e:
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 

@@ -132,6 +132,7 @@ def test_streaming_radio_handler(app_ctx):
     socketio = app_ctx['socketio']
     get_mpd_status_for_display = app_ctx['get_mpd_status_for_display']
     
+    client = None
     try:
         data = request.get_json()
         stream_url = data.get('url', '').strip()
@@ -151,6 +152,12 @@ def test_streaming_radio_handler(app_ctx):
             client.add(stream_url)
             client.play(0)
             
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            
             socketio.emit('server_message', {
                 'type': 'success',
                 'text': f'🔴 LIVE: Tuned into stream'
@@ -161,9 +168,19 @@ def test_streaming_radio_handler(app_ctx):
             return jsonify({'status': 'success', 'message': 'Stream started'})
             
         except Exception as e:
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
             return jsonify({'status': 'error', 'message': f'MPD error: {str(e)}'}), 500
             
     except Exception as e:
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
@@ -437,6 +454,7 @@ def play_radio_station_handler(app_ctx):
     stream_favicon_cache = app_ctx.get('stream_favicon_cache', {})
     stream_name_cache = app_ctx.get('stream_name_cache', {})
     
+    client = None
     try:
         data = request.get_json()
         url = data.get('url', '').strip()
@@ -466,6 +484,12 @@ def play_radio_station_handler(app_ctx):
             client.add(url)
             client.play(0)
             
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            
             socketio.emit('server_message', {
                 'type': 'success',
                 'text': f'📻 Now playing: {name}'
@@ -476,9 +500,19 @@ def play_radio_station_handler(app_ctx):
             return jsonify({'status': 'success', 'message': f'Playing {name}'})
             
         except Exception as e:
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
             return jsonify({'status': 'error', 'message': f'MPD error: {str(e)}'}), 500
             
     except Exception as e:
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 

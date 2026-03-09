@@ -227,6 +227,7 @@ def clear_and_add_album_handler(app_ctx):
     get_mpd_status_for_display = app_ctx['get_mpd_status_for_display']
     organize_album_by_disc = app_ctx['organize_album_by_disc']
     
+    client = None
     try:
         if request.is_json:
             data = request.get_json()
@@ -248,6 +249,116 @@ def clear_and_add_album_handler(app_ctx):
             if request.is_json:
                 return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
             return redirect(url_for('index'))
+
+        try:
+            print(f"[DEBUG] Clear+Add - Searching for album: artist='{artist}', album='{album}'" + 
+                  (f", disc={disc_number}" if disc_number else ""), flush=True)
+            current_playlist = client.playlist()
+            tracks_cleared = len(current_playlist)
+            
+            client.clear()
+            
+            songs = []
+            try:
+                songs = client.find('albumartist', artist, 'album', album)
+                if songs:
+                    print(f"[DEBUG] Clear+Add - Found {len(songs)} songs using AlbumArtist", flush=True)
+            except Exception as e:
+                print(f"[DEBUG] Clear+Add - AlbumArtist search failed: {e}", flush=True)
+                
+            if not songs:
+                songs = client.find('artist', artist, 'album', album)
+                if songs:
+                    print(f"[DEBUG] Clear+Add - Found {len(songs)} songs using Artist", flush=True)
+                else:
+                    print(f"[DEBUG] Clear+Add - No songs found with Artist search either", flush=True)
+            
+            if not songs:
+                if client:
+                    try:
+                        client.disconnect()
+                    except:
+                        pass
+                if request.is_json:
+                    return jsonify({'status': 'error', 'message': f'No songs found for "{album}" by {artist}'}), 404
+                return redirect(url_for('index'))
+            
+            if disc_number:
+                disc_structure = organize_album_by_disc(songs)
+                disc_num = int(disc_number)
+                if disc_structure and disc_num in disc_structure:
+                    songs = disc_structure[disc_num]
+                    print(f"[DISC] Clear+Add - Adding only Disc {disc_num} with {len(songs)} tracks", flush=True)
+                elif not disc_structure:
+                    print(f"[DISC] Clear+Add - WARNING: No disc structure found, adding all {len(songs)} songs", flush=True)
+                else:
+                    print(f"[DISC] Clear+Add - ERROR: Disc {disc_number} not found. Available: {sorted(disc_structure.keys())}", flush=True)
+                    if client:
+                        try:
+                            client.disconnect()
+                        except:
+                            pass
+                    if request.is_json:
+                        return jsonify({'status': 'error', 'message': f'Disc {disc_number} not found. Available discs: {sorted(disc_structure.keys())}'}), 404
+                    return redirect(url_for('index'))
+            
+            added_count = 0
+            for song in songs:
+                file_path = song.get('file')
+                if file_path:
+                    try:
+                        client.add(file_path)
+                        added_count += 1
+                    except CommandError as e:
+                        print(f"Error adding {file_path}: {e}")
+            
+            if added_count > 0:
+                try:
+                    client.play(0)
+                    print(f"[DEBUG] Started playing playlist after replacing with album")
+                except Exception as e:
+                    print(f"Error starting playback: {e}")
+            
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            
+            if added_count > 0:
+                disc_text = f" (Disc {disc_number})" if disc_number else ""
+                socketio.emit('server_message', {'type': 'success', 'text': f'Playlist cleared and added {added_count} songs from "{album}"{disc_text} by {artist}. Now playing!'})
+                socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))
+                
+                if request.is_json:
+                    return jsonify({'status': 'success', 'message': f'Playlist replaced with {added_count} songs from album and started playing', 'tracks_cleared': tracks_cleared})
+                return redirect(url_for('index'))
+            else:
+                if request.is_json:
+                    return jsonify({'status': 'error', 'message': 'No songs were added to playlist'}), 500
+                return redirect(url_for('index'))
+                
+        except Exception as e:
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            print(f"Error clearing and adding album songs: {e}")
+            if request.is_json:
+                return jsonify({'status': 'error', 'message': f'Error replacing playlist: {str(e)}'}), 500
+            return redirect(url_for('index'))
+            
+    except Exception as e:
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
+        print(f"Error in clear_and_add_album: {e}")
+        if request.is_json:
+            return jsonify({'status': 'error', 'message': f'Error processing request: {str(e)}'}), 500
+        return redirect(url_for('index'))
 
         try:
             print(f"[DEBUG] Clear+Add - Searching for album: artist='{artist}', album='{album}'" + 
@@ -340,6 +451,7 @@ def add_song_to_playlist_handler(app_ctx):
     socketio = app_ctx['socketio']
     get_mpd_status_for_display = app_ctx['get_mpd_status_for_display']
     
+    client = None
     try:
         file_path = request.form.get('file')
         
@@ -360,6 +472,12 @@ def add_song_to_playlist_handler(app_ctx):
         try:
             client.add(file_path)
             
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            
             print(f"[DEBUG] Successfully added song to playlist: {file_path}")
             socketio.emit('server_message', {'type': 'info', 'text': 'Song added to playlist.'})
             socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))
@@ -369,17 +487,32 @@ def add_song_to_playlist_handler(app_ctx):
             return redirect(url_for('index'))
             
         except CommandError as e:
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
             print(f"[DEBUG] MPD CommandError in add_song_to_playlist: {e}")
             if request.is_json or request.headers.get('Content-Type') == 'application/x-www-form-urlencoded':
                 return jsonify({'status': 'error', 'message': f'MPD error: {str(e)}'}), 500
             return redirect(url_for('index'))
         except Exception as e:
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
             print(f"[DEBUG] Exception in add_song_to_playlist: {e}")
             if request.is_json or request.headers.get('Content-Type') == 'application/x-www-form-urlencoded':
                 return jsonify({'status': 'error', 'message': f'Error adding song: {str(e)}'}), 500
             return redirect(url_for('index'))
             
     except Exception as e:
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
         print(f"Error in add_song_to_playlist: {e}")
         if request.is_json or request.headers.get('Content-Type') == 'application/x-www-form-urlencoded':
             return jsonify({'status': 'error', 'message': f'Server error: {str(e)}'}), 500
@@ -425,8 +558,19 @@ def get_mpd_playlist_helper(connect_mpd_client, bandcamp_service=None):
             for i, song in enumerate(playlist):
                 song['pos'] = i
         
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
+        
         return playlist
     except Exception as e:
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
         print(f"Error fetching playlist: {e}")
         return []
 
@@ -446,24 +590,51 @@ def remove_from_playlist_handler(app_ctx):
     socketio = app_ctx['socketio']
     bandcamp_service = app_ctx.get('bandcamp_service')
     
+    client = None
     pos = request.form.get('pos', type=int)
     if pos is None:
         return jsonify({'status': 'error', 'message': 'Position not provided'}), 400
 
-    client = connect_mpd_client()
-    if not client:
-        return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
     try:
-        client.delete(pos)
-        socketio.emit('server_message', {'type': 'info', 'text': f'Removed song at position {pos+1} from playlist.'})
-        socketio.emit('playlist_updated', get_mpd_playlist_helper(connect_mpd_client, bandcamp_service))
-        return jsonify({'status': 'success', 'message': 'Song removed'})
-    except CommandError as e:
-        print(f"MPD CommandError removing song at {pos}: {e}")
-        return jsonify({'status': 'error', 'message': f'MPD error: {e}'}), 500
+        client = connect_mpd_client()
+        if not client:
+            return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
+        try:
+            client.delete(pos)
+            
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            
+            socketio.emit('server_message', {'type': 'info', 'text': f'Removed song at position {pos+1} from playlist.'})
+            socketio.emit('playlist_updated', get_mpd_playlist_helper(connect_mpd_client, bandcamp_service))
+            return jsonify({'status': 'success', 'message': 'Song removed'})
+        except CommandError as e:
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            print(f"MPD CommandError removing song at {pos}: {e}")
+            return jsonify({'status': 'error', 'message': f'MPD error: {e}'}), 500
+        except Exception as e:
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            print(f"Error removing song from playlist at {pos}: {e}")
+            return jsonify({'status': 'error', 'message': f'Error removing song: {e}'}), 500
     except Exception as e:
-        print(f"Error removing song from playlist at {pos}: {e}")
-        return jsonify({'status': 'error', 'message': f'Error removing song: {e}'}), 500
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
+        print(f"Error in remove_from_playlist_handler: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
 def move_track_handler(app_ctx):
@@ -471,58 +642,114 @@ def move_track_handler(app_ctx):
     connect_mpd_client = app_ctx['connect_mpd_client']
     socketio = app_ctx['socketio']
     
+    client = None
     data = request.get_json()
     if not data or 'pos' not in data:
         return jsonify({'status': 'error', 'message': 'Position required'}), 400
     
     pos = data['pos']
     
-    client = connect_mpd_client()
-    if not client:
-        return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
-    
     try:
-        playlist = client.playlistinfo()
-        playlist_length = len(playlist)
+        client = connect_mpd_client()
+        if not client:
+            return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
         
-        if 'to' in data:
-            new_pos = data['to']
-            if new_pos < 0 or new_pos >= playlist_length:
-                return jsonify({'status': 'error', 'message': 'Invalid target position'}), 400
-            if pos == new_pos:
-                return jsonify({'status': 'success', 'message': 'Track already in position'})
-        elif 'direction' in data:
-            direction = data['direction']
-            if direction not in ['up', 'down']:
-                return jsonify({'status': 'error', 'message': 'Direction must be "up" or "down"'}), 400
+        try:
+            playlist = client.playlistinfo()
+            playlist_length = len(playlist)
             
-            if direction == 'up':
-                if pos == 0:
-                    return jsonify({'status': 'error', 'message': 'Already at top of playlist'}), 400
-                new_pos = pos - 1
+            if 'to' in data:
+                new_pos = data['to']
+                if new_pos < 0 or new_pos >= playlist_length:
+                    if client:
+                        try:
+                            client.disconnect()
+                        except:
+                            pass
+                    return jsonify({'status': 'error', 'message': 'Invalid target position'}), 400
+                if pos == new_pos:
+                    if client:
+                        try:
+                            client.disconnect()
+                        except:
+                            pass
+                    return jsonify({'status': 'success', 'message': 'Track already in position'})
+            elif 'direction' in data:
+                direction = data['direction']
+                if direction not in ['up', 'down']:
+                    if client:
+                        try:
+                            client.disconnect()
+                        except:
+                            pass
+                    return jsonify({'status': 'error', 'message': 'Direction must be "up" or "down"'}), 400
+                
+                if direction == 'up':
+                    if pos == 0:
+                        if client:
+                            try:
+                                client.disconnect()
+                            except:
+                                pass
+                        return jsonify({'status': 'error', 'message': 'Already at top of playlist'}), 400
+                    new_pos = pos - 1
+                else:
+                    if pos >= playlist_length - 1:
+                        if client:
+                            try:
+                                client.disconnect()
+                            except:
+                                pass
+                        return jsonify({'status': 'error', 'message': 'Already at bottom of playlist'}), 400
+                    new_pos = pos + 1
             else:
-                if pos >= playlist_length - 1:
-                    return jsonify({'status': 'error', 'message': 'Already at bottom of playlist'}), 400
-                new_pos = pos + 1
-        else:
-            return jsonify({'status': 'error', 'message': 'Either "direction" or "to" parameter required'}), 400
+                if client:
+                    try:
+                        client.disconnect()
+                    except:
+                        pass
+                return jsonify({'status': 'error', 'message': 'Either "direction" or "to" parameter required'}), 400
+            
+            client.move(pos, new_pos)
+            
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            
+            socketio.emit('playlist_updated', get_mpd_playlist_helper(connect_mpd_client))
+            
+            return jsonify({
+                'status': 'success',
+                'message': 'Track moved',
+                'new_pos': new_pos
+            })
         
-        client.move(pos, new_pos)
-        
-        socketio.emit('playlist_updated', get_mpd_playlist_helper(connect_mpd_client))
-        
-        return jsonify({
-            'status': 'success',
-            'message': 'Track moved',
-            'new_pos': new_pos
-        })
-    
-    except CommandError as e:
-        print(f"MPD CommandError moving track: {e}")
-        return jsonify({'status': 'error', 'message': f'MPD error: {e}'}), 500
+        except CommandError as e:
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            print(f"MPD CommandError moving track: {e}")
+            return jsonify({'status': 'error', 'message': f'MPD error: {e}'}), 500
+        except Exception as e:
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            print(f"Error moving track: {e}")
+            return jsonify({'status': 'error', 'message': f'Error: {e}'}), 500
     except Exception as e:
-        print(f"Error moving track: {e}")
-        return jsonify({'status': 'error', 'message': f'Error: {e}'}), 500
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
+        print(f"Error in move_track_handler: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
 def clear_playlist_handler(app_ctx):
@@ -531,21 +758,47 @@ def clear_playlist_handler(app_ctx):
     socketio = app_ctx['socketio']
     bandcamp_service = app_ctx.get('bandcamp_service')
     
-    client = connect_mpd_client()
-    if not client:
-        return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
+    client = None
     try:
-        client.clear()
-        
-        socketio.emit('server_message', {'type': 'info', 'text': 'MPD playlist cleared.'})
-        socketio.emit('playlist_updated', get_mpd_playlist_helper(connect_mpd_client, bandcamp_service))
-        return jsonify({'status': 'success', 'message': 'Playlist cleared'})
-    except CommandError as e:
-        print(f"MPD CommandError clearing playlist: {e}")
-        return jsonify({'status': 'error', 'message': f'MPD error: {e}'}), 500
+        client = connect_mpd_client()
+        if not client:
+            return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
+        try:
+            client.clear()
+            
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            
+            socketio.emit('server_message', {'type': 'info', 'text': 'MPD playlist cleared.'})
+            socketio.emit('playlist_updated', get_mpd_playlist_helper(connect_mpd_client, bandcamp_service))
+            return jsonify({'status': 'success', 'message': 'Playlist cleared'})
+        except CommandError as e:
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            print(f"MPD CommandError clearing playlist: {e}")
+            return jsonify({'status': 'error', 'message': f'MPD error: {e}'}), 500
+        except Exception as e:
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            print(f"Error clearing playlist: {e}")
+            return jsonify({'status': 'error', 'message': f'Error clearing playlist: {e}'}), 500
     except Exception as e:
-        print(f"Error clearing playlist: {e}")
-        return jsonify({'status': 'error', 'message': f'Error clearing playlist: {e}'}), 500
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
+        print(f"Error in clear_playlist_handler: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
 def save_playlist_handler(app_ctx):
@@ -553,6 +806,7 @@ def save_playlist_handler(app_ctx):
     connect_mpd_client = app_ctx['connect_mpd_client']
     playlists_dir = app_ctx['playlists_dir']
     
+    client = None
     data = request.get_json()
     if not data or 'name' not in data:
         return jsonify({'status': 'error', 'message': 'Playlist name is required'}), 400
@@ -568,35 +822,55 @@ def save_playlist_handler(app_ctx):
     
     playlist_path = os.path.join(playlists_dir, playlist_name)
     
-    client = connect_mpd_client()
-    if not client:
-        return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
-    
     try:
-        playlist_songs = client.playlistinfo()
+        client = connect_mpd_client()
+        if not client:
+            return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
         
-        if not playlist_songs:
-            return jsonify({'status': 'error', 'message': 'Current playlist is empty'}), 400
+        try:
+            playlist_songs = client.playlistinfo()
+            
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            
+            if not playlist_songs:
+                return jsonify({'status': 'error', 'message': 'Current playlist is empty'}), 400
+            
+            with open(playlist_path, 'w', encoding='utf-8') as f:
+                f.write('#EXTM3U\n')
+                for song in playlist_songs:
+                    artist = song.get('artist', 'Unknown Artist')
+                    title = song.get('title', 'Unknown Title')
+                    duration = int(song.get('time', '0'))
+                    f.write(f'#EXTINF:{duration},{artist} - {title}\n')
+                    f.write(f"{song.get('file', '')}\n")
+            
+            print(f"Saved playlist: {playlist_name} ({len(playlist_songs)} songs)")
+            return jsonify({
+                'status': 'success',
+                'message': f'Playlist "{playlist_name}" saved',
+                'song_count': len(playlist_songs)
+            })
         
-        with open(playlist_path, 'w', encoding='utf-8') as f:
-            f.write('#EXTM3U\n')
-            for song in playlist_songs:
-                artist = song.get('artist', 'Unknown Artist')
-                title = song.get('title', 'Unknown Title')
-                duration = int(song.get('time', '0'))
-                f.write(f'#EXTINF:{duration},{artist} - {title}\n')
-                f.write(f"{song.get('file', '')}\n")
-        
-        print(f"Saved playlist: {playlist_name} ({len(playlist_songs)} songs)")
-        return jsonify({
-            'status': 'success',
-            'message': f'Playlist "{playlist_name}" saved',
-            'song_count': len(playlist_songs)
-        })
-    
+        except Exception as e:
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            print(f"Error saving playlist: {e}")
+            return jsonify({'status': 'error', 'message': f'Error saving playlist: {e}'}), 500
     except Exception as e:
-        print(f"Error saving playlist: {e}")
-        return jsonify({'status': 'error', 'message': f'Error saving playlist: {e}'}), 500
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
+        print(f"Error in save_playlist_handler: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
 def list_playlists_handler(app_ctx):
@@ -641,6 +915,7 @@ def load_playlist_handler(app_ctx):
     playlists_dir = app_ctx['playlists_dir']
     bandcamp_service = app_ctx.get('bandcamp_service')
     
+    client = None
     data = request.get_json()
     if not data or 'name' not in data:
         return jsonify({'status': 'error', 'message': 'Playlist name is required'}), 400
@@ -651,48 +926,68 @@ def load_playlist_handler(app_ctx):
     if not os.path.exists(playlist_path):
         return jsonify({'status': 'error', 'message': 'Playlist not found'}), 404
     
-    client = connect_mpd_client()
-    if not client:
-        return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
-    
     try:
-        client.clear()
+        client = connect_mpd_client()
+        if not client:
+            return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
         
-        songs_added = 0
-        songs_failed = 0
-        with open(playlist_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith('#'):
-                    continue
-                
+        try:
+            client.clear()
+            
+            songs_added = 0
+            songs_failed = 0
+            with open(playlist_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith('#'):
+                        continue
+                    
+                    try:
+                        client.add(line)
+                        songs_added += 1
+                    except CommandError as e:
+                        print(f"Failed to add song '{line}': {e}")
+                        songs_failed += 1
+            
+            if client:
                 try:
-                    client.add(line)
-                    songs_added += 1
-                except CommandError as e:
-                    print(f"Failed to add song '{line}': {e}")
-                    songs_failed += 1
+                    client.disconnect()
+                except:
+                    pass
+            
+            socketio.emit('server_message', {
+                'type': 'info',
+                'text': f'Loaded playlist "{playlist_name}" ({songs_added} songs)'
+            })
+            socketio.emit('playlist_updated', get_mpd_playlist_helper(connect_mpd_client, bandcamp_service))
+            
+            message = f'Loaded {songs_added} songs'
+            if songs_failed > 0:
+                message += f' ({songs_failed} songs not found)'
+            
+            return jsonify({
+                'status': 'success',
+                'message': message,
+                'songs_added': songs_added,
+                'songs_failed': songs_failed
+            })
         
-        socketio.emit('server_message', {
-            'type': 'info',
-            'text': f'Loaded playlist "{playlist_name}" ({songs_added} songs)'
-        })
-        socketio.emit('playlist_updated', get_mpd_playlist_helper(connect_mpd_client, bandcamp_service))
-        
-        message = f'Loaded {songs_added} songs'
-        if songs_failed > 0:
-            message += f' ({songs_failed} songs not found)'
-        
-        return jsonify({
-            'status': 'success',
-            'message': message,
-            'songs_added': songs_added,
-            'songs_failed': songs_failed
-        })
-    
+        except Exception as e:
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            print(f"Error loading playlist: {e}")
+            return jsonify({'status': 'error', 'message': f'Error loading playlist: {e}'}), 500
     except Exception as e:
-        print(f"Error loading playlist: {e}")
-        return jsonify({'status': 'error', 'message': f'Error loading playlist: {e}'}), 500
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
+        print(f"Error in load_playlist_handler: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
 def delete_playlist_handler(app_ctx):
@@ -725,21 +1020,48 @@ def play_song_at_pos_handler(app_ctx):
     socketio = app_ctx['socketio']
     get_mpd_status_for_display = app_ctx['get_mpd_status_for_display']
     
+    client = None
     pos = request.form.get('pos', type=int)
     if pos is None:
         return jsonify({'status': 'error', 'message': 'Position not provided'}), 400
 
-    client = connect_mpd_client()
-    if not client:
-        return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
     try:
-        client.play(pos)
-        socketio.emit('server_message', {'type': 'info', 'text': f'Playing song at position {pos+1}.'})
-        socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))
-        return jsonify({'status': 'success', 'message': 'Playing song'})
-    except CommandError as e:
-        print(f"MPD CommandError playing song at {pos}: {e}")
-        return jsonify({'status': 'error', 'message': f'MPD error: {e}'}), 500
+        client = connect_mpd_client()
+        if not client:
+            return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
+        try:
+            client.play(pos)
+            
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            
+            socketio.emit('server_message', {'type': 'info', 'text': f'Playing song at position {pos+1}.'})
+            socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))
+            return jsonify({'status': 'success', 'message': 'Playing song'})
+        except CommandError as e:
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            print(f"MPD CommandError playing song at {pos}: {e}")
+            return jsonify({'status': 'error', 'message': f'MPD error: {e}'}), 500
+        except Exception as e:
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            print(f"Error playing song from playlist at {pos}: {e}")
+            return jsonify({'status': 'error', 'message': f'Error playing song: {e}'}), 500
     except Exception as e:
-        print(f"Error playing song from playlist at {pos}: {e}")
-        return jsonify({'status': 'error', 'message': f'Error playing song: {e}'}), 500
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
+        print(f"Error in play_song_at_pos_handler: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500

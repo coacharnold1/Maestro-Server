@@ -17,11 +17,12 @@ def debug_albumartists_handler(app_ctx):
     """Debug route to see what AlbumArtist values MPD has."""
     connect_mpd_client = app_ctx['connect_mpd_client']
     
-    client = connect_mpd_client()
-    if not client:
-        return "Could not connect to MPD"
-    
+    client = None
     try:
+        client = connect_mpd_client()
+        if not client:
+            return "Could not connect to MPD"
+        
         # Get all AlbumArtist values
         all_albumartists_raw = client.list('albumartist')
         
@@ -40,18 +41,26 @@ def debug_albumartists_handler(app_ctx):
             output += f"'{aa}'<br>"
         
         return output
-    except Exception as e:                 f"Error: {e}"
+    except Exception as e:
+        return f"Error: {e}"
+    finally:
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
 
 
 def debug_album_handler(app_ctx, album_name):
     """Debug specific album to see its Artist vs AlbumArtist tags."""
     connect_mpd_client = app_ctx['connect_mpd_client']
     
-    client = connect_mpd_client()
-    if not client:
-        return "Could not connect to MPD"
-    
+    client = None
     try:
+        client = connect_mpd_client()
+        if not client:
+            return "Could not connect to MPD"
+        
         # Find all songs from this album
         songs = client.find('album', album_name)
         
@@ -78,18 +87,26 @@ def debug_album_handler(app_ctx, album_name):
         output += f"Unique AlbumArtists: {list(albumartists)}<br>"
         
         return output
-    except Exception as e:                 f"Error: {e}"
+    except Exception as e:
+        return f"Error: {e}"
+    finally:
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
 
 
 def debug_album_genre_handler(app_ctx, album_name):
     """Debug what genre(s) an album is tagged with."""
     connect_mpd_client = app_ctx['connect_mpd_client']
     
-    client = connect_mpd_client()
-    if not client:
-        return "Could not connect to MPD"
-    
+    client = None
     try:
+        client = connect_mpd_client()
+        if not client:
+            return "Could not connect to MPD"
+        
         # Find all songs from this album
         songs = client.find('album', album_name)
         
@@ -121,18 +138,26 @@ def debug_album_genre_handler(app_ctx, album_name):
         output += f"Unique AlbumArtists: {list(albumartists)}<br>"
         
         return output
-    except Exception as e:                 f"Error: {e}"
+    except Exception as e:
+        return f"Error: {e}"
+    finally:
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
 
 
 def debug_album_search_handler(app_ctx, search_term):
     """Debug albums containing a search term to see their tags."""
     connect_mpd_client = app_ctx['connect_mpd_client']
     
-    client = connect_mpd_client()
-    if not client:
-        return "Could not connect to MPD"
-    
+    client = None
     try:
+        client = connect_mpd_client()
+        if not client:
+            return "Could not connect to MPD"
+        
         # Find songs with album names containing the search term
         all_songs = client.search('album', search_term)
         
@@ -161,18 +186,26 @@ def debug_album_search_handler(app_ctx, search_term):
             output += f"AlbumArtists: {list(info['albumartists'])}<br><br>"
         
         return output
-    except Exception as e:                 f"Error: {e}"
+    except Exception as e:
+        return f"Error: {e}"
+    finally:
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
 
 
 def debug_genre_various_artists_handler(app_ctx, genre_name):
     """Debug which Various Artists albums are in a specific genre."""
     connect_mpd_client = app_ctx['connect_mpd_client']
     
-    client = connect_mpd_client()
-    if not client:
-        return "Could not connect to MPD"
-    
+    client = None
     try:
+        client = connect_mpd_client()
+        if not client:
+            return "Could not connect to MPD"
+        
         # Find all songs in this genre where AlbumArtist = "Various Artists"
         all_songs = client.find('genre', genre_name, 'albumartist', 'Various Artists')
         
@@ -195,4 +228,11 @@ def debug_genre_various_artists_handler(app_ctx, genre_name):
             output += "<em>No Various Artists albums found in this genre.</em><br><br>"
         
         return output
-    except Exception as e:                 f"Error: {e}"
+    except Exception as e:
+        return f"Error: {e}"
+    finally:
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
