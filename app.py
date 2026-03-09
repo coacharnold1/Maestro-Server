@@ -29,6 +29,7 @@ import html
 from services.mpd_service import MPDService
 from services.bandcamp_service import BandcampService
 from services.genius_service import GeniusService
+from services.lastfm_service import LastfmService
 
 # Import settings utilities
 from utils.settings import (
@@ -330,6 +331,9 @@ bandcamp_service = BandcampService(
 
 # Initialize Genius Service for lyrics
 genius_service = GeniusService()
+
+# Initialize Last.fm Service for album art fetching
+lastfm_service = LastfmService(api_key=LASTFM_API_KEY)
 
 # Configure SocketIO to use threading for async support (no eventlet issues)
 socketio = SocketIO(app, async_mode='threading', cors_allowed_origins="*")
@@ -3089,27 +3093,8 @@ def get_album_art():
                 print(f"Serving high-quality album art from cache.")
                 return Response(cached_image_data['data'], mimetype=cached_image_data['mimetype'])
             
-            params = {
-                'method': 'album.getinfo',
-                'api_key': LASTFM_API_KEY,
-                'artist': artist,
-                'album': album,
-                'format': 'json'
-            }
-            response = requests.get(LASTFM_API_URL, params=params, timeout=5)
-            response.raise_for_status()
-            data = response.json()
-
-            image_url = None
-            if 'album' in data and 'image' in data['album']:
-                for size_preference in ['mega', 'extralarge', 'large']:
-                    for img in data['album']['image']:
-                        if img.get('size') == size_preference and img.get('#text'):
-                            image_url = img['#text']
-                            print(f"[HIGH-QUALITY] Found {size_preference} size image")
-                            break
-                    if image_url:
-                        break
+            # Use LastfmService to fetch album artwork
+            image_url = lastfm_service.fetch_album_artwork(artist, album)
 
             if image_url:
                 image_response = requests.get(image_url, timeout=5)
@@ -3189,30 +3174,9 @@ def get_album_art():
                 return Response(cached_image_data['data'], mimetype=cached_image_data['mimetype'])
             
             try:
-                # Use track.getInfo to get album art for the current track
-                params = {
-                    'method': 'track.getinfo',
-                    'api_key': LASTFM_API_KEY,
-                    'artist': artist,
-                    'track': title,
-                    'format': 'json'
-                }
+                # Use LastfmService to fetch track artwork
                 print(f"Attempting to fetch album art for stream: {artist} - {title} from Last.fm...")
-                response = requests.get(LASTFM_API_URL, params=params, timeout=5)
-                response.raise_for_status()
-                data = response.json()
-
-                image_url = None
-                if 'track' in data and 'album' in data['track'] and 'image' in data['track']['album']:
-                    # Find the highest quality image - mega is largest available from Last.fm
-                    for size_preference in ['mega', 'extralarge', 'large', 'medium']:
-                        for img in data['track']['album']['image']:
-                            if img.get('size') == size_preference and img.get('#text'):
-                                image_url = img['#text']
-                                print(f"Found {size_preference} image for {artist} - {title}")
-                                break
-                        if image_url:
-                            break
+                image_url = lastfm_service.fetch_track_artwork(artist, title)
 
                 if image_url:
                     image_response = requests.get(image_url, timeout=5)
@@ -3264,29 +3228,9 @@ def get_album_art():
             return Response(cached_image_data['data'], mimetype=cached_image_data['mimetype'])
         
         try:
-            params = {
-                'method': 'album.getinfo',
-                'api_key': LASTFM_API_KEY,
-                'artist': artist,
-                'album': album,
-                'format': 'json'
-            }
             print(f"Attempting to fetch album art for {artist} - {album} from Last.fm...")
-            response = requests.get(LASTFM_API_URL, params=params, timeout=5)
-            response.raise_for_status()
-            data = response.json()
-
-            image_url = None
-            if 'album' in data and 'image' in data['album']:
-                # Find the highest quality image available - check in order of preference
-                for size_preference in ['mega', 'extralarge', 'large', 'medium']:
-                    for img in data['album']['image']:
-                        if img.get('size') == size_preference and img.get('#text'):
-                            image_url = img['#text']
-                            print(f"Found {size_preference} size image for {artist} - {album}")
-                            break
-                    if image_url:
-                        break
+            # Use LastfmService to fetch album artwork
+            image_url = lastfm_service.fetch_album_artwork(artist, album)
 
             if image_url:
                 print(f"Found Last.fm image URL: {image_url}")
