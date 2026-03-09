@@ -122,18 +122,16 @@ def api_test_lastfm_handler(app_ctx):
 
 def lastfm_request_token_handler(app_ctx):
     """Request Last.fm OAuth token."""
-    lastfm_request_token = app_ctx['lastfm_request_token']
+    lastfm_service = app_ctx['lastfm_service']
     load_settings = app_ctx['load_settings']
     save_settings = app_ctx['save_settings']
-    LASTFM_API_KEY = app_ctx['LASTFM_API_KEY']
-    LASTFM_AUTH_URL = app_ctx['LASTFM_AUTH_URL']
     
     try:
-        token = lastfm_request_token()
+        token = lastfm_service.request_token()
         s = load_settings()
         s['lastfm_auth_token'] = token
         save_settings(s)
-        auth_url = f"{LASTFM_AUTH_URL}?api_key={LASTFM_API_KEY}&token={token}"
+        auth_url = lastfm_service.authorize_url()
         return jsonify({'status': 'success', 'auth_url': auth_url})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
@@ -141,7 +139,7 @@ def lastfm_request_token_handler(app_ctx):
 
 def lastfm_finalize_handler(app_ctx):
     """Finalize Last.fm OAuth and get session key."""
-    lastfm_get_session = app_ctx['lastfm_get_session']
+    lastfm_service = app_ctx['lastfm_service']
     load_settings = app_ctx['load_settings']
     save_settings = app_ctx['save_settings']
     
@@ -150,10 +148,12 @@ def lastfm_finalize_handler(app_ctx):
         token = s.get('lastfm_auth_token', '')
         if not token:
             return jsonify({'status': 'error', 'message': 'No pending token. Request a token first.'}), 400
-        sk = lastfm_get_session(token)
+        sk = lastfm_service.get_session(token)
         s['lastfm_session_key'] = sk
         s['lastfm_auth_token'] = ''
         save_settings(s)
+        # Update service with new session key
+        lastfm_service.session_key = sk
         return jsonify({'status': 'success', 'message': 'Last.fm connected successfully.'})
     except Exception as e:
         print(f"[Last.fm] Finalize error: {e}")
@@ -170,13 +170,12 @@ def api_charts_handler(app_ctx, chart_type):
     Return Last.fm user charts (artists, albums, or tracks).
     Query params: period (7day, 1month, 3month, 6month, 12month, overall)
     """
-    lastfm_session_key = app_ctx['lastfm_session_key']
-    lastfm_get_user_charts = app_ctx['lastfm_get_user_charts']
+    lastfm_service = app_ctx['lastfm_service']
     
     if chart_type not in ['artists', 'albums', 'tracks']:
         return jsonify({'status': 'error', 'message': 'Invalid chart type'}), 400
     
-    if not lastfm_session_key:
+    if not lastfm_service.session_key:
         return jsonify({'status': 'error', 'message': 'Last.fm not connected'}), 401
     
     period = request.args.get('period', 'overall')
@@ -185,7 +184,7 @@ def api_charts_handler(app_ctx, chart_type):
         period = 'overall'
     
     try:
-        data = lastfm_get_user_charts(chart_type, period=period, limit=50)
+        data = lastfm_service.get_user_charts(chart_type, period=period, limit=50)
         return jsonify({
             'status': 'success',
             'chart_type': chart_type,

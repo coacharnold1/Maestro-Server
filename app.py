@@ -332,11 +332,12 @@ bandcamp_service = BandcampService(
 # Initialize Genius Service for lyrics
 genius_service = GeniusService()
 
-# Initialize Last.fm Service for album art fetching and scrobbling
+# Initialize Last.fm Service for album art fetching, scrobbling, and OAuth/charts
 lastfm_service = LastfmService(
     api_key=LASTFM_API_KEY,
     shared_secret=LASTFM_SHARED_SECRET,
-    session_key=lastfm_session_key
+    session_key=lastfm_session_key,
+    auth_url='https://www.last.fm/api/auth/'
 )
 
 # Configure SocketIO to use threading for async support (no eventlet issues)
@@ -1575,11 +1576,9 @@ def api_test_lastfm():
 def lastfm_request_token_route():
     """Get Last.fm request token for OAuth."""
     app_ctx = {
-        'lastfm_request_token': lastfm_request_token,
+        'lastfm_service': lastfm_service,
         'load_settings': load_settings,
-        'save_settings': save_settings,
-        'LASTFM_API_KEY': LASTFM_API_KEY,
-        'LASTFM_AUTH_URL': LASTFM_AUTH_URL
+        'save_settings': save_settings
     }
     return lastfm_request_token_handler(app_ctx)
 
@@ -1587,7 +1586,7 @@ def lastfm_request_token_route():
 def lastfm_finalize_route():
     """Finalize Last.fm OAuth and get session key."""
     app_ctx = {
-        'lastfm_get_session': lastfm_get_session,
+        'lastfm_service': lastfm_service,
         'save_settings': save_settings,
         'load_settings': load_settings
     }
@@ -1604,10 +1603,7 @@ def charts_page():
 def api_charts(chart_type):
     """Get user's Last.fm charts (artists, albums, or tracks)."""
     app_ctx = {
-        'load_settings': load_settings,
-        'lastfm_get_user_charts': lastfm_get_user_charts,
-        'lastfm_session_key': lastfm_session_key,
-        'LASTFM_API_KEY': LASTFM_API_KEY
+        'lastfm_service': lastfm_service
     }
     return api_charts_handler(app_ctx, chart_type)
 

@@ -6,6 +6,8 @@ Handles:
 - Track artwork fetching via track.getinfo (for streams)
 - Scrobbling (sending plays to Last.fm)
 - Now playing updates (current track notifications)
+- OAuth token request and session key exchange
+- User charts (top artists, albums, tracks)
 - Image size selection (mega, extralarge, large, medium)
 - Caching and error handling
 """
@@ -37,7 +39,7 @@ class LastfmService:
     
     LASTFM_API_URL = "https://ws.audioscrobbler.com/2.0/"
     
-    def __init__(self, api_key: str = '', shared_secret: str = '', session_key: str = ''):
+    def __init__(self, api_key: str = '', shared_secret: str = '', session_key: str = '', auth_url: str = ''):
         """
         Initialize LastfmService.
         
@@ -45,10 +47,13 @@ class LastfmService:
             api_key: Last.fm API key for authentication
             shared_secret: Shared secret for API signing (needed for scrobbling)
             session_key: User's Last.fm session key (needed for authenticated endpoints)
+            auth_url: Last.fm authorization base URL (for OAuth flow)
         """
         self.api_key = api_key
         self.shared_secret = shared_secret
         self.session_key = session_key
+        self.auth_url = auth_url or 'https://www.last.fm/api/auth/'
+        self.auth_token = None  # Temporary token during OAuth flow
         logger.info("LastfmService initialized")
     
     def fetch_album_artwork(self, artist: str, album: str) -> Optional[str]:
@@ -356,3 +361,148 @@ class LastfmService:
         except Exception as e:
             logger.error(f"Failed to scrobble {artist} - {track}: {e}")
             return False
+    
+    def request_token(self) -> str:
+        """
+        Request OAuth token from Last.fm (first step of OAuth flow).
+        
+        Returns:
+            OAuth token string
+            
+        Raises:
+            RuntimeError: If API key not set or if Last.fm returns error
+        """
+        try:
+            data = self._api_post('auth.getToken', {})
+            token = data.get('token')
+            if not token:
+                raise RuntimeError('Failed to obtain Last.fm token')
+            self.auth_token = token
+            logger.info("OAuth token requested successfully")
+            return token
+        except Exception as e:
+            logger.error(f"Failed to request Last.fm OAuth token: {e}")
+            raise
+    
+    def authorize_url(self) -> str:
+        """
+        Build Last.fm authorization URL for user to grant permission.
+        
+        Returns:
+            Full authorization URL (user should be directed to this URL)
+            
+        Raises:
+            RuntimeError: If token or API key not set
+        """
+        if not self.auth_token:
+            raise RuntimeError("No auth token available. Request a token first.")
+        if not self.api_key:
+            raise RuntimeError("API key not configured")
+        
+        url = f"{self.auth_url}?api_key={self.api_key}&token={self.auth_token}"
+        logger.info("Authorization URL generated")
+        return url
+    
+    def get_session(self, token: str) -> str:
+        """
+        Exchange OAuth token for session key (final step of OAuth flow).
+        
+        Args:
+            token: OAuth token from request_token()
+            
+        Returns:
+            Session key for authenticated requests
+            
+        Raises:
+            RuntimeError: If token exchange fails
+        """
+        try:
+            data = self._api_post('auth.getSession', {'token': token})
+            sess = data.get('session', {})
+            sk = sess.get('key')
+            if not sk:
+                raise RuntimeError('Failed to obtain Last.fm session key')
+            self.session_key = sk
+            self.auth_token = None  # Clear temp token after successful exchange
+            logger.info("Session key obtained successfully")
+            return sk
+        except Exception as e:
+            logger.error(f"Failed to get Last.fm session: {e}")
+            raise
+    
+    def get_user_charts(self, chart_type: str, period: str = 'overall', limit: int = 50) -> list:
+        """
+        Fetch user's top charts from Last.fm (artists, albums, or tracks).
+        
+        Args:
+            chart_type: 'artists', 'albums', or 'tracks'
+            period: '7day', '1month', '3month', '6month', '12month', 'overall'
+            limit: Number of items to return (max 50)
+            
+        Returns:
+            List of chart items with name, playcount, and metadata
+            
+        Raises:
+            RuntimeError: If session key not set or if API call fails
+        """
+        if not self.session_key:
+            raise RuntimeError('Last.fm session key not set')
+        
+        # Map chart_type to Last.fm method
+        method_map = {
+            'artists': 'user.getTopArtists',
+            'albums': 'user.getTopAlbums',
+            'tracks': 'user.getTopTracks'
+        }
+        method = method_map.get(chart_type)
+        if not method:
+            raise ValueError(f"Invalid chart_type: {chart_type}. Must be 'artists', 'albums', or 'tracks'")
+        
+        # Validate period
+        valid_periods = ['7day', '1month', '3month', '6month', '12month', 'overall']
+        if period not in valid_periods:
+            logger.warning(f"Invalid period '{period}', using 'overall'")
+            period = 'overall'
+        
+        # Build parameters
+        params = {
+            'sk': self.session_key,
+            'period': period,
+            'limit': str(limit)
+        }
+        
+        try:
+            logger.info(f"Fetching {chart_type} charts for period '{period}'")
+            response = self._api_post(method, params)
+            
+            # Parse response based on chart type
+            if chart_type == 'artists':
+                artists_data = response.get('topartists', {}).get('artist', [])
+                return [{
+                    'name': item.get('name', 'Unknown'),
+                    'playcount': item.get('playcount', '0'),
+                    'url': item.get('url', '')
+                } for item in artists_data]
+            
+            elif chart_type == 'albums':
+                albums_data = response.get('topalbums', {}).get('album', [])
+                return [{
+                    'name': item.get('name', 'Unknown Album'),
+                    'artist': item.get('artist', {}).get('name', 'Unknown Artist') if isinstance(item.get('artist'), dict) else item.get('artist', 'Unknown Artist'),
+                    'playcount': item.get('playcount', '0'),
+                    'url': item.get('url', '')
+                } for item in albums_data]
+            
+            elif chart_type == 'tracks':
+                tracks_data = response.get('toptracks', {}).get('track', [])
+                return [{
+                    'name': item.get('name', 'Unknown Track'),
+                    'artist': item.get('artist', {}).get('name', 'Unknown Artist') if isinstance(item.get('artist'), dict) else item.get('artist', 'Unknown Artist'),
+                    'playcount': item.get('playcount', '0'),
+                    'url': item.get('url', '')
+                } for item in tracks_data]
+            
+            return []
+        except Exception as e:
+            logger.error(f"Failed to fetch {chart_type} charts: {e}")
+            raise
