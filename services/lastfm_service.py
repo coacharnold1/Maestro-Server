@@ -1,15 +1,18 @@
 """
-LastfmService - Encapsulates Last.fm API integration for album artwork.
+LastfmService - Encapsulates Last.fm API integration.
 
 Handles:
 - Album artwork fetching via album.getinfo
 - Track artwork fetching via track.getinfo (for streams)
+- Scrobbling (sending plays to Last.fm)
+- Now playing updates (current track notifications)
 - Image size selection (mega, extralarge, large, medium)
 - Caching and error handling
 """
 
 import logging
 import requests
+import hashlib
 from typing import Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -22,25 +25,30 @@ DEFAULT_HTTP_HEADERS = {
 
 class LastfmService:
     """
-    Service for Last.fm API integration (album artwork fetching).
+    Service for Last.fm API integration.
     
     Provides:
     - Album artwork fetching with configurable sizes
     - Track artwork fetching for streams
+    - Scrobbling and now playing updates
     - Connection testing
     - Image URL extraction with size preference
     """
     
     LASTFM_API_URL = "https://ws.audioscrobbler.com/2.0/"
     
-    def __init__(self, api_key: str = ''):
+    def __init__(self, api_key: str = '', shared_secret: str = '', session_key: str = ''):
         """
         Initialize LastfmService.
         
         Args:
             api_key: Last.fm API key for authentication
+            shared_secret: Shared secret for API signing (needed for scrobbling)
+            session_key: User's Last.fm session key (needed for authenticated endpoints)
         """
         self.api_key = api_key
+        self.shared_secret = shared_secret
+        self.session_key = session_key
         logger.info("LastfmService initialized")
     
     def fetch_album_artwork(self, artist: str, album: str) -> Optional[str]:
@@ -213,3 +221,138 @@ class LastfmService:
         except Exception as e:
             logger.error(f"Error testing Last.fm connection: {e}")
             return (False, f"Connection error: {e}")
+    
+    def _sign_request(self, params: dict) -> str:
+        """
+        Create Last.fm API signature (MD5 of concatenated sorted params + shared secret).
+        
+        Args:
+            params: Request parameters to sign
+            
+        Returns:
+            MD5 signature hex string
+        """
+        # Exclude 'format', 'callback', and 'api_sig' from signature
+        sign_items = [(k, v) for k, v in params.items() if k not in ['format', 'callback', 'api_sig']]
+        sign_items.sort(key=lambda x: x[0])
+        concat = ''.join([f"{k}{v}" for k, v in sign_items]) + self.shared_secret
+        return hashlib.md5(concat.encode('utf-8')).hexdigest()
+    
+    def _api_post(self, method: str, extra_params: dict) -> dict:
+        """
+        Make authenticated POST request to Last.fm API.
+        
+        Args:
+            method: Last.fm API method name (e.g., 'track.updateNowPlaying')
+            extra_params: Additional parameters for the request
+            
+        Returns:
+            JSON response from Last.fm
+            
+        Raises:
+            RuntimeError: If API key/secret not set or if Last.fm returns error
+        """
+        if not self.api_key or not self.shared_secret:
+            raise RuntimeError('Last.fm API key/secret not configured')
+        
+        params = {'method': method, 'api_key': self.api_key}
+        params.update(extra_params)
+        params['api_sig'] = self._sign_request(params)
+        params['format'] = 'json'
+        
+        try:
+            response = requests.post(self.LASTFM_API_URL, data=params, timeout=8, headers=DEFAULT_HTTP_HEADERS)
+            response.raise_for_status()
+            data = response.json()
+            
+            # Check for Last.fm API errors in response
+            if 'error' in data:
+                error_code = data.get('error', 0)
+                error_msg = data.get('message', 'Unknown error')
+                raise RuntimeError(f'Last.fm API error {error_code}: {error_msg}')
+            
+            return data
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Network error during Last.fm API call: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Error during Last.fm API call: {e}")
+            raise
+    
+    def update_now_playing(self, artist: str, track: str, album: str = '', duration: int = None) -> bool:
+        """
+        Send now playing update to Last.fm.
+        
+        Args:
+            artist: Artist name
+            track: Track title
+            album: Album name (optional)
+            duration: Track duration in seconds (optional)
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.session_key:
+            logger.debug("Session key not set, skipping now playing update")
+            return False
+        
+        params = {
+            'artist': artist or '',
+            'track': track or '',
+            'sk': self.session_key
+        }
+        
+        if album:
+            params['album'] = album
+        
+        if isinstance(duration, (int, float)) and duration > 0:
+            params['duration'] = int(duration)
+        
+        try:
+            self._api_post('track.updateNowPlaying', params)
+            logger.info(f"Now playing update sent: {artist} - {track}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update now playing for {artist} - {track}: {e}")
+            return False
+    
+    def scrobble(self, artist: str, track: str, album: str, timestamp_unix: int, duration: int = None) -> bool:
+        """
+        Scrobble (submit) a track to Last.fm.
+        
+        Args:
+            artist: Artist name
+            track: Track title
+            album: Album name
+            timestamp_unix: Unix timestamp of when the track started playing
+            duration: Track duration in seconds (optional)
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.session_key:
+            logger.debug("Session key not set, skipping scrobble")
+            return False
+        
+        # Use array-style parameters as recommended by Last.fm for scrobble batches
+        params = {
+            'artist[0]': artist or '',
+            'track[0]': track or '',
+            'timestamp[0]': int(timestamp_unix),
+            'sk': self.session_key
+        }
+        
+        if album:
+            params['album[0]'] = album
+        
+        if isinstance(duration, (int, float)) and duration > 0:
+            params['duration[0]'] = int(duration)
+        
+        try:
+            self._api_post('track.scrobble', params)
+            logger.info(f"Track scrobbled: {artist} - {track}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to scrobble {artist} - {track}: {e}")
+            return False

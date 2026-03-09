@@ -332,8 +332,12 @@ bandcamp_service = BandcampService(
 # Initialize Genius Service for lyrics
 genius_service = GeniusService()
 
-# Initialize Last.fm Service for album art fetching
-lastfm_service = LastfmService(api_key=LASTFM_API_KEY)
+# Initialize Last.fm Service for album art fetching and scrobbling
+lastfm_service = LastfmService(
+    api_key=LASTFM_API_KEY,
+    shared_secret=LASTFM_SHARED_SECRET,
+    session_key=lastfm_session_key
+)
 
 # Configure SocketIO to use threading for async support (no eventlet issues)
 socketio = SocketIO(app, async_mode='threading', cors_allowed_origins="*")
@@ -845,15 +849,39 @@ def mpd_status_monitor():
                             # Scrobble rule: >= 50% or >= 240s
                             if prev_title and (prev_elapsed >= 240 or (prev_total and prev_elapsed >= prev_total/2)):
                                 if last_scrobbled_identity != current_track_identity:
-                                    lastfm_scrobble(prev_artist, prev_title, prev_album, int(current_track_start_ts), duration=prev_total or None)
+                                    lastfm_service.scrobble(prev_artist, prev_title, prev_album, int(current_track_start_ts), duration=prev_total or None)
                                     last_scrobbled_identity = current_track_identity
+                                    # Emit scrobble notification
+                                    if show_scrobble_toasts:
+                                        try:
+                                            parts = []
+                                            if prev_artist:
+                                                parts.append(prev_artist)
+                                            if prev_title:
+                                                parts.append(prev_title)
+                                            label = ' — '.join(parts) if parts else 'Track scrobbled'
+                                            socketio.emit('server_message', {
+                                                'type': 'success',
+                                                'text': f"Scrobbled: {label}"
+                                            })
+                                        except Exception:
+                                            pass
                         # Start tracking new track
                         current_track_identity = identity
                         current_track_start_ts = int(time.time())
                         # Send now playing (use total time from status)
                         total_seconds = int(status.get('raw_total_time') or 0)
                         current_track_total_secs = total_seconds
-                        lastfm_update_now_playing(identity[0], identity[1], album=identity[2], duration=total_seconds or None)
+                        lastfm_service.update_now_playing(identity[0], identity[1], album=identity[2], duration=total_seconds or None)
+                        # Emit now playing notification
+                        if show_scrobble_toasts:
+                            try:
+                                socketio.emit('server_message', {
+                                    'type': 'info',
+                                    'text': f"Now Playing sent to Last.fm: {identity[0] or 'Unknown Artist'} — {identity[1] or 'Unknown Title'}"
+                                })
+                            except Exception:
+                                pass
                 # If stopped/paused: attempt scrobble of current track if it just ended
                 elif scrobbling_enabled and status.get('state') in ['stop', 'pause']:
                     if current_track_identity and current_track_start_ts:
@@ -863,8 +891,23 @@ def mpd_status_monitor():
                         prev_total = int(current_track_total_secs or 0)
                         if prev_title and (prev_elapsed >= 240 or (prev_total and prev_elapsed >= prev_total/2)):
                             if last_scrobbled_identity != current_track_identity:
-                                lastfm_scrobble(prev_artist, prev_title, prev_album, int(current_track_start_ts), duration=prev_total or None)
+                                lastfm_service.scrobble(prev_artist, prev_title, prev_album, int(current_track_start_ts), duration=prev_total or None)
                                 last_scrobbled_identity = current_track_identity
+                                # Emit scrobble notification
+                                if show_scrobble_toasts:
+                                    try:
+                                        parts = []
+                                        if prev_artist:
+                                            parts.append(prev_artist)
+                                        if prev_title:
+                                            parts.append(prev_title)
+                                        label = ' — '.join(parts) if parts else 'Track scrobbled'
+                                        socketio.emit('server_message', {
+                                            'type': 'success',
+                                            'text': f"Scrobbled: {label}"
+                                        })
+                                    except Exception:
+                                        pass
                         current_track_identity = None
                         current_track_start_ts = None
                         current_track_total_secs = None
