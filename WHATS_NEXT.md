@@ -2,18 +2,18 @@
 
 ## 📊 Current Status Summary (Updated March 9, 2026)
 
-**Session Focus:** MPD Connectivity Fixes + Service Extraction Pattern
-- ✅ **Phase 4b.2 Complete:** GeniusService integration (lyrics functionality)
-- ✅ **Phase 4b.3a Complete:** LastfmService album art extraction (foundation for phases 4b.3b-d)
-- 🔄 **Phase 4b.3b Next:** Scrobbling hooks extraction (2 hours, ~1 hour per method)
+**Session Focus:** Phase 4b LastfmService Extraction + Phase 5 Test Infrastructure
+- ✅ **Phase 4b.3a-d Complete:** LastfmService fully extracted (300+ lines, all API logic encapsulated)
+- ✅ **Phase 5.1 Complete:** Unit test infrastructure (test framework, 62 passing tests for core services)
+- 🔄 **Phase 5.2 Next:** Complete remaining service tests & coverage analysis
 
 **Framework Improvements:**
-- Album art loading: Fixed and stable (HTTP 404/0 errors resolved)
-- Route handlers: All fixed with proper MPD disconnect before response serialization
-- Service architecture: Established pattern (import → initialize → pass via app_ctx → delegate)
-- Code reduction: Replaced inline Last.fm API logic with clean service method calls
+- Service architecture: All 4 services extracted (MPD, Bandcamp, Genius, LastFM) with clean dependency injection
+- Test infrastructure: pytest framework with shared fixtures and mock data
+- Code quality: 62 unit tests passing, error handling comprehensively tested
+- Deployment: Updated requirements.txt to include pytest dependencies
 
-**Ready to Resume After Pause:** Phase 4b.3b scrobbling extraction is low-risk and can begin immediately
+**Ready to Resume After Pause:** Phase 5.2 (finish WIP tests) or Phase 6 (admin library tools)
 
 ---
 
@@ -182,16 +182,75 @@
 - Risk: Low (cleanup-only, no feature changes)
 - Estimated: 1 hour
 
-### Phase 5: Test Suite & CI/CD (PLANNED)
-**Objective:** Foundation for safe future changes
-- Unit tests for each service (mock external APIs)
-- Integration tests for key flows:
-  - User selects album → album art loads correctly
-  - Scrobbling enabled → plays track → Last.fm receives scrobble
-  - Search returns results → clicking plays track
-- CI/CD hook: Tests run on every commit
-- **Benefit:** Future changes = run tests + deploy with confidence
-- **Estimated effort:** 1-2 days
+### Phase 5: Test Suite & CI/CD (IN PROGRESS)
+
+#### Phase 5.1: Unit Test Infrastructure (DONE - March 9, 2026)
+**Objective:** Create comprehensive unit test suite for all services
+- **Test Framework:** pytest 9.0+ with pytest-cov for coverage analysis
+- **Configuration:**
+  - pytest.ini: Test discovery patterns, verbosity, output formatting
+  - tests/conftest.py: Shared fixtures, mock data, reusable test utilities (126+ lines)
+  - tests/__init__.py: Package marker
+- **Test Suite Status:**
+  - ✅ **test_lastfm_service.py**: 22 tests, 100% passing
+    - Album/track artwork fetching (3 tests)
+    - Scrobbling operations (4 tests)
+    - OAuth flow (5 tests)
+    - User charts retrieval (5 tests)
+    - Connection testing (3 tests)
+  - ✅ **test_mpd_service.py**: 40 tests, 100% passing
+    - Initialization/connection (4 tests)
+    - Playback control (8 tests)
+    - Status queries (3 tests)
+    - Queue management (7 tests)
+    - Search functionality (4 tests)
+    - Library browsing (4 tests)
+    - Volume/seek control (4 tests)
+    - Database updates (3 tests)
+  - 🔄 **test_bandcamp_service.py**: 21 tests (WIP - mocking layer in progress)
+  - 🔄 **test_genius_service.py**: 33 tests (WIP - implementation details in progress)
+- **Test Coverage:**
+  - Core services (LastFM, MPD): **62 tests passing with 100% success rate**
+  - Error handling: Network errors, missing parameters, edge cases covered
+  - Mock strategy: unittest.mock for external API calls, no real network requests
+- **Requirements Updated:**
+  - Added `pytest>=9.0.0` and `pytest-cov>=4.0.0` to requirements.txt
+  - Install scripts (install-maestro.sh, update-maestro.sh) automatically pick up new dependencies
+- **Running Tests:**
+  - Single service: `pytest tests/test_lastfm_service.py -v`
+  - Core services: `pytest tests/test_lastfm_service.py tests/test_mpd_service.py -v`
+  - All services: `pytest tests/ -v`
+  - With coverage: `pytest tests/ --cov=services --cov-report=html`
+- **Benefits:**
+  - Safe refactoring: Run tests before/after changes
+  - Prevent regressions: Each service method has test coverage
+  - Documentation: Tests show how to use services
+  - CI/CD ready: Tests can run on every commit
+- Git commits:
+  - a9b054d: Phase 5.1 - Add unit tests for LastfmService (22 tests) and MPDService (40 tests)
+  - 23e3eff: Phase 5.1 - Add WIP unit tests for BandcampService and GeniusService
+  - cc65b61: Update requirements.txt with pytest and pytest-cov
+
+#### Phase 5.2: Complete Remaining Service Tests (PLANNED - NEXT)
+- Fix BandcampService tests (mocking BandcampClient instead of requests)
+- Fix GeniusService tests (handle actual API responses)
+- Achieve 80%+ code coverage across all services
+- Estimated: 2-3 hours
+
+#### Phase 5.3: Integration Tests (PLANNED)
+**Objective:** Test real user workflows end-to-end
+- User can browse albums and add to queue
+- Album artwork loads correctly in queue
+- Scrobbling works when enabled
+- Search results display and play correctly
+- Estimated: 1-2 days
+
+#### Phase 5.4: CI/CD Setup (PLANNED)
+**Objective:** Automated testing on every commit
+- GitHub Actions workflow testing every pull request
+- Coverage reports auto-generated
+- Deployment only if all tests pass
+- Estimated: 1 day
 
 ### Phase 6: Library Maintenance Tool in Admin Panel (PLANNED)
 **Objective:** Integrate cover standardization script into admin UI
