@@ -1,5 +1,22 @@
 # Maestro Server Development Roadmap
 
+## 📊 Current Status Summary (Updated March 9, 2026)
+
+**Session Focus:** MPD Connectivity Fixes + Service Extraction Pattern
+- ✅ **Phase 4b.2 Complete:** GeniusService integration (lyrics functionality)
+- ✅ **Phase 4b.3a Complete:** LastfmService album art extraction (foundation for phases 4b.3b-d)
+- 🔄 **Phase 4b.3b Next:** Scrobbling hooks extraction (2 hours, ~1 hour per method)
+
+**Framework Improvements:**
+- Album art loading: Fixed and stable (HTTP 404/0 errors resolved)
+- Route handlers: All fixed with proper MPD disconnect before response serialization
+- Service architecture: Established pattern (import → initialize → pass via app_ctx → delegate)
+- Code reduction: Replaced inline Last.fm API logic with clean service method calls
+
+**Ready to Resume After Pause:** Phase 4b.3b scrobbling extraction is low-risk and can begin immediately
+
+---
+
 ## ✅ Completed Phases
 
 ### Phase 1: Route Extraction (DONE - March 2026)
@@ -111,38 +128,59 @@
 - **Deployed:** All changes tested and running in production
 - **Benefit:** Improved reliability + diagnostic visibility into remaining edge cases
 
-#### Phase 4b.2: GeniusService (PLANNED)
-- Extract album art fetching logic
-- Methods: `fetch_album_art(artist, album)`, `search_labels(label_name)`
-- Own caching & rate limiting
-- Lower risk: Minimal dependencies, used only for search/display
-- Estimated: 1 day
+#### Phase 4b.2: GeniusService Extraction (DONE - March 9, 2026)
+- Created `services/genius_service.py` with methods for lyrics search and instrumental detection
+- Methods: `get_lyrics(artist, track)`, `is_likely_instrumental(title)`, `test_connection()`, `_fetch_lyrics_genius()`
+- Integrated into app.py: Import, initialization, route handlers pass service via app_ctx
+- Updated routes/integrations.py handlers:
+  - `api_get_lyrics_handler()` → calls `genius_service.get_lyrics()` and `genius_service.is_likely_instrumental()`
+  - `api_test_genius_handler()` → calls `genius_service.test_connection()`
+- **Deployed and tested successfully** - /api/test_genius returns success, "Genius reachable and returned lyrics"
+- **Benefits:** Encapsulates Genius API logic, decouples from app.py, reusable for future features
+- Git commit: ec12325
 
-#### Phase 4b.2: GeniusService Extraction (PLANNED)
-- Extract lyrics/genius lookup functionality
-- Methods: `search_song(artist, track)`, `get_lyrics()`, `test_connection()`
-- OAuth token management
-- Medium risk: Independent feature, error-handling well-contained
-- Estimated: 1 day
-- **Known Issue:** Lyrics feature is currently broken - needs investigation
-  - `/api/lyrics` endpoint may be failing
-  - GeniusService code exists but not integrated into app.py
-  - TODO: Test endpoint, verify Genius API connectivity, fix broken routes
+#### Phase 4b.3: LastfmService Extraction (IN PROGRESS - Most Complex)
+**Note:** Extracting in multiple low-risk sub-phases to minimize complexity
+- **4b.3a:** Extract album art fetching only ✅ DONE (March 9, 2026)
+- **4b.3b:** Extract scrobbling hooks (NEXT - PLANNED)
+- **4b.3c:** Extract charts/OAuth flow (PLANNED)
+- **4b.3d:** Refactor global variables → service injection (PLANNED)
 
-#### Phase 4b.3: LastfmService (PLANNED - Most Complex)
-**Note:** Extracted LAST to minimize risk. Multiple sub-phases:
-- **4b.3a:** Extract album art fetching only (low risk subset)
-- **4b.3b:** Extract scrobbling hooks (medium risk, playback-coupled)
-- **4b.3c:** Extract charts/OAuth flow (medium risk, state management)
-- **4b.3d:** Refactor global variables → service injection (cleanup)
-- Total effort: 2-3 days across sub-phases
-- **Strategy:** Deploy after each sub-phase, test extensively
+##### Phase 4b.3a: Album Art Extraction (DONE - March 9, 2026)
+- Created `services/lastfm_service.py` (168 lines, fully documented)
+- Methods:
+  - `fetch_album_artwork(artist, album)` → Calls album.getinfo, extracts best image size (mega/extralarge/large)
+  - `fetch_track_artwork(artist, track)` → Calls track.getinfo for streams, navigates to album images
+  - `test_connection()` → Verifies API key validity
+- Integrated into app.py:
+  - Import LastfmService, initialize with LASTFM_API_KEY
+  - Updated /album_art route to delegate all Last.fm calls to service (3 separate call blocks replaced)
+- **Deployed and tested successfully** - /album_art returns 200 OK with image data
+- **Benefits:** 
+  - Encapsulates all Last.fm image API logic (parameter construction, response parsing, error handling)
+  - Enables reuse by 4b.3b (scrobbling) and 4b.3c (charts)
+  - Cleaner app.py /album_art route (66 lines reduced to ~30 lines of service calls)
+- Git commit: 08ccd1c
 
-**Why this order?**
-- Build confidence with simpler services first
-- Each success increases safety net for Last.fm work
-- Can commit Bandcamp + Genius independently if needed
-- Last.fm gets maximum testing + careful incremental approach
+##### Phase 4b.3b: Scrobbling Hooks (PLANNED - NEXT)
+- Extract methods: `update_now_playing(artist, album, track)`, `scrobble(artist, album, track, timestamp)`
+- Dependency: Requires `lastfm_session_key` from settings
+- Scope: Read-only operations during playback (no side effects)
+- Risk: Low (self-contained, integrated in playback flow)
+- Estimated: 1-2 hours
+
+##### Phase 4b.3c: Charts/OAuth Flow (PLANNED)
+- Extract methods: `request_token()`, `authorize_url()`, `get_session()`, `get_user_charts()`
+- Includes: OAuth token management, session key persistence
+- Risk: Medium (stateful, affects settings persistence)
+- Estimated: 2 hours
+
+##### Phase 4b.3d: Global Variables Cleanup (PLANNED)
+- Replace global `lastfm_session_key` with service property
+- Ensure all Last.fm routes pass service via app_ctx
+- Clean up initialization, finalize service interface
+- Risk: Low (cleanup-only, no feature changes)
+- Estimated: 1 hour
 
 ### Phase 5: Test Suite & CI/CD (PLANNED)
 **Objective:** Foundation for safe future changes
