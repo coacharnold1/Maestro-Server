@@ -9,6 +9,8 @@
 [![MPD](https://img.shields.io/badge/MPD-0.23+-orange.svg)](https://www.musicpd.org/)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Linux-lightgrey.svg)](https://github.com/coacharnold1/Maestro-Server)
+[![Tests](https://github.com/coacharnold1/Maestro-Server/actions/workflows/tests.yml/badge.svg)](https://github.com/coacharnold1/Maestro-Server/actions)
+[![Coverage](https://img.shields.io/badge/coverage-72%25-brightgreen.svg)](https://github.com/coacharnold1/Maestro-Server/actions)
 
 **Transform your music collection into a powerful streaming server with beautiful web UI, automatic CD ripping, Last.fm integration, and comprehensive system management.**
 
@@ -435,6 +437,44 @@ Smart handling of box sets and multi-disc albums:
 - Organized disc structure in UI
 - Proper track ordering
 - Maintains metadata integrity
+
+## 🧪 Testing & CI/CD
+
+Maestro Server includes a comprehensive test suite with **120+ tests** covering unit, integration, and end-to-end workflows.
+
+### Run Tests Locally
+
+```bash
+# Install test dependencies
+pip install pytest pytest-cov
+
+# Run all tests
+pytest tests/ -v
+
+# Run with coverage report
+pytest tests/ --cov=services --cov-report=html
+
+# Run specific test suite
+pytest tests/test_integration.py -v  # Integration tests
+pytest tests/test_mpd_service.py -v  # MPD service unit tests
+```
+
+### Test Coverage
+
+- **Unit Tests**: 107 tests for all services (LastfmService, MPDService, BandcampService, GeniusService)
+- **Integration Tests**: 13 tests for real-world workflows (browse → add → play → scrobble)
+- **Code Coverage**: 72% of services module
+- **CI/CD**: Automated testing on every commit via GitHub Actions
+
+### Automated Testing (GitHub Actions)
+
+Tests run automatically on:
+- ✅ Every push to `main` or `develop` branches
+- ✅ Every pull request
+- ✅ Tests run on Python 3.11 and 3.12
+- ✅ Coverage reports uploaded to Codecov
+
+View the test status badge at the top of this README!
 
 ## 📚 Documentation
 

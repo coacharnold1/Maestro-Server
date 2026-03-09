@@ -1,0 +1,38 @@
+name: Validate Code Format
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  validate:
+    name: Validate Python Format
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    
+    - name: Check Python syntax
+      run: |
+        python -m py_compile services/*.py
+        python -m py_compile routes/*.py
+        python -m py_compile tests/*.py
+        echo "✅ All Python files have valid syntax"
+    
+    - name: Verify requirements.txt
+      run: |
+        if [ -f "requirements.txt" ]; then
+          echo "✅ requirements.txt found"
+          head -5 requirements.txt
+        else
+          echo "❌ requirements.txt not found"
+          exit 1
+        fi
