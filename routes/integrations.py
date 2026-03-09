@@ -17,11 +17,10 @@ from flask import jsonify, request, render_template
 
 def api_get_lyrics_handler(app_ctx):
     """
-    Fetch lyrics for a track (delegates to app.py helper functions)
+    Fetch lyrics for a track (delegates to GeniusService)
     Expected JSON: {"artist": "...", "title": "..."}
     """
-    _try_lyrics_providers = app_ctx['_try_lyrics_providers']
-    _is_likely_instrumental = app_ctx['_is_likely_instrumental']
+    genius_service = app_ctx['genius_service']
     
     data = request.get_json() or {}
     artist = data.get('artist', '').strip()
@@ -31,7 +30,7 @@ def api_get_lyrics_handler(app_ctx):
         return jsonify({'status': 'error', 'message': 'Artist and title required'}), 400
     
     try:
-        is_instrumental = _is_likely_instrumental(title)
+        is_instrumental = genius_service.is_likely_instrumental(title)
         
         if is_instrumental:
             return jsonify({
@@ -40,7 +39,7 @@ def api_get_lyrics_handler(app_ctx):
                 'message': f'🎼 Instrumental Track: "{title}" appears to be an instrumental piece. No lyrics available.'
             })
         
-        lyrics = _try_lyrics_providers(artist, title)
+        lyrics = genius_service.get_lyrics(artist, title)
         
         if lyrics:
             return jsonify({
@@ -66,17 +65,22 @@ def api_get_lyrics_handler(app_ctx):
 
 
 def api_test_genius_handler(app_ctx):
-    """Quick check that Genius search + scrape works."""
-    _fetch_lyrics_genius = app_ctx['_fetch_lyrics_genius']
+    """Quick check that Genius API connectivity works."""
+    genius_service = app_ctx['genius_service']
     
     try:
         artist = request.form.get('artist', 'The Beatles')
         title = request.form.get('title', 'Hey Jude')
-        lyrics = _fetch_lyrics_genius(artist, title)
-        if lyrics:
-            snippet = (lyrics[:160] + '...') if len(lyrics) > 160 else lyrics
-            return jsonify({'status': 'success', 'message': 'Genius reachable and returned lyrics.', 'snippet': snippet})
-        return jsonify({'status': 'error', 'message': 'No lyrics returned. Verify track spelling or try another song.'}), 502
+        success, message = genius_service.test_connection(artist, title)
+        if success:
+            # Extract snippet from message if present
+            if 'Sample lyrics:' in message:
+                snippet = message.split('Sample lyrics:')[1].strip()
+                return jsonify({'status': 'success', 'message': 'Genius reachable and returned lyrics.', 'snippet': snippet})
+            else:
+                return jsonify({'status': 'success', 'message': message})
+        else:
+            return jsonify({'status': 'error', 'message': message}), 502
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Genius test failed: {e}'}), 502
 

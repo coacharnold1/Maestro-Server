@@ -28,6 +28,7 @@ import html
 # Import services
 from services.mpd_service import MPDService
 from services.bandcamp_service import BandcampService
+from services.genius_service import GeniusService
 
 # Import settings utilities
 from utils.settings import (
@@ -326,6 +327,9 @@ bandcamp_service = BandcampService(
     username=_settings.get('bandcamp_username', ''),
     identity_token=_settings.get('bandcamp_identity_token', '')
 )
+
+# Initialize Genius Service for lyrics
+genius_service = GeniusService()
 
 # Configure SocketIO to use threading for async support (no eventlet issues)
 socketio = SocketIO(app, async_mode='threading', cors_allowed_origins="*")
@@ -1296,9 +1300,7 @@ def settings_genius_page():
 def api_get_lyrics():
     """Get lyrics for a track."""
     app_ctx = {
-        '_fetch_lyrics_genius': _fetch_lyrics_genius,
-        '_try_lyrics_providers': _try_lyrics_providers,
-        '_is_likely_instrumental': _is_likely_instrumental
+        'genius_service': genius_service
     }
     return api_get_lyrics_handler(app_ctx)
 
@@ -1507,7 +1509,7 @@ def _scrape_genius_page_regex(url: str) -> Optional[str]:
 @app.route('/api/test_genius', methods=['POST'])
 def api_test_genius():
     """Test Genius API connectivity."""
-    app_ctx = {'_fetch_lyrics_genius': _fetch_lyrics_genius}
+    app_ctx = {'genius_service': genius_service}
     return api_test_genius_handler(app_ctx)
 
 
