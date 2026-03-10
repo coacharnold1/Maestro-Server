@@ -1834,18 +1834,38 @@
 
                 <button id="add-artist-songs-btn" class="artist-add-button">🎲 Create 25-Song Playlist from Selected Artists</button>
 
-                <!-- Save/Load Artist Stations Section -->
-                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #4a6279;">
-                    <h3 style="color: #1abc9c; margin-bottom: 15px; text-align: center;">💾 Save Artist Station</h3>
-                    
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; align-items: center;">
-                        <input type="text" id="artist-station-name" placeholder="Station name (e.g., 'Rock Legends')" 
-                            style="flex: 1; min-width: 200px; padding: 12px 14px; border: 2px solid #1abc9c; border-radius: 6px; background-color: #2c3e50; color: #ecf0f1; font-size: 1em; transition: all 0.2s; box-shadow: 0 2px 4px rgba(26, 188, 156, 0.2);">
-                        <button id="save-artist-station-btn" style="padding: 12px 16px; background-color: #1abc9c; color: white; border: none; border-radius: 6px; cursor: pointer; white-space: nowrap; font-weight: 600; transition: all 0.2s; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); min-width: 120px;">💾 Save</button>
+                <!-- Save/Load Artist Stations Section (Redesigned to match Genre Stations) -->
+                <div style="margin-top: 20px; padding-top: 20px; border-bottom: 1px solid #4a6279;">
+                    <h3 style="color: #8e44ad; margin-bottom: 15px; text-align: center;">🎤 Artist Stations</h3>
+                    <p style="text-align: center; margin-bottom: 15px; color: #bdc3c7; font-size: 0.9em;">
+                        Save your current artist selections as reusable presets
+                    </p>
+
+                    <div class="form-group">
+                        <label for="artist-station-name-input">Station Name:</label>
+                        <input type="text" id="artist-station-name-input" placeholder="e.g., Rock Legends, Jazz Masters, etc."
+                            style="width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #34495e; box-sizing: border-box;">
                     </div>
 
-                    <div id="artist-stations-list" style="margin-top: 15px;">
-                        <!-- Saved stations will appear here -->
+                    <div class="form-group" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button id="save-artist-station-btn" style="flex: 1; background-color: #8e44ad; color: white;">💾 Save Current Artists as Station</button>
+                        <button id="manage-artist-stations-btn" style="flex: 1; background-color: #95a5a6; color: #2c3e50;">⚙️ Manage Stations</button>
+                    </div>
+
+                    <div class="form-group" style="text-align: center;">
+                        <label for="artist-stations-select" style="display: block; text-align: center; margin-bottom: 8px;">Load Saved Station:</label>
+                        <div style="display: inline-flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap;">
+                            <select id="artist-stations-select"
+                                style="width: 300px; padding: 8px; border-radius: 5px; border: 1px solid #34495e; background: #34495e; color: #ecf0f1;">
+                                <option value="">-- Select a station --</option>
+                            </select>
+                            <button id="load-artist-station-btn" style="padding: 8px 16px; background-color: #3498db; color: white;">🎤 Load</button>
+                        </div>
+                    </div>
+
+                    <div id="artist-stations-list" style="margin-top: 15px; max-height: 200px; overflow-y: auto; display: none;">
+                        <h4 style="color: #bdc3c7;">Manage Stations:</h4>
+                        <div id="artist-stations-container"></div>
                     </div>
                 </div>
             </div>
@@ -3137,7 +3157,6 @@
                         console.log('[Artist Autocomplete] Received data:', data);
                         cachedArtists = data.artists || [];
                         artistsLoaded = true;
-                        displayMessage('success', `✓ Loaded ${cachedArtists.length} artists`);
                         console.log('[Artist Autocomplete] Loaded', cachedArtists.length, 'artists');
                     })
                     .catch(error => {
@@ -3242,83 +3261,68 @@
                 renderSelectedArtists();
             };
 
-            // --- Artist Stations Management ---
-            const stationNameInput = document.getElementById('artist-station-name');
-            const saveStationBtn = document.getElementById('save-artist-station-btn');
-            const stationsListDiv = document.getElementById('artist-stations-list');
+            // --- Artist Stations Management (matching genre stations pattern) ---
+            const artistStationNameInput = document.getElementById('artist-station-name-input');
+            const saveArtistStationBtn = document.getElementById('save-artist-station-btn');
+            const managementArtistBtn = document.getElementById('manage-artist-stations-btn');
+            const artistStationsSelect = document.getElementById('artist-stations-select');
+            const loadArtistStationBtn = document.getElementById('load-artist-station-btn');
+            const artistStationsListDiv = document.getElementById('artist-stations-list');
+            const artistStationsContainer = document.getElementById('artist-stations-container');
+            
             let artistStations = JSON.parse(localStorage.getItem('artistStations') || '{}');
 
-            function renderArtistStations() {
-                stationsListDiv.innerHTML = '';
-                const stations = Object.keys(artistStations);
-                
-                if (stations.length === 0) {
-                    stationsListDiv.innerHTML = '<p style="text-align: center; color: #95a5a6; font-style: italic;">No saved artist stations yet</p>';
-                    return;
-                }
-
-                stations.forEach(stationName => {
-                    const artists = artistStations[stationName] || [];
-                    const stationDiv = document.createElement('div');
-                    stationDiv.style.cssText = 'background-color: #34495e; padding: 12px; margin-bottom: 8px; border-radius: 5px; border-left: 3px solid #8e44ad;';
-                    
-                    // Station header with load/delete buttons
-                    const headerDiv = document.createElement('div');
-                    headerDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;';
-                    
-                    const nameSpan = document.createElement('strong');
-                    nameSpan.style.color = '#ecf0f1';
-                    nameSpan.textContent = stationName;
-                    
-                    const buttonsDiv = document.createElement('div');
-                    buttonsDiv.style.cssText = 'display: flex; gap: 5px;';
-                    
-                    const loadBtn = document.createElement('button');
-                    loadBtn.textContent = 'Load';
-                    loadBtn.style.cssText = 'padding: 5px 10px; background-color: #27ae60; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.9em;';
-                    loadBtn.onclick = () => window.loadArtistStation(stationName);
-                    
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.textContent = 'Delete';
-                    deleteBtn.style.cssText = 'padding: 5px 10px; background-color: #c0392b; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.9em;';
-                    deleteBtn.onclick = () => window.deleteArtistStation(stationName);
-                    
-                    buttonsDiv.appendChild(loadBtn);
-                    buttonsDiv.appendChild(deleteBtn);
-                    
-                    headerDiv.appendChild(nameSpan);
-                    headerDiv.appendChild(buttonsDiv);
-                    
-                    // Station info (artist count and list)
-                    const infoDiv = document.createElement('div');
-                    infoDiv.style.cssText = 'font-size: 0.9em; color: #bdc3c7;';
-                    infoDiv.textContent = `${artists.length} artist${artists.length !== 1 ? 's' : ''}: ${artists.join(', ')}`;
-                    
-                    stationDiv.appendChild(headerDiv);
-                    stationDiv.appendChild(infoDiv);
-                    stationsListDiv.appendChild(stationDiv);
+            function updateArtistStationsDropdown() {
+                artistStationsSelect.innerHTML = '<option value="">-- Select a station --</option>';
+                Object.keys(artistStations).forEach(stationName => {
+                    const option = document.createElement('option');
+                    option.value = stationName;
+                    option.textContent = stationName;
+                    artistStationsSelect.appendChild(option);
                 });
             }
 
-            window.loadArtistStation = function(stationName) {
-                if (artistStations[stationName]) {
-                    selectedArtists = [...artistStations[stationName]];
-                    renderSelectedArtists();
-                    displayMessage('success', `✓ Loaded station: ${stationName}`);
+            function toggleManageArtistStations() {
+                if (artistStationsListDiv.style.display === 'none' || artistStationsListDiv.style.display === '') {
+                    updateManageArtistStations();
+                    artistStationsListDiv.style.display = 'block';
+                    managementArtistBtn.textContent = '⬆️ Hide Management';
+                } else {
+                    artistStationsListDiv.style.display = 'none';
+                    managementArtistBtn.textContent = '⚙️ Manage Stations';
                 }
-            };
+            }
 
-            window.deleteArtistStation = function(stationName) {
-                if (confirm(`Delete station "${stationName}"?`)) {
-                    delete artistStations[stationName];
-                    localStorage.setItem('artistStations', JSON.stringify(artistStations));
-                    renderArtistStations();
-                    displayMessage('success', `✓ Deleted station: ${stationName}`);
+            function updateManageArtistStations() {
+                artistStationsContainer.innerHTML = '';
+                Object.entries(artistStations).forEach(([name, artists]) => {
+                    const stationDiv = document.createElement('div');
+                    stationDiv.className = 'station-item';
+                    stationDiv.style.cssText = 'background-color: #34495e; padding: 10px; margin: 5px 0; border-radius: 5px; border-left: 3px solid #8e44ad; display: flex; justify-content: space-between; align-items: center;';
+                    
+                    const infoDiv = document.createElement('div');
+                    infoDiv.innerHTML = `
+                        <strong style="color: #ecf0f1;">${escapeHtml(name)}</strong><br>
+                        <small style="color: #bdc3c7;">Artists: ${escapeHtml(artists.join(', '))}</small>
+                    `;
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = '🗑️ Delete';
+                    deleteBtn.style.cssText = 'background-color: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; white-space: nowrap;';
+                    deleteBtn.onclick = () => deleteArtistStation(name);
+                    
+                    stationDiv.appendChild(infoDiv);
+                    stationDiv.appendChild(deleteBtn);
+                    artistStationsContainer.appendChild(stationDiv);
+                });
+                
+                if (Object.keys(artistStations).length === 0) {
+                    artistStationsContainer.innerHTML = '<p style="text-align: center; color: #95a5a6; font-style: italic; margin: 10px 0;">No saved artist stations yet</p>';
                 }
-            };
+            }
 
-            saveStationBtn.addEventListener('click', function() {
-                const stationName = stationNameInput.value.trim();
+            function saveArtistStation() {
+                const stationName = artistStationNameInput.value.trim();
                 if (!stationName) {
                     displayMessage('error', 'Please enter a station name');
                     return;
@@ -3330,13 +3334,46 @@
                 
                 artistStations[stationName] = [...selectedArtists];
                 localStorage.setItem('artistStations', JSON.stringify(artistStations));
-                stationNameInput.value = '';
-                renderArtistStations();
-                displayMessage('success', `✓ Saved station: ${stationName}`);
-            });
+                artistStationNameInput.value = '';
+                updateArtistStationsDropdown();
+                displayMessage('success', `Station "${stationName}" saved successfully`);
+            }
+
+            function loadArtistStation() {
+                const stationName = artistStationsSelect.value;
+                if (!stationName) {
+                    displayMessage('error', 'Please select a station');
+                    return;
+                }
+
+                if (artistStations[stationName]) {
+                    selectedArtists = [...artistStations[stationName]];
+                    renderSelectedArtists();
+                    displayMessage('success', `🎤 Loaded station "${stationName}" with ${selectedArtists.length} artist${selectedArtists.length !== 1 ? 's' : ''}`);
+                } else {
+                    displayMessage('error', 'Station not found');
+                }
+            }
+
+            function deleteArtistStation(stationName) {
+                if (!confirm(`Are you sure you want to delete station "${stationName}"?`)) {
+                    return;
+                }
+                
+                delete artistStations[stationName];
+                localStorage.setItem('artistStations', JSON.stringify(artistStations));
+                updateArtistStationsDropdown();
+                updateManageArtistStations();
+                displayMessage('success', `Station "${stationName}" deleted`);
+            }
+
+            // Event listeners for artist stations
+            saveArtistStationBtn.addEventListener('click', saveArtistStation);
+            loadArtistStationBtn.addEventListener('click', loadArtistStation);
+            managementArtistBtn.addEventListener('click', toggleManageArtistStations);
 
             // Initialize stations display
-            renderArtistStations();
+            updateArtistStationsDropdown();
 
             // Event listeners
             artistInput.addEventListener('focus', function() {
