@@ -125,6 +125,166 @@
             background: linear-gradient(135deg, #f39c12 0%, #d68910 100%);
         }
 
+        .accordion-header.artist {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+        .accordion-header.artist:hover {
+            background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+        }
+
+        /* Artist-Based Music Addition Styling */
+        .artist-input-wrapper {
+            position: relative;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        #artist-input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 0px;
+            border: 1px solid #34495e;
+            border-radius: 5px 5px 0 0;
+            background-color: #34495e;
+            color: #ecf0f1;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+
+        #artist-input:focus {
+            outline: none;
+            border-color: #e74c3c;
+            box-shadow: 0 0 8px rgba(231, 76, 60, 0.3);
+        }
+
+        .artist-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: #34495e;
+            border: 1px solid #e74c3c;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1001;
+            display: none;
+            box-sizing: border-box;
+        }
+
+        .artist-dropdown.show {
+            display: block;
+        }
+
+        .autocomplete-option {
+            padding: 12px 15px;
+            color: #ecf0f1;
+            cursor: pointer;
+            border-bottom: 1px solid #2c3e50;
+            transition: background-color 0.2s;
+        }
+
+        .autocomplete-option:hover {
+            background-color: #2c3e50;
+            color: #e74c3c;
+        }
+
+        .autocomplete-option:last-child {
+            border-bottom: none;
+        }
+
+        .selected-artists-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 15px 0;
+            min-height: 40px;
+            padding: 10px;
+            background-color: #2c3e50;
+            border-radius: 5px;
+            border: 1px solid #34495e;
+        }
+
+        .artist-chip {
+            background-color: #e74c3c;
+            color: white;
+            padding: 8px 14px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95em;
+            box-shadow: 0 2px 6px rgba(231, 76, 60, 0.4);
+            animation: slideIn 0.2s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .artist-chip span {
+            word-break: break-word;
+            max-width: 250px;
+            font-weight: 500;
+        }
+
+        .chip-remove {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1.3em;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            transition: all 0.2s;
+            line-height: 1;
+        }
+
+        .chip-remove:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: scale(1.15);
+        }
+
+        .artist-add-button {
+            background-color: #e74c3c;
+            color: white;
+            width: 100%;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .artist-add-button:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .artist-add-button:disabled {
+            background-color: #7f8c8d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         /* Accordion section buttons - taller */
         .accordion-content button {
             padding: 12px 20px !important;
@@ -610,26 +770,24 @@
                 display: none !important;
             }
         }
-            }
 
-            .logo-container {
-                margin-bottom: 15px;
-            }
+        .logo-container {
+            margin-bottom: 15px;
+        }
 
-            .logo-container img {
-                max-width: 400px;
-            }
+        .logo-container img {
+            max-width: 400px;
+        }
 
-            .form-group input[type="text"],
-            .form-group input[type="number"] {
-                width: calc(100% - 16px);
-                /* Adjust for smaller padding */
-            }
+        .form-group input[type="text"],
+        .form-group input[type="number"] {
+            width: calc(100% - 16px);
+            /* Adjust for smaller padding */
+        }
 
-            .controls {
-                padding: 8px;
-                margin: 8px 0;
-            }
+        .controls {
+            padding: 8px;
+            margin: 8px 0;
         }
 
         /* Station item default styling */
@@ -1431,6 +1589,35 @@
             <button onclick="playbackAction('stop')" style="background-color: #f39c12; color: white;">⏹️ Stop</button>
             <button onclick="playbackAction('pause')" style="background-color: #e74c3c; color: white;">⏸️ Pause</button>
             <button onclick="playbackAction('next')" style="background-color: #3498db; color: white;">⏭️ Next</button>
+        </div>
+
+        <!-- NEW SECTION: Accordion: Artist-Based Music Addition -->
+        <div class="accordion-section" id="section-artist">
+            <button class="accordion-header artist" onclick="toggleAccordion('artist')">
+                <span>🎤 Artist Based Music Addition</span>
+                <span class="accordion-icon">▼</span>
+            </button>
+            <div class="accordion-content" id="content-artist">
+                <p style="text-align: center; margin-bottom: 15px; color: #bdc3c7; font-size: 0.9em;">
+                    <strong>How to use:</strong> Type an artist name → click a suggestion → artist becomes a chip. Add more artists by repeating. Click the button to create a random 25-song playlist from your selections.
+                </p>
+                
+                <div class="form-group">
+                    <label for="artist-input">Artist Name:</label>
+                    <div class="artist-input-wrapper">
+                        <input type="text" id="artist-input" placeholder="Type artist name..." autocomplete="off">
+                        <div id="artist-autocomplete" class="artist-dropdown"></div>
+                    </div>
+                </div>
+
+                <p style="text-align: center; margin-bottom: 10px; color: #95a5a6; font-size: 0.85em;">Selected Artists:</p>
+                <!-- Selected Artists as Chips/Tags -->
+                <div id="selected-artists" class="selected-artists-container">
+                    <!-- Artist chips will be added here dynamically -->
+                </div>
+
+                <button id="add-artist-songs-btn" class="artist-add-button">🎲 Create 25-Song Playlist from Selected Artists</button>
+            </div>
         </div>
 
         <!-- Accordion: Genre-Based Music (Stations + Random by Genre) -->
@@ -2674,6 +2861,192 @@
                 window.location.href = `/search?query=${encodeURIComponent(query)}&type=${searchType}`;
             }
         }
+
+        // --- Artist-Based Music Addition Feature ---
+        let selectedArtists = [];
+        let cachedArtists = [];  // Cache artists from API
+        let artistsLoaded = false;
+        let artistAutocompleteTimeout;
+
+        const artistInput = document.getElementById('artist-input');
+        const artistDropdown = document.getElementById('artist-autocomplete');
+        const selectedArtistsDiv = document.getElementById('selected-artists');
+        const addArtistSongsBtn = document.getElementById('add-artist-songs-btn');
+
+        // Load all artists once on first interaction
+        function loadArtistsData() {
+            if (artistsLoaded || cachedArtists.length > 0) return;
+            
+            fetch('/api/autocomplete/artists')
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    return response.json();
+                })
+                .then(data => {
+                    cachedArtists = data.artists || [];
+                    artistsLoaded = true;
+                    console.log('[Artist Autocomplete] Loaded', cachedArtists.length, 'artists');
+                })
+                .catch(error => {
+                    console.error('[Artist Autocomplete] Error loading artists:', error);
+                    displayMessage('error', 'Failed to load artists data');
+                });
+        }
+
+        // Load artists when input gets focus
+        artistInput.addEventListener('focus', function() {
+            if (!artistsLoaded && cachedArtists.length === 0) {
+                loadArtistsData();
+            }
+        });
+
+        // Filter and display artist autocomplete suggestions
+        function showArtistSuggestions(query) {
+            if (!query.trim()) {
+                artistDropdown.classList.remove('show');
+                artistDropdown.innerHTML = '';
+                return;
+            }
+
+            const lowerQuery = query.toLowerCase();
+            const filtered = cachedArtists
+                .filter(artist => 
+                    artist.toLowerCase().includes(lowerQuery) &&
+                    !selectedArtists.includes(artist)
+                )
+                .slice(0, 15);  // Show up to 15 suggestions
+
+            artistDropdown.innerHTML = '';
+            
+            if (filtered.length > 0) {
+                filtered.forEach(artist => {
+                    const option = document.createElement('div');
+                    option.className = 'autocomplete-option';
+                    option.textContent = artist;
+                    option.addEventListener('click', () => {
+                        addArtistChip(artist);
+                    });
+                    artistDropdown.appendChild(option);
+                });
+                artistDropdown.classList.add('show');
+            } else {
+                artistDropdown.classList.remove('show');
+            }
+        }
+
+        // Handle input with debounce for filtering
+        artistInput.addEventListener('input', function() {
+            clearTimeout(artistAutocompleteTimeout);
+            
+            // Load data if not loaded yet
+            if (!artistsLoaded && cachedArtists.length === 0) {
+                loadArtistsData();
+            }
+
+            artistAutocompleteTimeout = setTimeout(() => {
+                showArtistSuggestions(this.value);
+            }, 150);  // Small debounce for filtering
+        });
+
+        // Hide autocomplete when clicking outside
+        document.addEventListener('click', function(e) {
+            if (e.target !== artistInput && !artistDropdown.contains(e.target)) {
+                artistDropdown.classList.remove('show');
+            }
+        });
+
+        // Show autocomplete when focusing on input with existing text
+        artistInput.addEventListener('focus', function() {
+            if (this.value.trim().length > 0) {
+                showArtistSuggestions(this.value);
+            }
+        });
+
+        // Add artist as a chip/tag
+        function addArtistChip(artist) {
+            if (!selectedArtists.includes(artist)) {
+                selectedArtists.push(artist);
+                renderSelectedArtists();
+                artistInput.value = '';
+                artistDropdown.classList.remove('show');
+                artistDropdown.innerHTML = '';
+                artistInput.focus();
+            }
+        }
+
+        // Render selected artists as chips
+        function renderSelectedArtists() {
+            selectedArtistsDiv.innerHTML = '';
+            if (selectedArtists.length === 0) {
+                selectedArtistsDiv.innerHTML = '<span style="color: #95a5a6; font-style: italic; font-size: 0.9em; padding: 5px 0;">No artists selected yet</span>';
+                return;
+            }
+            
+            selectedArtists.forEach(artist => {
+                const chip = document.createElement('div');
+                chip.className = 'artist-chip';
+                chip.innerHTML = `
+                    <span>${escapeHtml(artist)}</span>
+                    <button type="button" class="chip-remove" onclick="removeArtistChip('${artist.replace(/'/g, "\\'")}'); return false;" title="Remove">×</button>
+                `;
+                selectedArtistsDiv.appendChild(chip);
+            });
+        }
+
+        // Remove artist chip
+        function removeArtistChip(artist) {
+            selectedArtists = selectedArtists.filter(a => a !== artist);
+            renderSelectedArtists();
+        }
+
+        // Make removeArtistChip globally available for onclick handlers
+        window.removeArtistChip = removeArtistChip;
+
+        // Add songs from selected artists
+        addArtistSongsBtn.addEventListener('click', function() {
+            if (selectedArtists.length === 0) {
+                displayMessage('error', 'Please select at least one artist');
+                return;
+            }
+
+            addArtistSongsBtn.disabled = true;
+            const originalText = addArtistSongsBtn.textContent;
+            addArtistSongsBtn.textContent = 'Creating playlist...';
+
+            fetch('/api/add-from-artists', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ artists: selectedArtists })
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    const count = data.songs_added || 0;
+                    displayMessage('success', `✓ Created 25-song playlist from ${selectedArtists.length} artist(s) - added ${count} random tracks`);
+                    selectedArtists = [];
+                    renderSelectedArtists();
+                    artistInput.value = '';
+                } else {
+                    displayMessage('error', data.message || 'Failed to create playlist');
+                }
+            })
+            .catch(error => {
+                console.error('Error creating playlist:', error);
+                displayMessage('error', 'Failed to create playlist from artists: ' + error.message);
+            })
+            .finally(() => {
+                addArtistSongsBtn.disabled = false;
+                addArtistSongsBtn.textContent = originalText;
+            });
+        });
+
+        // Initialize the selected artists display
+        renderSelectedArtists();
     </script>
 
     <!-- Keyboard Shortcuts -->

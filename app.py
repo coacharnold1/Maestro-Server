@@ -56,7 +56,8 @@ from routes.browse import (
     random_albums_handler,
     browse_genres_page_handler, browse_artists_page_handler, browse_albums_page_handler,
     api_browse_genres_handler, api_browse_artists_handler,
-    api_browse_albums_handler, api_album_tracks_handler, recent_albums_page_handler
+    api_browse_albums_handler, api_album_tracks_handler, recent_albums_page_handler,
+    autocomplete_artists_handler, add_from_artists_handler
 )
 
 # Import playlist routes handlers
@@ -3913,6 +3914,24 @@ def api_album_tracks():
         'organize_album_by_disc': organize_album_by_disc
     }
     return api_album_tracks_handler(app_ctx)
+
+# --- API endpoint for artist auto-complete ---
+@app.route('/api/autocomplete/artists', methods=['GET'])
+def api_autocomplete_artists():
+    """Return all artists for auto-complete input."""
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client
+    }
+    return autocomplete_artists_handler(app_ctx)
+
+# --- API endpoint to add songs from selected artists ---
+@app.route('/api/add-from-artists', methods=['POST'])
+def api_add_from_artists():
+    """Add all songs from selected artists to queue."""
+    app_ctx = {
+        'connect_mpd_client': connect_mpd_client
+    }
+    return add_from_artists_handler(app_ctx)
 
 # --- SocketIO Event Handlers ---
 @socketio.on('connect')

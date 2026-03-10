@@ -721,6 +721,162 @@ def api_album_tracks_handler(app_ctx):
         return jsonify({'status': 'error', 'message': f'Error fetching tracks: {str(e)}'}), 500
 
 
+def autocomplete_artists_handler(app_ctx):
+    """Handle /api/autocomplete/artists route - returns all artists for auto-complete"""
+    connect_mpd_client = app_ctx['connect_mpd_client']
+    client = None
+    
+    try:
+        client = connect_mpd_client()
+        if not client:
+            return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
+        
+        # Get all unique artists using list('artist')
+        try:
+            artists_raw = client.list('artist')
+            artists = sorted(set([
+                (a if isinstance(a, str) else a.get('artist', '')) 
+                for a in artists_raw if a
+            ]))
+        except Exception as artist_error:
+            print(f"[DEBUG] client.list('artist') failed, falling back to song scan: {artist_error}", flush=True)
+            # Fallback: scan all songs to extract unique artists
+            try:
+                all_songs = client.listallinfo()
+                artist_set = set()
+                for song in all_songs:
+                    artist = song.get('artist', '').strip()
+                    if artist:
+                        artist_set.add(artist)
+                artists = sorted(list(artist_set))
+            except Exception as fallback_error:
+                print(f"[DEBUG] Artist fallback also failed: {fallback_error}", flush=True)
+                artists = []
+        
+        # Filter out empty strings
+        artists = [a for a in artists if a]
+        
+        # Disconnect
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
+        
+        return jsonify({
+            'status': 'success',
+            'artists': artists,
+            'count': len(artists)
+        })
+        
+    except Exception as e:
+        # Disconnect on error
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
+        
+        print(f"[DEBUG] Exception in /api/autocomplete/artists: {e}", flush=True)
+        return jsonify({'status': 'error', 'message': f'Error fetching artists: {str(e)}'}), 500
+
+
+def add_from_artists_handler(app_ctx):
+    """Handle /api/add-from-artists route - create 25-song playlist from selected artists"""
+    connect_mpd_client = app_ctx['connect_mpd_client']
+    client = None
+    
+    try:
+        # Get artist names from request
+        data = request.get_json()
+        artist_names = data.get('artists', []) if data else []
+        
+        if not artist_names or not isinstance(artist_names, list):
+            return jsonify({'status': 'error', 'message': 'Invalid or empty artist list'}), 400
+        
+        client = connect_mpd_client()
+        if not client:
+            return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
+        
+        # Collect all songs from selected artists
+        all_songs = []
+        
+        for artist_name in artist_names:
+            artist_name = str(artist_name).strip()
+            if not artist_name:
+                continue
+            
+            try:
+                # Find all songs by this artist
+                songs = client.find('artist', artist_name)
+                
+                if not songs:
+                    # Try albumartist as fallback
+                    songs = client.find('albumartist', artist_name)
+                
+                if songs:
+                    all_songs.extend(songs)
+                    print(f"[DEBUG] Found {len(songs)} songs from artist '{artist_name}'", flush=True)
+                
+            except Exception as e:
+                print(f"[DEBUG] Error finding songs from artist '{artist_name}': {e}", flush=True)
+                continue
+        
+        if not all_songs:
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            return jsonify({
+                'status': 'error',
+                'message': f'No songs found for the selected artists'
+            }), 400
+        
+        # Randomly select up to 25 songs
+        play_count = min(25, len(all_songs))
+        selected_songs = random.sample(all_songs, play_count)
+        
+        print(f"[DEBUG] Selected {play_count} random songs from {len(all_songs)} total for {len(artist_names)} artists", flush=True)
+        
+        # Add selected songs to queue
+        total_added = 0
+        for song in selected_songs:
+            file_path = song.get('file')
+            if file_path:
+                try:
+                    client.add(file_path)
+                    total_added += 1
+                except Exception as e:
+                    print(f"[DEBUG] Error adding song to queue: {e}", flush=True)
+                    continue
+        
+        # Disconnect
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'Created 25-song playlist from {len(artist_names)} artist(s)',
+            'songs_added': total_added,
+            'total_available': len(all_songs)
+        })
+        
+    except Exception as e:
+        # Disconnect on error
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
+        
+        print(f"[DEBUG] Exception in /api/add-from-artists: {e}", flush=True)
+        return jsonify({'status': 'error', 'message': f'Error creating playlist: {str(e)}'}), 500
+
+
 def recent_albums_page_handler(app_ctx):
     """Display the recent albums page."""
     return render_template('recent_albums.html')
