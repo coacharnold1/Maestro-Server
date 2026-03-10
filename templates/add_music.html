@@ -3287,7 +3287,7 @@
             let artistStations = {};
 
             function loadArtistStationsFromAPI() {
-                fetch('/api/artist_stations')
+                return fetch('/api/artist_stations')
                     .then(response => response.json())
                     .then(data => {
                         if (data.status === 'success') {
@@ -3314,9 +3314,12 @@
             function toggleManageArtistStations() {
                 const isHidden = artistStationsListDiv.style.display === 'none' || artistStationsListDiv.style.display === '';
                 if (isHidden) {
-                    updateManageArtistStations();
-                    artistStationsListDiv.style.display = 'block';
-                    managementArtistBtn.textContent = '⬆️ Hide Management';
+                    // Load from API first, then display
+                    loadArtistStationsFromAPI().then(() => {
+                        updateManageArtistStations();
+                        artistStationsListDiv.style.display = 'block';
+                        managementArtistBtn.textContent = '⬆️ Hide Management';
+                    });
                 } else {
                     artistStationsListDiv.style.display = 'none';
                     managementArtistBtn.textContent = '⚙️ Manage Stations';
@@ -3325,14 +3328,14 @@
 
             function updateManageArtistStations() {
                 artistStationsContainer.innerHTML = '';
-                Object.entries(artistStations).forEach(([name, artists]) => {
+                Object.entries(artistStations).forEach(([name, station]) => {
                     const stationDiv = document.createElement('div');
                     stationDiv.className = 'station-item';
                     stationDiv.style.cssText = 'padding: 10px; margin: 5px 0; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;';
                     stationDiv.innerHTML = `
                         <div>
                             <strong>${name}</strong><br>
-                            <small>Artists: ${artists.join(', ')}</small>
+                            <small>Artists: ${station.artists.join(', ')}</small>
                         </div>
                         <button onclick="deleteArtistStation('${name}')" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
                             🗑️ Delete
