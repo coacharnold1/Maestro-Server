@@ -1029,6 +1029,8 @@
         body.light .status-box,
         body.light #stations-list,
         body.light #stations-container,
+        body.light #artist-stations-list,
+        body.light #artist-stations-container,
         body.light .station-item {
             background-color: #f0f3f6 !important;
             border-color: #d0d7de;
@@ -1087,6 +1089,8 @@
         body.high-contrast .status-box,
         body.high-contrast #stations-list,
         body.high-contrast #stations-container,
+        body.high-contrast #artist-stations-list,
+        body.high-contrast #artist-stations-container,
         body.high-contrast .station-item {
             background-color: #000000 !important;
             border: 2px solid #ffff00;
@@ -1137,6 +1141,8 @@
         body.desert .status-box,
         body.desert #stations-list,
         body.desert #stations-container,
+        body.desert #artist-stations-list,
+        body.desert #artist-stations-container,
         body.desert .station-item {
             background-color: #4a3b2a !important;
             border-color: #cd853f;
@@ -1190,6 +1196,8 @@
         body.terminal .status-box,
         body.terminal #stations-list,
         body.terminal #stations-container,
+        body.terminal #artist-stations-list,
+        body.terminal #artist-stations-container,
         body.terminal .station-item {
             background-color: #1a1a1a;
             border-color: #00cc00;
@@ -1239,6 +1247,8 @@
         body.sunset .status-box,
         body.sunset #stations-list,
         body.sunset #stations-container,
+        body.sunset #artist-stations-list,
+        body.sunset #artist-stations-container,
         body.sunset .station-item {
             background-color: #3d2534;
             border-color: #ff6b35;
@@ -1292,6 +1302,8 @@
         body.forest .status-box,
         body.forest #stations-list,
         body.forest #stations-container,
+        body.forest #artist-stations-list,
+        body.forest #artist-stations-container,
         body.forest .station-item {
             background-color: #233d23;
             border-color: #4a7c4e;
@@ -1345,6 +1357,8 @@
         body.midnight .status-box,
         body.midnight #stations-list,
         body.midnight #stations-container,
+        body.midnight #artist-stations-list,
+        body.midnight #artist-stations-container,
         body.midnight .station-item {
             background-color: #2a1f4a;
             border-color: #6a4c93;
@@ -3283,7 +3297,8 @@
             }
 
             function toggleManageArtistStations() {
-                if (artistStationsListDiv.style.display === 'none' || artistStationsListDiv.style.display === '') {
+                const isHidden = artistStationsListDiv.style.display === 'none' || artistStationsListDiv.style.display === '';
+                if (isHidden) {
                     updateManageArtistStations();
                     artistStationsListDiv.style.display = 'block';
                     managementArtistBtn.textContent = '⬆️ Hide Management';
@@ -3298,21 +3313,16 @@
                 Object.entries(artistStations).forEach(([name, artists]) => {
                     const stationDiv = document.createElement('div');
                     stationDiv.className = 'station-item';
-                    stationDiv.style.cssText = 'background-color: #34495e; padding: 10px; margin: 5px 0; border-radius: 5px; border-left: 3px solid #8e44ad; display: flex; justify-content: space-between; align-items: center;';
-                    
-                    const infoDiv = document.createElement('div');
-                    infoDiv.innerHTML = `
-                        <strong style="color: #ecf0f1;">${escapeHtml(name)}</strong><br>
-                        <small style="color: #bdc3c7;">Artists: ${escapeHtml(artists.join(', '))}</small>
+                    stationDiv.style.cssText = 'padding: 10px; margin: 5px 0; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;';
+                    stationDiv.innerHTML = `
+                        <div>
+                            <strong>${name}</strong><br>
+                            <small>Artists: ${artists.join(', ')}</small>
+                        </div>
+                        <button onclick="deleteArtistStation('${name}')" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
+                            🗑️ Delete
+                        </button>
                     `;
-                    
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.textContent = '🗑️ Delete';
-                    deleteBtn.style.cssText = 'background-color: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; white-space: nowrap;';
-                    deleteBtn.onclick = () => deleteArtistStation(name);
-                    
-                    stationDiv.appendChild(infoDiv);
-                    stationDiv.appendChild(deleteBtn);
                     artistStationsContainer.appendChild(stationDiv);
                 });
                 
@@ -3368,9 +3378,9 @@
             }
 
             // Event listeners for artist stations
-            saveArtistStationBtn.addEventListener('click', saveArtistStation);
-            loadArtistStationBtn.addEventListener('click', loadArtistStation);
-            managementArtistBtn.addEventListener('click', toggleManageArtistStations);
+            if (saveArtistStationBtn) saveArtistStationBtn.addEventListener('click', saveArtistStation);
+            if (loadArtistStationBtn) loadArtistStationBtn.addEventListener('click', loadArtistStation);
+            if (managementArtistBtn) managementArtistBtn.addEventListener('click', toggleManageArtistStations);
 
             // Initialize stations display
             updateArtistStationsDropdown();
