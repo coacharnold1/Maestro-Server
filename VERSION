@@ -1,10 +1,18 @@
-Maestro MPD Server v3.3.0
-Release Date: Fri Mar 07 00:00:00 UTC 2026
-Version: 3.3.0
+Maestro MPD Server v3.5.0
+Release Date: Mon Mar 10 00:00:00 UTC 2026
+Version: 3.5.0
 
-🎵 BANDCAMP INTEGRATION & UI REFINEMENTS 🎵
+🎵 ARTIST STATIONS & UI POLISH 🎵
 
-Latest Features (Mar 7, 2026 - v3.3):
+Latest Features (Mar 10, 2026 - v3.5):
+✅ NEW: Artist-Based Music Addition - Autocomplete artist selection with 8657+ artists from library
+✅ NEW: Artist Stations - Save/load/manage preferred artist combinations as reusable presets
+✅ ENHANCED: Artist Stations UI - Matches genre stations design pattern for consistency
+✅ FIXED: Artist Stations Styling - Full theme support (all 7 themes) with proper inheritance
+✅ IMPROVED: Station Management - Consistent visual styling across genre and artist stations
+✅ REFINED: UI/UX Consistency - Artist and genre station features now mirror each other perfectly
+
+Previous Features (Mar 7, 2026 - v3.3):
 ✅ NEW: Bandcamp Track Metadata in Queue - Browse Bandcamp albums, add tracks with proper title/artist/album display
 ✅ NEW: Radio Page Navbar Standardization - Fixed-header navigation matching all other pages
 ✅ ENHANCED: Bandcamp Metadata Caching - Track info cached by track_id and streaming URL for reliable queue display
