@@ -2058,7 +2058,7 @@
 
         // Initialize accordion states from localStorage
         (function initAccordions() {
-            const sections = ['genre', 'manual', 'autofill'];
+            const sections = ['artist', 'genre', 'manual', 'autofill'];
             sections.forEach(sectionId => {
                 const state = localStorage.getItem(`accordion-${sectionId}`);
                 const header = document.querySelector(`#section-${sectionId} .accordion-header`);
