@@ -1617,6 +1617,21 @@
                 </div>
 
                 <button id="add-artist-songs-btn" class="artist-add-button">🎲 Create 25-Song Playlist from Selected Artists</button>
+
+                <!-- Save/Load Artist Stations Section -->
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #4a6279;">
+                    <h3 style="color: #e74c3c; margin-bottom: 15px; text-align: center;">💾 Save Artist Station</h3>
+                    
+                    <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                        <input type="text" id="artist-station-name" placeholder="Station name (e.g., 'Rock Legends')" 
+                            style="flex: 1; padding: 10px; border: 1px solid #34495e; border-radius: 5px; background-color: #34495e; color: #ecf0f1;">
+                        <button id="save-artist-station-btn" style="padding: 10px 15px; background-color: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; white-space: nowrap;">💾 Save</button>
+                    </div>
+
+                    <div id="artist-stations-list" style="margin-top: 15px;">
+                        <!-- Saved stations will appear here -->
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -2864,189 +2879,273 @@
 
         // --- Artist-Based Music Addition Feature ---
         let selectedArtists = [];
-        let cachedArtists = [];  // Cache artists from API
+        let cachedArtists = [];
         let artistsLoaded = false;
         let artistAutocompleteTimeout;
 
-        const artistInput = document.getElementById('artist-input');
-        const artistDropdown = document.getElementById('artist-autocomplete');
-        const selectedArtistsDiv = document.getElementById('selected-artists');
-        const addArtistSongsBtn = document.getElementById('add-artist-songs-btn');
+        function initArtistFeature() {
+            const artistInput = document.getElementById('artist-input');
+            const artistDropdown = document.getElementById('artist-autocomplete');
+            const selectedArtistsDiv = document.getElementById('selected-artists');
+            const addArtistSongsBtn = document.getElementById('add-artist-songs-btn');
 
-        // Load all artists once on first interaction
-        function loadArtistsData() {
-            if (artistsLoaded || cachedArtists.length > 0) return;
-            
-            fetch('/api/autocomplete/artists')
+            console.log('[Artist Feature] DOM elements found:', {
+                artistInput: !!artistInput,
+                artistDropdown: !!artistDropdown,
+                selectedArtistsDiv: !!selectedArtistsDiv,
+                addArtistSongsBtn: !!addArtistSongsBtn
+            });
+
+            if (!artistInput || !artistDropdown || !selectedArtistsDiv || !addArtistSongsBtn) {
+                console.error('[Artist Feature] ERROR: One or more required elements not found!');
+                return;
+            }
+
+            // Load all artists once on first interaction
+            function loadArtistsData() {
+                if (artistsLoaded || cachedArtists.length > 0) return;
+                
+                fetch('/api/autocomplete/artists')
+                    .then(response => {
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                        return response.json();
+                    })
+                    .then(data => {
+                        cachedArtists = data.artists || [];
+                        artistsLoaded = true;
+                        console.log('[Artist Autocomplete] Loaded', cachedArtists.length, 'artists');
+                    })
+                    .catch(error => {
+                        console.error('[Artist Autocomplete] Error loading artists:', error);
+                        displayMessage('error', 'Failed to load artists data');
+                    });
+            }
+
+            // Filter and display artist autocomplete suggestions
+            function showArtistSuggestions(query) {
+                if (!query.trim()) {
+                    artistDropdown.classList.remove('show');
+                    artistDropdown.innerHTML = '';
+                    return;
+                }
+
+                const lowerQuery = query.toLowerCase();
+                const filtered = cachedArtists
+                    .filter(artist => 
+                        artist.toLowerCase().includes(lowerQuery) &&
+                        !selectedArtists.includes(artist)
+                    )
+                    .slice(0, 15);
+
+                artistDropdown.innerHTML = '';
+                
+                if (filtered.length > 0) {
+                    filtered.forEach(artist => {
+                        const option = document.createElement('div');
+                        option.className = 'autocomplete-option';
+                        option.textContent = artist;
+                        option.addEventListener('click', () => {
+                            addArtistChip(artist);
+                        });
+                        artistDropdown.appendChild(option);
+                    });
+                    artistDropdown.classList.add('show');
+                } else {
+                    artistDropdown.classList.remove('show');
+                }
+            }
+
+            // Add artist as a chip/tag
+            function addArtistChip(artist) {
+                if (!selectedArtists.includes(artist)) {
+                    selectedArtists.push(artist);
+                    renderSelectedArtists();
+                    artistInput.value = '';
+                    artistDropdown.classList.remove('show');
+                    artistDropdown.innerHTML = '';
+                    artistInput.focus();
+                }
+            }
+
+            // Render selected artists as chips
+            function renderSelectedArtists() {
+                console.log('[Artist Feature] Rendering', selectedArtists.length, 'selected artists');
+                selectedArtistsDiv.innerHTML = '';
+                if (selectedArtists.length === 0) {
+                    selectedArtistsDiv.innerHTML = '<span style="color: #95a5a6; font-style: italic; font-size: 0.9em; padding: 5px 0;">No artists selected yet</span>';
+                    console.log('[Artist Feature] Showing placeholder text');
+                    return;
+                }
+                
+                selectedArtists.forEach(artist => {
+                    const chip = document.createElement('div');
+                    chip.className = 'artist-chip';
+                    chip.innerHTML = `
+                        <span>${escapeHtml(artist)}</span>
+                        <button type="button" class="chip-remove" onclick="window.removeArtistChip('${artist.replace(/'/g, "\\'")}'); return false;" title="Remove">×</button>
+                    `;
+                    selectedArtistsDiv.appendChild(chip);
+                });
+                console.log('[Artist Feature] Rendered', selectedArtists.length, 'chips');
+            }
+
+            // Remove artist chip
+            window.removeArtistChip = function(artist) {
+                selectedArtists = selectedArtists.filter(a => a !== artist);
+                renderSelectedArtists();
+            };
+
+            // --- Artist Stations Management ---
+            const stationNameInput = document.getElementById('artist-station-name');
+            const saveStationBtn = document.getElementById('save-artist-station-btn');
+            const stationsListDiv = document.getElementById('artist-stations-list');
+            let artistStations = JSON.parse(localStorage.getItem('artistStations') || '{}');
+
+            function renderArtistStations() {
+                stationsListDiv.innerHTML = '';
+                const stations = Object.keys(artistStations);
+                
+                if (stations.length === 0) {
+                    stationsListDiv.innerHTML = '<p style="text-align: center; color: #95a5a6; font-style: italic;">No saved artist stations yet</p>';
+                    return;
+                }
+
+                stations.forEach(stationName => {
+                    const artists = artistStations[stationName] || [];
+                    const stationDiv = document.createElement('div');
+                    stationDiv.style.cssText = 'background-color: #34495e; padding: 12px; margin-bottom: 8px; border-radius: 5px; border-left: 3px solid #e74c3c;';
+                    
+                    stationDiv.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <strong style="color: #ecf0f1;">${escapeHtml(stationName)}</strong>
+                            <div style="display: flex; gap: 5px;">
+                                <button onclick="window.loadArtistStation('${stationName.replace(/'/g, "\\'")}'); return false;" style="padding: 5px 10px; background-color: #27ae60; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.9em;">Load</button>
+                                <button onclick="window.deleteArtistStation('${stationName.replace(/'/g, "\\'")}'); return false;" style="padding: 5px 10px; background-color: #c0392b; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.9em;">Delete</button>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.9em; color: #bdc3c7;">${artists.length} artist${artists.length !== 1 ? 's' : ''}: ${artists.join(', ')}</div>
+                    `;
+                    stationsListDiv.appendChild(stationDiv);
+                });
+            }
+
+            window.loadArtistStation = function(stationName) {
+                if (artistStations[stationName]) {
+                    selectedArtists = [...artistStations[stationName]];
+                    renderSelectedArtists();
+                    displayMessage('success', `✓ Loaded station: ${stationName}`);
+                }
+            };
+
+            window.deleteArtistStation = function(stationName) {
+                if (confirm(`Delete station "${stationName}"?`)) {
+                    delete artistStations[stationName];
+                    localStorage.setItem('artistStations', JSON.stringify(artistStations));
+                    renderArtistStations();
+                    displayMessage('success', `✓ Deleted station: ${stationName}`);
+                }
+            };
+
+            saveStationBtn.addEventListener('click', function() {
+                const stationName = stationNameInput.value.trim();
+                if (!stationName) {
+                    displayMessage('error', 'Please enter a station name');
+                    return;
+                }
+                if (selectedArtists.length === 0) {
+                    displayMessage('error', 'Please select at least one artist to save');
+                    return;
+                }
+                
+                artistStations[stationName] = [...selectedArtists];
+                localStorage.setItem('artistStations', JSON.stringify(artistStations));
+                stationNameInput.value = '';
+                renderArtistStations();
+                displayMessage('success', `✓ Saved station: ${stationName}`);
+            });
+
+            // Initialize stations display
+            renderArtistStations();
+
+            // Event listeners
+            artistInput.addEventListener('focus', function() {
+                if (!artistsLoaded && cachedArtists.length === 0) {
+                    loadArtistsData();
+                }
+            });
+
+            artistInput.addEventListener('input', function() {
+                clearTimeout(artistAutocompleteTimeout);
+                
+                if (!artistsLoaded && cachedArtists.length === 0) {
+                    loadArtistsData();
+                }
+
+                artistAutocompleteTimeout = setTimeout(() => {
+                    showArtistSuggestions(this.value);
+                }, 150);
+            });
+
+            document.addEventListener('click', function(e) {
+                if (e.target !== artistInput && !artistDropdown.contains(e.target)) {
+                    artistDropdown.classList.remove('show');
+                }
+            });
+
+            addArtistSongsBtn.addEventListener('click', function() {
+                if (selectedArtists.length === 0) {
+                    displayMessage('error', 'Please select at least one artist');
+                    return;
+                }
+
+                addArtistSongsBtn.disabled = true;
+                const originalText = addArtistSongsBtn.textContent;
+                addArtistSongsBtn.textContent = 'Creating playlist...';
+
+                fetch('/api/add-from-artists', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ artists: selectedArtists })
+                })
                 .then(response => {
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
                     return response.json();
                 })
                 .then(data => {
-                    cachedArtists = data.artists || [];
-                    artistsLoaded = true;
-                    console.log('[Artist Autocomplete] Loaded', cachedArtists.length, 'artists');
+                    if (data.status === 'success') {
+                        const count = data.songs_added || 0;
+                        displayMessage('success', `✓ Created 25-song playlist from ${selectedArtists.length} artist(s) - added ${count} random tracks`);
+                        selectedArtists = [];
+                        renderSelectedArtists();
+                        artistInput.value = '';
+                    } else {
+                        displayMessage('error', data.message || 'Failed to create playlist');
+                    }
                 })
                 .catch(error => {
-                    console.error('[Artist Autocomplete] Error loading artists:', error);
-                    displayMessage('error', 'Failed to load artists data');
+                    console.error('Error creating playlist:', error);
+                    displayMessage('error', 'Failed to create playlist from artists: ' + error.message);
+                })
+                .finally(() => {
+                    addArtistSongsBtn.disabled = false;
+                    addArtistSongsBtn.textContent = originalText;
                 });
-        }
-
-        // Load artists when input gets focus
-        artistInput.addEventListener('focus', function() {
-            if (!artistsLoaded && cachedArtists.length === 0) {
-                loadArtistsData();
-            }
-        });
-
-        // Filter and display artist autocomplete suggestions
-        function showArtistSuggestions(query) {
-            if (!query.trim()) {
-                artistDropdown.classList.remove('show');
-                artistDropdown.innerHTML = '';
-                return;
-            }
-
-            const lowerQuery = query.toLowerCase();
-            const filtered = cachedArtists
-                .filter(artist => 
-                    artist.toLowerCase().includes(lowerQuery) &&
-                    !selectedArtists.includes(artist)
-                )
-                .slice(0, 15);  // Show up to 15 suggestions
-
-            artistDropdown.innerHTML = '';
-            
-            if (filtered.length > 0) {
-                filtered.forEach(artist => {
-                    const option = document.createElement('div');
-                    option.className = 'autocomplete-option';
-                    option.textContent = artist;
-                    option.addEventListener('click', () => {
-                        addArtistChip(artist);
-                    });
-                    artistDropdown.appendChild(option);
-                });
-                artistDropdown.classList.add('show');
-            } else {
-                artistDropdown.classList.remove('show');
-            }
-        }
-
-        // Handle input with debounce for filtering
-        artistInput.addEventListener('input', function() {
-            clearTimeout(artistAutocompleteTimeout);
-            
-            // Load data if not loaded yet
-            if (!artistsLoaded && cachedArtists.length === 0) {
-                loadArtistsData();
-            }
-
-            artistAutocompleteTimeout = setTimeout(() => {
-                showArtistSuggestions(this.value);
-            }, 150);  // Small debounce for filtering
-        });
-
-        // Hide autocomplete when clicking outside
-        document.addEventListener('click', function(e) {
-            if (e.target !== artistInput && !artistDropdown.contains(e.target)) {
-                artistDropdown.classList.remove('show');
-            }
-        });
-
-        // Show autocomplete when focusing on input with existing text
-        artistInput.addEventListener('focus', function() {
-            if (this.value.trim().length > 0) {
-                showArtistSuggestions(this.value);
-            }
-        });
-
-        // Add artist as a chip/tag
-        function addArtistChip(artist) {
-            if (!selectedArtists.includes(artist)) {
-                selectedArtists.push(artist);
-                renderSelectedArtists();
-                artistInput.value = '';
-                artistDropdown.classList.remove('show');
-                artistDropdown.innerHTML = '';
-                artistInput.focus();
-            }
-        }
-
-        // Render selected artists as chips
-        function renderSelectedArtists() {
-            selectedArtistsDiv.innerHTML = '';
-            if (selectedArtists.length === 0) {
-                selectedArtistsDiv.innerHTML = '<span style="color: #95a5a6; font-style: italic; font-size: 0.9em; padding: 5px 0;">No artists selected yet</span>';
-                return;
-            }
-            
-            selectedArtists.forEach(artist => {
-                const chip = document.createElement('div');
-                chip.className = 'artist-chip';
-                chip.innerHTML = `
-                    <span>${escapeHtml(artist)}</span>
-                    <button type="button" class="chip-remove" onclick="removeArtistChip('${artist.replace(/'/g, "\\'")}'); return false;" title="Remove">×</button>
-                `;
-                selectedArtistsDiv.appendChild(chip);
             });
-        }
 
-        // Remove artist chip
-        function removeArtistChip(artist) {
-            selectedArtists = selectedArtists.filter(a => a !== artist);
+            // Initialize display
+            console.log('[Artist Feature] Calling renderSelectedArtists() for initialization');
             renderSelectedArtists();
+            console.log('[Artist Feature] Initialization complete');
         }
 
-        // Make removeArtistChip globally available for onclick handlers
-        window.removeArtistChip = removeArtistChip;
-
-        // Add songs from selected artists
-        addArtistSongsBtn.addEventListener('click', function() {
-            if (selectedArtists.length === 0) {
-                displayMessage('error', 'Please select at least one artist');
-                return;
-            }
-
-            addArtistSongsBtn.disabled = true;
-            const originalText = addArtistSongsBtn.textContent;
-            addArtistSongsBtn.textContent = 'Creating playlist...';
-
-            fetch('/api/add-from-artists', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ artists: selectedArtists })
-            })
-            .then(response => {
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success') {
-                    const count = data.songs_added || 0;
-                    displayMessage('success', `✓ Created 25-song playlist from ${selectedArtists.length} artist(s) - added ${count} random tracks`);
-                    selectedArtists = [];
-                    renderSelectedArtists();
-                    artistInput.value = '';
-                } else {
-                    displayMessage('error', data.message || 'Failed to create playlist');
-                }
-            })
-            .catch(error => {
-                console.error('Error creating playlist:', error);
-                displayMessage('error', 'Failed to create playlist from artists: ' + error.message);
-            })
-            .finally(() => {
-                addArtistSongsBtn.disabled = false;
-                addArtistSongsBtn.textContent = originalText;
-            });
-        });
-
-        // Initialize the selected artists display
-        renderSelectedArtists();
+        // Run initialization when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initArtistFeature);
+        } else {
+            initArtistFeature();
+        }
     </script>
 
     <!-- Keyboard Shortcuts -->
