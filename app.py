@@ -35,6 +35,7 @@ from services.lastfm_service import LastfmService
 from utils.settings import (
     load_settings, save_settings,
     load_genre_stations, save_genre_stations,
+    load_artist_stations, save_artist_stations,
     load_manual_stations, save_manual_stations,
     add_manual_station, remove_manual_station
 )
@@ -82,7 +83,10 @@ from routes.status import (
 from routes.radio import (
     get_genre_stations_handler, save_genre_station_handler,
     get_genre_station_handler, delete_genre_station_handler,
-    set_genre_station_mode_handler, test_streaming_radio_handler,
+    set_genre_station_mode_handler,
+    get_artist_stations_handler, save_artist_station_handler,
+    get_artist_station_handler, delete_artist_station_handler,
+    test_streaming_radio_handler,
     detect_radio_country_handler, get_radio_countries_handler,
     download_radio_backup_handler, get_backup_status_handler,
     get_radio_stations_handler, play_radio_station_handler,
@@ -2170,6 +2174,40 @@ def set_genre_station_mode():
             print("Genre station mode deactivated")
     
     return result
+
+@app.route('/api/artist_stations', methods=['GET'])
+def get_artist_stations():
+    """Get all saved artist stations."""
+    app_ctx = {
+        'load_artist_stations': load_artist_stations
+    }
+    return get_artist_stations_handler(app_ctx)
+
+@app.route('/api/artist_stations', methods=['POST'])
+def save_artist_station():
+    """Save a new artist station."""
+    app_ctx = {
+        'load_artist_stations': load_artist_stations,
+        'save_artist_stations': save_artist_stations
+    }
+    return save_artist_station_handler(app_ctx)
+
+@app.route('/api/artist_stations/<station_name>', methods=['GET'])
+def get_artist_station(station_name):
+    """Get a specific artist station."""
+    app_ctx = {
+        'load_artist_stations': load_artist_stations
+    }
+    return get_artist_station_handler(app_ctx, station_name)
+
+@app.route('/api/artist_stations/<station_name>', methods=['DELETE'])
+def delete_artist_station(station_name):
+    """Delete an artist station."""
+    app_ctx = {
+        'load_artist_stations': load_artist_stations,
+        'save_artist_stations': save_artist_stations
+    }
+    return delete_artist_station_handler(app_ctx, station_name)
 
 @app.route('/api/streaming_radio/test', methods=['POST'])
 def test_streaming_radio():

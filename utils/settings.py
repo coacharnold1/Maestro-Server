@@ -16,6 +16,10 @@ def get_genre_stations_file_path():
     """Get the path to genre_stations.json"""
     return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'genre_stations.json')
 
+def get_artist_stations_file_path():
+    """Get the path to artist_stations.json"""
+    return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'artist_stations.json')
+
 def get_manual_stations_file_path():
     """Get the path to manual_radio_stations.json"""
     return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'manual_radio_stations.json')
@@ -81,6 +85,31 @@ def save_genre_stations(stations: dict) -> bool:
         return True
     except IOError as e:
         print(f"Error saving genre stations: {e}")
+        return False
+
+
+def load_artist_stations() -> dict:
+    """Load artist stations from JSON file"""
+    artist_stations_file = get_artist_stations_file_path()
+    try:
+        if os.path.exists(artist_stations_file):
+            with open(artist_stations_file, 'r') as f:
+                return json.load(f)
+        return {}
+    except (json.JSONDecodeError, IOError) as e:
+        print(f"Error loading artist stations: {e}")
+        return {}
+
+
+def save_artist_stations(stations: dict) -> bool:
+    """Save artist stations to JSON file"""
+    artist_stations_file = get_artist_stations_file_path()
+    try:
+        with open(artist_stations_file, 'w') as f:
+            json.dump(stations, f, indent=2)
+        return True
+    except IOError as e:
+        print(f"Error saving artist stations: {e}")
         return False
 
 

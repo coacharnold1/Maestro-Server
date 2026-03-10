@@ -126,6 +126,93 @@ def set_genre_station_mode_handler(app_ctx):
         return jsonify({'status': 'error', 'message': f'Error setting genre station mode: {str(e)}'}), 500
 
 
+# --- ARTIST STATIONS HANDLERS ---
+
+def get_artist_stations_handler(app_ctx):
+    """Get all saved artist stations."""
+    load_artist_stations = app_ctx['load_artist_stations']
+    try:
+        stations = load_artist_stations()
+        return jsonify({'status': 'success', 'stations': stations})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Error loading stations: {str(e)}'}), 500
+
+
+def save_artist_station_handler(app_ctx):
+    """Save a new artist station."""
+    load_artist_stations = app_ctx['load_artist_stations']
+    save_artist_stations = app_ctx['save_artist_stations']
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'message': 'No data provided'}), 400
+        
+        station_name = data.get('name', '').strip()
+        artists = data.get('artists', [])
+        
+        if not station_name:
+            return jsonify({'status': 'error', 'message': 'Station name is required'}), 400
+        
+        if not artists or not isinstance(artists, list):
+            return jsonify({'status': 'error', 'message': 'At least one artist is required'}), 400
+        
+        # Load existing stations
+        stations = load_artist_stations()
+        
+        # Add new station
+        stations[station_name] = {
+            'artists': artists,
+            'created': int(time.time())
+        }
+        
+        # Save stations
+        if save_artist_stations(stations):
+            return jsonify({'status': 'success', 'message': f'Station "{station_name}" saved'})
+        else:
+            return jsonify({'status': 'error', 'message': 'Failed to save station'}), 500
+            
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Error saving station: {str(e)}'}), 500
+
+
+def get_artist_station_handler(app_ctx, station_name):
+    """Get a specific artist station."""
+    load_artist_stations = app_ctx['load_artist_stations']
+    
+    try:
+        stations = load_artist_stations()
+        
+        if station_name not in stations:
+            return jsonify({'status': 'error', 'message': 'Station not found'}), 404
+        
+        return jsonify({'status': 'success', 'station': stations[station_name]})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Error loading station: {str(e)}'}), 500
+
+
+def delete_artist_station_handler(app_ctx, station_name):
+    """Delete an artist station."""
+    load_artist_stations = app_ctx['load_artist_stations']
+    save_artist_stations = app_ctx['save_artist_stations']
+    
+    try:
+        stations = load_artist_stations()
+        
+        if station_name not in stations:
+            return jsonify({'status': 'error', 'message': 'Station not found'}), 404
+        
+        del stations[station_name]
+        
+        if save_artist_stations(stations):
+            return jsonify({'status': 'success', 'message': f'Station "{station_name}" deleted'})
+        else:
+            return jsonify({'status': 'error', 'message': 'Failed to delete station'}), 500
+            
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Error deleting station: {str(e)}'}), 500
+
+
 def test_streaming_radio_handler(app_ctx):
     """Test internet radio streaming by playing a stream URL."""
     connect_mpd_client = app_ctx['connect_mpd_client']

@@ -3284,7 +3284,22 @@
             const artistStationsListDiv = document.getElementById('artist-stations-list');
             const artistStationsContainer = document.getElementById('artist-stations-container');
             
-            let artistStations = JSON.parse(localStorage.getItem('artistStations') || '{}');
+            let artistStations = {};
+
+            function loadArtistStationsFromAPI() {
+                fetch('/api/artist_stations')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            artistStations = data.stations;
+                            updateArtistStationsDropdown();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('[Artist Stations] Error loading stations:', error);
+                        displayMessage('error', 'Failed to load artist stations');
+                    });
+            }
 
             function updateArtistStationsDropdown() {
                 artistStationsSelect.innerHTML = '<option value="">-- Select a station --</option>';
@@ -3342,11 +3357,28 @@
                     return;
                 }
                 
-                artistStations[stationName] = [...selectedArtists];
-                localStorage.setItem('artistStations', JSON.stringify(artistStations));
-                artistStationNameInput.value = '';
-                updateArtistStationsDropdown();
-                displayMessage('success', `Station "${stationName}" saved successfully`);
+                fetch('/api/artist_stations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: stationName,
+                        artists: selectedArtists
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            artistStationNameInput.value = '';
+                            loadArtistStationsFromAPI();
+                            displayMessage('success', `Station "${stationName}" saved successfully`);
+                        } else {
+                            displayMessage('error', data.message || 'Failed to save station');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('[Artist Stations] Error saving station:', error);
+                        displayMessage('error', 'Failed to save station');
+                    });
             }
 
             function loadArtistStation() {
@@ -3356,8 +3388,8 @@
                     return;
                 }
 
-                if (artistStations[stationName]) {
-                    selectedArtists = [...artistStations[stationName]];
+                if (artistStations[stationName] && artistStations[stationName].artists) {
+                    selectedArtists = [...artistStations[stationName].artists];
                     renderSelectedArtists();
                     displayMessage('success', `🎤 Loaded station "${stationName}" with ${selectedArtists.length} artist${selectedArtists.length !== 1 ? 's' : ''}`);
                 } else {
@@ -3370,12 +3402,26 @@
                     return;
                 }
                 
-                delete artistStations[stationName];
-                localStorage.setItem('artistStations', JSON.stringify(artistStations));
-                updateArtistStationsDropdown();
-                updateManageArtistStations();
-                displayMessage('success', `Station "${stationName}" deleted`);
+                fetch(`/api/artist_stations/${encodeURIComponent(stationName)}`, {
+                    method: 'DELETE'
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            loadArtistStationsFromAPI();
+                            displayMessage('success', `Station "${stationName}" deleted`);
+                        } else {
+                            displayMessage('error', data.message || 'Failed to delete station');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('[Artist Stations] Error deleting station:', error);
+                        displayMessage('error', 'Failed to delete station');
+                    });
             }
+
+            // Make globally available for onclick handlers
+            window.deleteArtistStation = deleteArtistStation;
 
             // Event listeners for artist stations
             if (saveArtistStationBtn) saveArtistStationBtn.addEventListener('click', saveArtistStation);
@@ -3383,7 +3429,7 @@
             if (managementArtistBtn) managementArtistBtn.addEventListener('click', toggleManageArtistStations);
 
             // Initialize stations display
-            updateArtistStationsDropdown();
+            loadArtistStationsFromAPI();
 
             // Event listeners
             artistInput.addEventListener('focus', function() {
