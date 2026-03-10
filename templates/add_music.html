@@ -2944,8 +2944,14 @@
                         const option = document.createElement('div');
                         option.className = 'autocomplete-option';
                         option.textContent = artist;
-                        option.addEventListener('click', () => {
+                        option.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            console.log('[Artist Feature] Clicked artist option:', artist);
                             addArtistChip(artist);
+                            // Close dropdown after selection
+                            artistDropdown.classList.remove('show');
+                            artistDropdown.innerHTML = '';
+                            console.log('[Artist Feature] Dropdown closed');
                         });
                         artistDropdown.appendChild(option);
                     });
@@ -2969,11 +2975,18 @@
 
             // Render selected artists as chips
             function renderSelectedArtists() {
-                console.log('[Artist Feature] Rendering', selectedArtists.length, 'selected artists');
-                selectedArtistsDiv.innerHTML = '';
+                // Re-query the element to ensure we have the right reference
+                const container = document.getElementById('selected-artists');
+                if (!container) {
+                    console.error('[Artist Feature] ERROR: selected-artists container not found!');
+                    return;
+                }
+
+                console.log('[Artist Feature] renderSelectedArtists - rendering', selectedArtists.length, 'artists into', container);
+                container.innerHTML = '';
                 if (selectedArtists.length === 0) {
-                    selectedArtistsDiv.innerHTML = '<span style="color: #95a5a6; font-style: italic; font-size: 0.9em; padding: 5px 0;">No artists selected yet</span>';
-                    console.log('[Artist Feature] Showing placeholder text');
+                    container.innerHTML = '<span style="color: #95a5a6; font-style: italic; font-size: 0.9em; padding: 5px 0;">No artists selected yet</span>';
+                    console.log('[Artist Feature] Rendered placeholder');
                     return;
                 }
                 
@@ -2984,7 +2997,7 @@
                         <span>${escapeHtml(artist)}</span>
                         <button type="button" class="chip-remove" onclick="window.removeArtistChip('${artist.replace(/'/g, "\\'")}'); return false;" title="Remove">×</button>
                     `;
-                    selectedArtistsDiv.appendChild(chip);
+                    container.appendChild(chip);
                 });
                 console.log('[Artist Feature] Rendered', selectedArtists.length, 'chips');
             }
