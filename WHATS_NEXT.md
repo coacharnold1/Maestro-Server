@@ -1,6 +1,92 @@
 # Maestro Server Development Roadmap
 
-## 📊 Current Status Summary (Updated March 9, 2026)
+## � ACTIVE DEBUGGING SESSION - Artist Feature Playlist Creation Issue
+
+**Status:** IN PROGRESS - Debugging stuck "Creating Playlist" dialog
+**Location:** `/home/fausto/Maestro-Server/templates/add_music.html` (lines 3150-3225)
+**Backend Route:** `/home/fausto/Maestro-Server/routes/browse.py` (lines 784-887, `add_from_artists_handler`)
+
+### Problem Summary
+User clicks "Create 25-Song Playlist" button → Dialog appears asking to clear queue vs add to queue → User selects option → Toast shows "Creating 25-song playlist..." → **NOTHING HAPPENS**, button gets stuck.
+
+### Current Debug Findings
+✅ **WORKING:**
+- Artist autocomplete loads and filters correctly
+- Artist chips display and render properly
+- Save/Load artist stations works with localStorage
+- Click handler DOES fire (we see `[Artist Feature] CLICK HANDLER FIRED` in console)
+- Toast messages display correctly (using displayMessage function)
+- Confirm dialog appears and user can select option
+
+❌ **BROKEN:**
+- After confirm dialog closes, fetch call to `/api/add-from-artists` never happens
+- No `[Artist Feature] About to fetch...` log message appears
+- Button gets disabled and shows "Creating playlist..." but stuck forever
+- **Last console log seen:** `[Artist Feature] CLICK HANDLER FIRED`
+- **Missing logs:** Everything after that point (confirm dialog result, button disable, displayMessage call, fetch call)
+
+### Console Output (Last seen)
+```
+[Artist Feature] CLICK HANDLER FIRED add_music:3154:29
+```
+Then nothing. Button shows "Creating playlist..." in disabled state forever.
+
+### Next Steps to Debug (TOMORROW)
+1. **Hard refresh and open console** (`Ctrl+Shift+R`, then F12)
+2. **Select 2-3 artists** and click button
+3. **Look for these specific log messages** (in order):
+   - `[Artist Feature] selectedArtists:` - should show array of artist names
+   - `[Artist Feature] About to show confirm dialog`
+   - `[Artist Feature] Confirm dialog result:` - should show true or false
+   - `[Artist Feature] Disabling button...`
+   - `[Artist Feature] About to display message`
+   - `[Artist Feature] About to fetch /api/add-from-artists...`
+4. **First missing log identifies the problem point**
+
+### Hypothesis
+The displayMessage() call or something between confirm dialog and fetch might be throwing an error that's being caught by try-catch but not being logged to error handler properly.
+
+### Code Context
+**Click Handler Location:** `templates/add_music.html` lines 3151-3227
+- Wrapped in try-catch block
+- Granular logging added between each operation
+- If error occurs, should log to `[Artist Feature] CATCH BLOCK` but this hasn't appeared
+
+**API Endpoint:** `routes/browse.py` lines 784-887
+- Accepts POST with `{ artists: [...], clear_queue: true/false }`
+- IF artist data not found, returns 400 error with message
+- Otherwise adds songs to queue and returns 200 success
+
+### Recent Code Changes
+- Added purple gradient color for artist chips (#8e44ad to #6f42c1)
+- Added clear queue confirmation dialog
+- Added comprehensive logging for debugging this exact issue
+- Fixed escapeHtml calls in station rendering (DOM creation instead of innerHTML)
+- Deployed to both `/home/fausto/maestro/web/templates/` and `/home/fausto/maestro/templates/`
+- Service: `maestro-web.service` restarted multiple times during debugging
+
+### Files Modified (Not Yet Committed)
+- `templates/add_music.html` - Multiple edits for debugging
+- `routes/browse.py` - Clear queue support already added
+
+### TO COMMIT WHEN WORKING
+```bash
+cd /home/fausto/Maestro-Server
+git add -A
+git commit -m "Feat: Complete artist-based music addition feature with stations and clear queue option
+
+- Artist autocomplete with purple gradient chips
+- Save/Load artist stations with localStorage
+- Clear current queue option when creating playlist
+- 25-song random playlist generation
+- Toast messaging for all operations
+- Full debugging completed and feature tested"
+git push origin main
+```
+
+---
+
+## �📊 Current Status Summary (Updated March 9, 2026)
 
 **🎉 PHASE 5 COMPLETE - All Testing Infrastructure Ready!**
 

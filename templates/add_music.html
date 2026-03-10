@@ -126,10 +126,10 @@
         }
 
         .accordion-header.artist {
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);
         }
         .accordion-header.artist:hover {
-            background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+            background: linear-gradient(135deg, #16a085 0%, #138d79 100%);
         }
 
         /* Artist-Based Music Addition Styling */
@@ -153,8 +153,8 @@
 
         #artist-input:focus {
             outline: none;
-            border-color: #e74c3c;
-            box-shadow: 0 0 8px rgba(231, 76, 60, 0.3);
+            border-color: #1abc9c;
+            box-shadow: 0 0 8px rgba(26, 188, 156, 0.3);
         }
 
         .artist-dropdown {
@@ -163,7 +163,7 @@
             left: 0;
             right: 0;
             background-color: #34495e;
-            border: 1px solid #e74c3c;
+            border: 1px solid #1abc9c;
             border-top: none;
             border-radius: 0 0 5px 5px;
             max-height: 250px;
@@ -187,7 +187,7 @@
 
         .autocomplete-option:hover {
             background-color: #2c3e50;
-            color: #e74c3c;
+            color: #1abc9c;
         }
 
         .autocomplete-option:last-child {
@@ -207,7 +207,7 @@
         }
 
         .artist-chip {
-            background-color: #e74c3c;
+            background: linear-gradient(135deg, #8e44ad 0%, #6f42c1 100%);
             color: white;
             padding: 8px 14px;
             border-radius: 20px;
@@ -215,7 +215,7 @@
             align-items: center;
             gap: 8px;
             font-size: 0.95em;
-            box-shadow: 0 2px 6px rgba(231, 76, 60, 0.4);
+            box-shadow: 0 2px 6px rgba(142, 68, 173, 0.4);
             animation: slideIn 0.2s ease-out;
         }
 
@@ -227,6 +227,15 @@
             to {
                 opacity: 1;
                 transform: translateX(0);
+            }
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
             }
         }
 
@@ -260,7 +269,7 @@
         }
 
         .artist-add-button {
-            background-color: #e74c3c;
+            background-color: #1abc9c;
             color: white;
             width: 100%;
             padding: 12px 20px;
@@ -274,7 +283,7 @@
         }
 
         .artist-add-button:hover {
-            background-color: #c0392b;
+            background-color: #16a085;
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         }
@@ -283,6 +292,74 @@
             background-color: #7f8c8d;
             cursor: not-allowed;
             transform: none;
+        }
+
+        /* Touch-friendly button sizing for mobile */
+        @media (hover: none) and (pointer: coarse) {
+            #artist-input {
+                font-size: 16px;
+                padding: 14px 12px;
+                height: 48px;
+            }
+
+            #artist-station-name {
+                font-size: 16px;
+                padding: 14px 12px !important;
+                height: 48px !important;
+            }
+
+            .artist-add-button {
+                padding: 16px 20px;
+                min-height: 50px;
+                font-size: 1.05em;
+            }
+
+            .chip-remove {
+                width: 24px;
+                height: 24px;
+                font-size: 1.4em;
+            }
+
+            .autocomplete-option {
+                padding: 16px 15px;
+                min-height: 48px;
+            }
+
+            /* Make accordion buttons more touch-friendly */
+            .accordion-header {
+                padding: 14px 20px;
+                min-height: 50px;
+            }
+        }
+
+        /* Improved input styling for artist station name */
+        #artist-station-name:focus {
+            outline: none;
+            border-color: #16a085;
+            background-color: #34495e;
+            box-shadow: 0 0 10px rgba(26, 188, 156, 0.4), inset 0 0 8px rgba(26, 188, 156, 0.1);
+        }
+
+        #artist-station-name:hover {
+            border-color: #16a085;
+            box-shadow: 0 3px 8px rgba(26, 188, 156, 0.3);
+        }
+
+        #artist-station-name::placeholder {
+            color: #95a5a6;
+            opacity: 0.8;
+        }
+
+        /* Better button hover/active states */
+        #save-artist-station-btn:hover {
+            background-color: #16a085;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        #save-artist-station-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
         }
 
         /* Accordion section buttons - taller */
@@ -436,7 +513,6 @@
             background-color: #d35400 !important;
         }
 
-        /* Mobile responsive navigation */
         @media (max-width: 600px) {
             .container {
                 padding: 10px;
@@ -485,6 +561,73 @@
             .footer-links a {
                 padding: 8px 16px !important;
                 margin: 0 !important;
+            }
+
+            /* ===== ARTIST FEATURE MOBILE STYLES ===== */
+            #artist-input {
+                font-size: 1em;
+                padding: 12px 10px;
+                height: 44px;
+            }
+
+            .artist-dropdown {
+                max-height: 200px;
+            }
+
+            .autocomplete-option {
+                padding: 14px 12px;
+                font-size: 0.95em;
+            }
+
+            .artist-chip {
+                font-size: 0.9em;
+                padding: 6px 10px;
+            }
+
+            .artist-chip span {
+                max-width: 150px;
+            }
+
+            .chip-remove {
+                width: 20px;
+                height: 20px;
+                font-size: 1.1em;
+            }
+
+            .artist-add-button {
+                padding: 14px 16px;
+                font-size: 0.95em;
+                height: 44px;
+                border-radius: 6px;
+            }
+
+            .selected-artists-container {
+                min-height: 50px;
+                padding: 8px;
+                gap: 6px;
+            }
+
+            /* Save station section - ENSURE VISIBLE ON MOBILE */
+            #artist-station-name {
+                width: 100% !important;
+                min-width: 100% !important;
+                flex-basis: 100% !important;
+                padding: 12px 10px !important;
+                font-size: 1em !important;
+                height: 44px !important;
+                border: 2px solid #1abc9c !important;
+                background-color: #2c3e50 !important;
+                box-shadow: 0 2px 4px rgba(26, 188, 156, 0.2) !important;
+                margin-bottom: 10px !important;
+                display: block !important;
+            }
+
+            #save-artist-station-btn {
+                width: 100% !important;
+                padding: 12px 16px !important;
+                height: 44px !important;
+                display: block !important;
+                min-width: 100% !important;
             }
         }
 
@@ -761,6 +904,79 @@
             .header-search {
                 gap: 4px;
                 padding: 0 5px;
+            }
+
+            /* ===== ARTIST FEATURE ULTRA-MOBILE STYLES (< 450px) ===== */
+            #artist-input {
+                font-size: 16px;
+                padding: 14px 12px;
+            }
+
+            .artist-dropdown {
+                max-height: 180px;
+                z-index: 2001;
+            }
+
+            .artist-chip {
+                font-size: 0.85em;
+                padding: 5px 8px;
+            }
+
+            .artist-chip span {
+                max-width: 120px;
+            }
+
+            .artist-add-button {
+                padding: 16px 12px;
+                font-size: 0.9em;
+                min-height: 48px;
+            }
+
+            .selected-artists-container {
+                min-height: 55px;
+            }
+
+            /* Optimize modal for small screens */
+            .artist-feature-modal {
+                max-width: 90vw !important;
+                padding: 20px !important;
+                border-radius: 8px !important;
+            }
+
+            .artist-feature-modal h2 {
+                font-size: 1.3em !important;
+            }
+
+            .artist-feature-modal p {
+                font-size: 0.95em !important;
+            }
+
+            .artist-feature-modal button {
+                padding: 12px 16px !important;
+                font-size: 0.9em !important;
+                min-height: 44px !important;
+            }
+
+            /* CRITICAL: Ensure station input is visible and accessible on ultra-small screens */
+            #artist-station-name {
+                width: 100% !important;
+                min-width: 100% !important;
+                flex-basis: 100% !important;
+                padding: 14px 12px !important;
+                font-size: 0.95em !important;
+                height: 48px !important;
+                border: 2px solid #1abc9c !important;
+                background-color: #2c3e50 !important;
+                display: block !important;
+                margin-bottom: 8px !important;
+            }
+
+            #save-artist-station-btn {
+                width: 100% !important;
+                min-width: 100% !important;
+                padding: 14px 16px !important;
+                height: 48px !important;
+                display: block !important;
             }
         }
 
@@ -1620,12 +1836,12 @@
 
                 <!-- Save/Load Artist Stations Section -->
                 <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #4a6279;">
-                    <h3 style="color: #e74c3c; margin-bottom: 15px; text-align: center;">💾 Save Artist Station</h3>
+                    <h3 style="color: #1abc9c; margin-bottom: 15px; text-align: center;">💾 Save Artist Station</h3>
                     
-                    <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; align-items: center;">
                         <input type="text" id="artist-station-name" placeholder="Station name (e.g., 'Rock Legends')" 
-                            style="flex: 1; padding: 10px; border: 1px solid #34495e; border-radius: 5px; background-color: #34495e; color: #ecf0f1;">
-                        <button id="save-artist-station-btn" style="padding: 10px 15px; background-color: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; white-space: nowrap;">💾 Save</button>
+                            style="flex: 1; min-width: 200px; padding: 12px 14px; border: 2px solid #1abc9c; border-radius: 6px; background-color: #2c3e50; color: #ecf0f1; font-size: 1em; transition: all 0.2s; box-shadow: 0 2px 4px rgba(26, 188, 156, 0.2);">
+                        <button id="save-artist-station-btn" style="padding: 12px 16px; background-color: #1abc9c; color: white; border: none; border-radius: 6px; cursor: pointer; white-space: nowrap; font-weight: 600; transition: all 0.2s; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); min-width: 120px;">💾 Save</button>
                     </div>
 
                     <div id="artist-stations-list" style="margin-top: 15px;">
@@ -2689,6 +2905,7 @@
             window.playbackAction = playbackAction;
             window.clearPlaylist = clearPlaylist;
             window.deleteStation = deleteStation;
+            window.displayMessage = displayMessage;  // ← Make displayMessage globally accessible for artist feature
         });
     </script>
 
@@ -2903,21 +3120,29 @@
 
             // Load all artists once on first interaction
             function loadArtistsData() {
-                if (artistsLoaded || cachedArtists.length > 0) return;
+                if (artistsLoaded || cachedArtists.length > 0) {
+                    console.log('[Artist Autocomplete] Already loaded, returning');
+                    return;
+                }
+                
+                console.log('[Artist Autocomplete] Starting fetch from /api/autocomplete/artists');
                 
                 fetch('/api/autocomplete/artists')
                     .then(response => {
+                        console.log('[Artist Autocomplete] Fetch response:', response.status, response.ok);
                         if (!response.ok) throw new Error(`HTTP ${response.status}`);
                         return response.json();
                     })
                     .then(data => {
+                        console.log('[Artist Autocomplete] Received data:', data);
                         cachedArtists = data.artists || [];
                         artistsLoaded = true;
+                        displayMessage('success', `✓ Loaded ${cachedArtists.length} artists`);
                         console.log('[Artist Autocomplete] Loaded', cachedArtists.length, 'artists');
                     })
                     .catch(error => {
                         console.error('[Artist Autocomplete] Error loading artists:', error);
-                        displayMessage('error', 'Failed to load artists data');
+                        displayMessage('error', 'Failed to load artists data: ' + error.message);
                     });
             }
 
@@ -3035,18 +3260,42 @@
                 stations.forEach(stationName => {
                     const artists = artistStations[stationName] || [];
                     const stationDiv = document.createElement('div');
-                    stationDiv.style.cssText = 'background-color: #34495e; padding: 12px; margin-bottom: 8px; border-radius: 5px; border-left: 3px solid #e74c3c;';
+                    stationDiv.style.cssText = 'background-color: #34495e; padding: 12px; margin-bottom: 8px; border-radius: 5px; border-left: 3px solid #8e44ad;';
                     
-                    stationDiv.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                            <strong style="color: #ecf0f1;">${escapeHtml(stationName)}</strong>
-                            <div style="display: flex; gap: 5px;">
-                                <button onclick="window.loadArtistStation('${stationName.replace(/'/g, "\\'")}'); return false;" style="padding: 5px 10px; background-color: #27ae60; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.9em;">Load</button>
-                                <button onclick="window.deleteArtistStation('${stationName.replace(/'/g, "\\'")}'); return false;" style="padding: 5px 10px; background-color: #c0392b; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.9em;">Delete</button>
-                            </div>
-                        </div>
-                        <div style="font-size: 0.9em; color: #bdc3c7;">${artists.length} artist${artists.length !== 1 ? 's' : ''}: ${artists.join(', ')}</div>
-                    `;
+                    // Station header with load/delete buttons
+                    const headerDiv = document.createElement('div');
+                    headerDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;';
+                    
+                    const nameSpan = document.createElement('strong');
+                    nameSpan.style.color = '#ecf0f1';
+                    nameSpan.textContent = stationName;
+                    
+                    const buttonsDiv = document.createElement('div');
+                    buttonsDiv.style.cssText = 'display: flex; gap: 5px;';
+                    
+                    const loadBtn = document.createElement('button');
+                    loadBtn.textContent = 'Load';
+                    loadBtn.style.cssText = 'padding: 5px 10px; background-color: #27ae60; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.9em;';
+                    loadBtn.onclick = () => window.loadArtistStation(stationName);
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = 'Delete';
+                    deleteBtn.style.cssText = 'padding: 5px 10px; background-color: #c0392b; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.9em;';
+                    deleteBtn.onclick = () => window.deleteArtistStation(stationName);
+                    
+                    buttonsDiv.appendChild(loadBtn);
+                    buttonsDiv.appendChild(deleteBtn);
+                    
+                    headerDiv.appendChild(nameSpan);
+                    headerDiv.appendChild(buttonsDiv);
+                    
+                    // Station info (artist count and list)
+                    const infoDiv = document.createElement('div');
+                    infoDiv.style.cssText = 'font-size: 0.9em; color: #bdc3c7;';
+                    infoDiv.textContent = `${artists.length} artist${artists.length !== 1 ? 's' : ''}: ${artists.join(', ')}`;
+                    
+                    stationDiv.appendChild(headerDiv);
+                    stationDiv.appendChild(infoDiv);
                     stationsListDiv.appendChild(stationDiv);
                 });
             }
@@ -3092,6 +3341,7 @@
             // Event listeners
             artistInput.addEventListener('focus', function() {
                 if (!artistsLoaded && cachedArtists.length === 0) {
+                    displayMessage('info', 'Loading artists...');
                     loadArtistsData();
                 }
             });
@@ -3114,46 +3364,200 @@
                 }
             });
 
-            addArtistSongsBtn.addEventListener('click', function() {
-                if (selectedArtists.length === 0) {
-                    displayMessage('error', 'Please select at least one artist');
-                    return;
-                }
+            // Helper function to show queue options modal
+            function showQueueOptionsModal(onClear, onAdd) {
+                // Create overlay
+                const overlay = document.createElement('div');
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.7);
+                    z-index: 2000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 20px;
+                `;
 
-                addArtistSongsBtn.disabled = true;
+                // Create modal
+                const modal = document.createElement('div');
+                modal.className = 'artist-feature-modal';
+                const isMobile = window.innerWidth < 500;
+                modal.style.cssText = `
+                    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+                    border: 2px solid #e74c3c;
+                    border-radius: 10px;
+                    padding: 30px;
+                    max-width: ${isMobile ? '95vw' : '450px'};
+                    width: 100%;
+                    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+                    text-align: center;
+                    color: #ecf0f1;
+                    animation: slideIn 0.3s ease-out;
+                `;
+
+                const title = document.createElement('h2');
+                title.textContent = '🎵 Queue Options';
+                title.style.cssText = 'margin: 0 0 15px 0; color: #e74c3c; font-size: 1.5em;';
+
+                const message = document.createElement('p');
+                message.textContent = 'How would you like to add the 25-song playlist?';
+                message.style.cssText = 'margin: 0 0 25px 0; color: #bdc3c7; font-size: 1.1em;';
+
+                const buttonContainer = document.createElement('div');
+                buttonContainer.style.cssText = isMobile ? 
+                    'display: flex; flex-direction: column; gap: 10px; justify-content: center;' :
+                    'display: flex; gap: 12px; justify-content: center;';
+
+                const clearBtn = document.createElement('button');
+                clearBtn.innerHTML = '🗑️ Clear & Start Fresh';
+                clearBtn.style.cssText = `
+                    flex: 1;
+                    padding: ${isMobile ? '14px 16px' : '12px 20px'};
+                    background-color: #e74c3c;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: ${isMobile ? '0.95em' : '1em'};
+                    font-weight: 600;
+                    transition: all 0.2s;
+                    min-height: ${isMobile ? '48px' : '44px'};
+                `;
+                clearBtn.onmouseover = () => clearBtn.style.backgroundColor = '#c0392b';
+                clearBtn.onmouseout = () => clearBtn.style.backgroundColor = '#e74c3c';
+                clearBtn.onclick = () => {
+                    overlay.remove();
+                    onClear();
+                };
+
+                const addBtn = document.createElement('button');
+                addBtn.innerHTML = '➕ Add to Current';
+                addBtn.style.cssText = `
+                    flex: 1;
+                    padding: ${isMobile ? '14px 16px' : '12px 20px'};
+                    background-color: #27ae60;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: ${isMobile ? '0.95em' : '1em'};
+                    font-weight: 600;
+                    transition: all 0.2s;
+                    min-height: ${isMobile ? '48px' : '44px'};
+                `;
+                addBtn.onmouseover = () => addBtn.style.backgroundColor = '#229954';
+                addBtn.onmouseout = () => addBtn.style.backgroundColor = '#27ae60';
+                addBtn.onclick = () => {
+                    overlay.remove();
+                    onAdd();
+                };
+
+                buttonContainer.appendChild(clearBtn);
+                buttonContainer.appendChild(addBtn);
+
+                modal.appendChild(title);
+                modal.appendChild(message);
+                modal.appendChild(buttonContainer);
+                overlay.appendChild(modal);
+
+                // Close on overlay click
+                overlay.onclick = (e) => {
+                    if (e.target === overlay) {
+                        overlay.remove();
+                    }
+                };
+
+                document.body.appendChild(overlay);
+            }
+
+            // Helper function to create the playlist via API (MUST be defined before event listener)
+            function createArtistPlaylist(artists, clearQueue) {
+                console.log('[Artist Feature] Creating playlist from', artists.length, 'artists, clear_queue:', clearQueue);
+                
                 const originalText = addArtistSongsBtn.textContent;
-                addArtistSongsBtn.textContent = 'Creating playlist...';
+                addArtistSongsBtn.disabled = true;
+                
+                // Show loading state with spinner
+                addArtistSongsBtn.innerHTML = '<span style="animation: spin 1s linear infinite;">⊙</span> Creating...';
+                displayMessage('info', `🎵 Creating 25-song playlist from ${artists.length} artist(s)...`);
 
                 fetch('/api/add-from-artists', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ artists: selectedArtists })
+                    body: JSON.stringify({ 
+                        artists: artists,
+                        clear_queue: clearQueue
+                    })
                 })
-                .then(response => {
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.status === 'success') {
-                        const count = data.songs_added || 0;
-                        displayMessage('success', `✓ Created 25-song playlist from ${selectedArtists.length} artist(s) - added ${count} random tracks`);
-                        selectedArtists = [];
-                        renderSelectedArtists();
-                        artistInput.value = '';
-                    } else {
-                        displayMessage('error', data.message || 'Failed to create playlist');
+                    .then(response => {
+                        console.log('[Artist Feature] API Response, status:', response.status);
+                        if (!response.ok) {
+                            return response.text().then(text => {
+                                console.error('[Artist Feature] API Error:', text);
+                                throw new Error(text || `HTTP ${response.status}`);
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('[Artist Feature] API Response Data:', data);
+                        if (data.status === 'success') {
+                            const count = data.songs_added || 0;
+                            const mode = clearQueue ? 'replaced' : 'added to';
+                            displayMessage('success', `✓ ${mode.charAt(0).toUpperCase() + mode.slice(1)} queue with ${count} random tracks from ${artists.length} artist(s)`);
+                            selectedArtists = [];
+                            renderSelectedArtists();
+                            artistInput.value = '';
+                        } else {
+                            displayMessage('error', data.message || 'Failed to create playlist');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('[Artist Feature] Error creating playlist:', error);
+                        displayMessage('error', `Failed to create playlist: ${error.message}`);
+                    })
+                    .finally(() => {
+                        addArtistSongsBtn.disabled = false;
+                        addArtistSongsBtn.textContent = originalText;
+                        addArtistSongsBtn.innerHTML = originalText;
+                    });
+            }
+
+            // Set up button listener (now after createArtistPlaylist is defined)
+            console.log('[Artist Feature] Setting up addArtistSongsBtn click listener');
+            addArtistSongsBtn.addEventListener('click', function() {
+                try {
+                    console.log('[Artist Feature] CLICK HANDLER FIRED');
+                    
+                    if (selectedArtists.length === 0) {
+                        displayMessage('error', 'Please select at least one artist');
+                        return;
                     }
-                })
-                .catch(error => {
-                    console.error('Error creating playlist:', error);
-                    displayMessage('error', 'Failed to create playlist from artists: ' + error.message);
-                })
-                .finally(() => {
+
+                    // Show modal with queue options
+                    showQueueOptionsModal(
+                        // Clear queue callback
+                        function() {
+                            createArtistPlaylist(selectedArtists, true);
+                        },
+                        // Add to queue callback
+                        function() {
+                            createArtistPlaylist(selectedArtists, false);
+                        }
+                    );
+
+                } catch (error) {
+                    console.error('[Artist Feature] CATCH BLOCK - Error in click handler:', error);
+                    displayMessage('error', 'Error: ' + error.message);
                     addArtistSongsBtn.disabled = false;
-                    addArtistSongsBtn.textContent = originalText;
-                });
+                    addArtistSongsBtn.textContent = '🎲 Create 25-Song Playlist from Selected Artists';
+                }
             });
 
             // Initialize display

@@ -787,9 +787,10 @@ def add_from_artists_handler(app_ctx):
     client = None
     
     try:
-        # Get artist names from request
+        # Get artist names and options from request
         data = request.get_json()
         artist_names = data.get('artists', []) if data else []
+        clear_queue = data.get('clear_queue', False) if data else False
         
         if not artist_names or not isinstance(artist_names, list):
             return jsonify({'status': 'error', 'message': 'Invalid or empty artist list'}), 400
@@ -797,6 +798,14 @@ def add_from_artists_handler(app_ctx):
         client = connect_mpd_client()
         if not client:
             return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
+        
+        # Clear queue if requested
+        if clear_queue:
+            try:
+                client.clear()
+                print(f"[DEBUG] Cleared current queue", flush=True)
+            except Exception as e:
+                print(f"[DEBUG] Error clearing queue: {e}", flush=True)
         
         # Collect all songs from selected artists
         all_songs = []

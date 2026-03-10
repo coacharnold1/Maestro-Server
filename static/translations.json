@@ -1,6 +1,7 @@
 {
   "en": {
     "main": "Main",
+    "queue": "Queue",
     "playlist": "Play Queue",
     "add_music": "Add Music",
     "search": "Search",
@@ -61,6 +62,7 @@
   },
   "it": {
     "main": "Principale",
+    "queue": "Coda",
     "playlist": "Playlist",
     "add_music": "Aggiungi Musica",
     "search": "Cerca",
