@@ -2993,10 +2993,19 @@
                 selectedArtists.forEach(artist => {
                     const chip = document.createElement('div');
                     chip.className = 'artist-chip';
-                    chip.innerHTML = `
-                        <span>${escapeHtml(artist)}</span>
-                        <button type="button" class="chip-remove" onclick="window.removeArtistChip('${artist.replace(/'/g, "\\'")}'); return false;" title="Remove">×</button>
-                    `;
+                    
+                    const artistSpan = document.createElement('span');
+                    artistSpan.textContent = artist; // Safe HTML escaping via textContent
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'chip-remove';
+                    removeBtn.textContent = '×';
+                    removeBtn.title = 'Remove';
+                    removeBtn.onclick = () => window.removeArtistChip(artist);
+                    
+                    chip.appendChild(artistSpan);
+                    chip.appendChild(removeBtn);
                     container.appendChild(chip);
                 });
                 console.log('[Artist Feature] Rendered', selectedArtists.length, 'chips');
