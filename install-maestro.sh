@@ -234,6 +234,7 @@ install_dependencies() {
                 nfs-common cifs-utils \
                 curl wget git \
                 build-essential \
+                ffmpeg \
                 cdparanoia cd-discid abcde flac lame vorbis-tools eject imagemagick \
                 vsftpd
             ;;
@@ -245,6 +246,7 @@ install_dependencies() {
                 nfs-utils cifs-utils \
                 curl wget git \
                 base-devel \
+                ffmpeg \
                 vsftpd
             
             # On Arch, add user to audio group for device detection

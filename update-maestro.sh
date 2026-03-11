@@ -116,6 +116,21 @@ elif [ -f "$INSTALL_DIR/settings.json" ] && [ ! -f "$INSTALL_DIR/web/settings.js
     echo -e "${GREEN}✓ Copied settings to web directory${NC}"
 fi
 
+# Check and install FFmpeg if missing (required for MP3 export)
+echo -e "${YELLOW}Checking for FFmpeg (required for MP3 export)...${NC}"
+if ! command -v ffmpeg &> /dev/null; then
+    echo -e "${YELLOW}FFmpeg not found, installing...${NC}"
+    sudo apt update
+    sudo apt install -y ffmpeg
+    if command -v ffmpeg &> /dev/null; then
+        echo -e "${GREEN}✓ FFmpeg installed successfully${NC}"
+    else
+        echo -e "${YELLOW}⚠ Warning: FFmpeg installation failed (MP3 export will not work)${NC}"
+    fi
+else
+    echo -e "${GREEN}✓ FFmpeg is installed${NC}"
+fi
+
 # Update sudoers permissions (critical for backup/restore)
 echo -e "${YELLOW}Updating sudo permissions for admin functions...${NC}"
 SUDOERS_FILE="/etc/sudoers.d/maestro"
