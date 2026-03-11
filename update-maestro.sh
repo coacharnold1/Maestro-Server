@@ -261,6 +261,7 @@ echo -e "${GREEN}[4/6] Updating admin interface...${NC}"
 # Copy admin files
 sudo cp "$REPO_DIR/admin/admin_api.py" "$INSTALL_DIR/admin/"
 sudo cp "$REPO_DIR/admin/requirements.txt" "$INSTALL_DIR/admin/"
+sudo cp "$REPO_DIR/admin/library_maintenance.py" "$INSTALL_DIR/admin/"
 sudo cp -r "$REPO_DIR/admin/templates" "$INSTALL_DIR/admin/"
 echo -e "${GREEN}✓ Updated admin interface files${NC}"
 
