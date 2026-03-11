@@ -14,6 +14,18 @@ import os
 import json
 import threading
 from pathlib import Path
+from library_maintenance import (
+    scan_library_covers,
+    cleanup_playlist_files,
+    scan_orphaned_artwork,
+    get_library_statistics,
+    start_async_cover_scan,
+    get_scan_status,
+    reset_scan_state,
+    start_async_stats_scan,
+    get_stats_status,
+    get_cached_stats
+)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'maestro-admin-secret-key-change-in-production'
@@ -949,6 +961,104 @@ def api_get_mpd_info():
             'music_directory': music_dir,
             'directories': directories,
             'total_folders': len(directories)
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# ============================================================================
+# API ENDPOINTS - LIBRARY MAINTENANCE
+# ============================================================================
+
+@app.route('/api/library/scan-covers', methods=['POST'])
+def api_start_scan_covers():
+    """Start asynchronous library cover scanning"""
+    try:
+        data = request.get_json() or {}
+        music_dir = data.get('music_dir', '/media/music')
+        target_size = data.get('target_size', 500)
+        
+        # Validate music_dir exists
+        if not os.path.exists(music_dir):
+            return jsonify({'status': 'error', 'message': f'Music directory does not exist: {music_dir}'}), 400
+        
+        # Start async scan
+        start_async_cover_scan(music_dir, target_size=target_size)
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Cover scan started',
+            'music_dir': music_dir,
+            'target_size': target_size
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/library/scan-status', methods=['GET'])
+def api_get_scan_status():
+    """Get library cover scan progress"""
+    try:
+        status = get_scan_status()
+        return jsonify({
+            'status': 'success',
+            'data': status
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/library/cleanup-playlists', methods=['POST'])
+def api_cleanup_playlists():
+    """Remove .cue and .m3u files from library"""
+    try:
+        data = request.get_json() or {}
+        music_dir = data.get('music_dir', '/media/music')
+        file_types = data.get('file_types', ['cue', 'm3u'])  # Which types to remove
+        
+        # Validate music_dir exists
+        if not os.path.exists(music_dir):
+            return jsonify({'status': 'error', 'message': f'Music directory does not exist: {music_dir}'}), 400
+        
+        # Run cleanup
+        result = cleanup_playlist_files(music_dir)
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Cleanup completed',
+            'music_dir': music_dir,
+            'files_removed': result.get('files_removed', 0),
+            'size_freed_mb': result.get('size_freed_mb', 0),
+            'details': result.get('details', {})
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/library/stats', methods=['GET'])
+def api_get_library_stats():
+    """Get cached library statistics (returns immediately, non-blocking)"""
+    try:
+        # Return cached stats or "no data" status
+        stats = get_stats_status()
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/library/stats', methods=['POST'])
+def api_refresh_library_stats():
+    """Start or refresh library statistics scan (async, non-blocking)"""
+    try:
+        data = request.get_json() or {}
+        music_dir = data.get('music_dir', '/media/music')
+        
+        # Validate music_dir exists
+        if not os.path.exists(music_dir):
+            return jsonify({'status': 'error', 'message': f'Music directory does not exist: {music_dir}'}), 400
+        
+        # Start async scan
+        start_async_stats_scan(music_dir)
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Library statistics scan started in background',
+            'music_dir': music_dir
         })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500

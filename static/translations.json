@@ -58,7 +58,22 @@
     "station_name": "Station Name",
     "stream_url": "Stream URL",
     "play_stream": "Play Stream",
-    "example_streams": "Example Streams"
+    "example_streams": "Example Streams",
+    "export_queue": "Export Queue",
+    "export_to_usb": "Export Queue to USB/Device",
+    "audio_format": "Audio Format",
+    "flac_native": "FLAC (Native/Lossless)",
+    "mp3_compressed": "MP3 (Compressed)",
+    "mp3_bitrate": "MP3 Bitrate (kbps)",
+    "folder_structure": "Folder Structure",
+    "artist_album": "Artist/Album/Song (Recommended)",
+    "flat_folder": "Single Folder (All songs flat)",
+    "include_album_art": "Include Album Art",
+    "start_export": "Start Export",
+    "export_complete": "Export Complete!",
+    "songs_exported": "songs exported",
+    "download_zip": "Download ZIP File",
+    "export_progress": "Export Progress"
   },
   "it": {
     "main": "Principale",
@@ -119,6 +134,19 @@
     "station_name": "Nome Stazione",
     "stream_url": "URL Stream",
     "play_stream": "Riproduci Stream",
-    "example_streams": "Stream di Esempio"
-  }
-}
+    "example_streams": "Stream di Esempio",
+    "export_queue": "Esporta Coda",
+    "export_to_usb": "Esporta Coda su USB/Dispositivo",
+    "audio_format": "Formato Audio",
+    "flac_native": "FLAC (Nativo/Senza Perdita)",
+    "mp3_compressed": "MP3 (Compresso)",
+    "mp3_bitrate": "Bitrate MP3 (kbps)",
+    "folder_structure": "Struttura Cartelle",
+    "artist_album": "Artista/Album/Canzone (Consigliato)",
+    "flat_folder": "Singola Cartella (Tutti i brani insieme)",
+    "include_album_art": "Includi Copertina Album",
+    "start_export": "Avvia Esportazione",
+    "export_complete": "Esportazione Completata!",
+    "songs_exported": "brani esportati",
+    "download_zip": "Scarica File ZIP",
+    "export_progress": "Progresso Esportazione"

@@ -1829,7 +1829,7 @@
             </button>
             <div class="accordion-content" id="content-artist">
                 <p style="text-align: center; margin-bottom: 15px; color: #bdc3c7; font-size: 0.9em;">
-                    <strong>How to use:</strong> Type an artist name → click a suggestion → artist becomes a chip. Add more artists by repeating. Click the button to create a random 25-song playlist from your selections.
+                    <strong>How to use:</strong> Type an artist name → click a suggestion → artist becomes a chip. Add more artists by repeating. Select the number of songs, then click the button to create a random playlist from your selections.
                 </p>
                 
                 <div class="form-group">
@@ -1846,7 +1846,22 @@
                     <!-- Artist chips will be added here dynamically -->
                 </div>
 
-                <button id="add-artist-songs-btn" class="artist-add-button">🎲 Create 25-Song Playlist from Selected Artists</button>
+                <div id="artist-controls-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-items: flex-end;">
+                    <div class="form-group" style="margin-bottom: 0; min-width: 0;">
+                        <label for="artist-song-count">Number of Songs:</label>
+                        <input type="number" id="artist-song-count" min="1" max="500" value="25" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff; box-sizing: border-box;">
+                    </div>
+
+                    <button id="add-artist-songs-btn" class="artist-add-button" style="margin-bottom: 0; height: 38px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🎲 Create Playlist from Selected Artists</button>
+                </div>
+
+                <style>
+                    @media (max-width: 768px) {
+                        #artist-controls-grid {
+                            grid-template-columns: 1fr !important;
+                        }
+                    }
+                </style>
 
                 <!-- Save/Load Artist Stations Section (Redesigned to match Genre Stations) -->
                 <div style="margin-top: 20px; padding-top: 20px; border-bottom: 1px solid #4a6279;">
@@ -3500,7 +3515,7 @@
                 title.style.cssText = 'margin: 0 0 15px 0; color: #e74c3c; font-size: 1.5em;';
 
                 const message = document.createElement('p');
-                message.textContent = 'How would you like to add the 25-song playlist?';
+                message.textContent = 'How would you like to add the playlist?';
                 message.style.cssText = 'margin: 0 0 25px 0; color: #bdc3c7; font-size: 1.1em;';
 
                 const buttonContainer = document.createElement('div');
@@ -3574,12 +3589,15 @@
             function createArtistPlaylist(artists, clearQueue) {
                 console.log('[Artist Feature] Creating playlist from', artists.length, 'artists, clear_queue:', clearQueue);
                 
+                const songCountInput = document.getElementById('artist-song-count');
+                const songCount = parseInt(songCountInput.value) || 25;
+                
                 const originalText = addArtistSongsBtn.textContent;
                 addArtistSongsBtn.disabled = true;
                 
                 // Show loading state with spinner
                 addArtistSongsBtn.innerHTML = '<span style="animation: spin 1s linear infinite;">⊙</span> Creating...';
-                displayMessage('info', `🎵 Creating 25-song playlist from ${artists.length} artist(s)...`);
+                displayMessage('info', `🎵 Creating ${songCount}-song playlist from ${artists.length} artist(s)...`);
 
                 fetch('/api/add-from-artists', {
                     method: 'POST',
@@ -3588,7 +3606,8 @@
                     },
                     body: JSON.stringify({ 
                         artists: artists,
-                        clear_queue: clearQueue
+                        clear_queue: clearQueue,
+                        song_count: songCount
                     })
                 })
                     .then(response => {
@@ -3610,6 +3629,8 @@
                             selectedArtists = [];
                             renderSelectedArtists();
                             artistInput.value = '';
+                            // Start playing
+                            setTimeout(() => playMusic(), 300);
                         } else {
                             displayMessage('error', data.message || 'Failed to create playlist');
                         }
@@ -3652,7 +3673,7 @@
                     console.error('[Artist Feature] CATCH BLOCK - Error in click handler:', error);
                     displayMessage('error', 'Error: ' + error.message);
                     addArtistSongsBtn.disabled = false;
-                    addArtistSongsBtn.textContent = '🎲 Create 25-Song Playlist from Selected Artists';
+                    addArtistSongsBtn.textContent = '🎲 Create Playlist from Selected Artists';
                 }
             });
 

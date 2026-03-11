@@ -1,8 +1,8 @@
 print("[DEBUG] app.py loaded and running", flush=True)
 
 # Application version information
-APP_VERSION = "3.5.0"
-APP_BUILD_DATE = "2026-03-10" 
+APP_VERSION = "3.6.0"
+APP_BUILD_DATE = "2026-03-11" 
 APP_NAME = "Maestro MPD Server"
 
 # Simple threading mode to avoid eventlet issues
@@ -30,6 +30,12 @@ from services.mpd_service import MPDService
 from services.bandcamp_service import BandcampService
 from services.genius_service import GeniusService
 from services.lastfm_service import LastfmService
+from services.playlist_export import (
+    export_queue,
+    start_async_queue_export,
+    get_export_status,
+    cleanup_old_exports
+)
 
 # Import settings utilities
 from utils.settings import (
@@ -311,6 +317,24 @@ show_scrobble_toasts = bool(_settings.get('show_scrobble_toasts', True))
 """
 Settings utilities imported from utils.settings module.
 """
+
+# ============================================================================
+# CORS HEADERS - Enable cross-origin requests for admin panel / other clients
+# ============================================================================
+
+@app.before_request
+def add_cors_headers():
+    """Add CORS headers to all responses for cross-origin requests"""
+    # This handles both preflight OPTIONS requests and actual requests
+    pass
+
+@app.after_request
+def add_cors_headers_response(response):
+    """Add CORS headers to the response"""
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    return response
 
 # Recent albums cache - simple and safe change detection
 recent_albums_cache = None
@@ -4072,6 +4096,146 @@ def bandcamp_artwork(art_id):
     """Proxy Bandcamp artwork."""
     app_ctx = {'bandcamp_service': bandcamp_service}
     return bandcamp_artwork_handler(app_ctx, art_id)
+
+# ============================================================================
+# PLAYLIST EXPORT API ENDPOINTS
+# ============================================================================
+
+@app.route('/api/export/queue', methods=['POST'])
+def api_export_queue():
+    """Start queue export to ZIP file"""
+    try:
+        # Clean up old exports first
+        cleanup_old_exports(max_age_hours=24)
+        
+        # Get export parameters from request
+        data = request.get_json() or {}
+        format_type = data.get('format', 'flac')  # 'flac' or 'mp3'
+        mp3_bitrate = int(data.get('bitrate', 192))  # 128, 192, 256, 320
+        folder_structure = data.get('structure', 'artist_album')  # artist_album, artist, album, flat
+        include_cover_art = data.get('include_cover_art', True)
+        
+        # Validate parameters
+        if format_type not in ['flac', 'mp3']:
+            response = jsonify({'status': 'error', 'message': 'Invalid format. Use "flac" or "mp3".'})
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            return response, 400
+        
+        if mp3_bitrate not in [128, 192, 256, 320]:
+            response = jsonify({'status': 'error', 'message': 'Invalid bitrate. Use 128, 192, 256, or 320.'})
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            return response, 400
+        
+        if folder_structure not in ['artist_album', 'artist_album_track', 'album_artist', 'artist', 'album', 'flat']:
+            response = jsonify({'status': 'error', 'message': 'Invalid folder structure.'})
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            return response, 400
+        
+        # Get current queue from MPD
+        client = connect_mpd_client()
+        if not client:
+            response = jsonify({'status': 'error', 'message': 'Cannot connect to MPD'})
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            return response, 500
+        
+        try:
+            playlist = client.playlistinfo()
+            if not playlist:
+                response = jsonify({'status': 'error', 'message': 'Queue is empty'})
+                response.headers['Access-Control-Allow-Origin'] = '*'
+                return response, 400
+            
+            # Get music directory from app config (MPD config not accessible from non-local clients)
+            music_dir = MUSIC_DIRECTORY or '/media/music'
+            
+            # Start async export
+            start_async_queue_export(
+                queue=playlist,
+                format_type=format_type,
+                mp3_bitrate=mp3_bitrate,
+                folder_structure=folder_structure,
+                include_cover_art=include_cover_art,
+                music_dir=music_dir
+            )
+            
+            response = jsonify({
+                'status': 'success',
+                'message': f'Export started: {len(playlist)} songs',
+                'queue_size': len(playlist),
+                'format': format_type,
+                'bitrate': mp3_bitrate if format_type == 'mp3' else 'native',
+                'folder_structure': folder_structure,
+                'include_cover_art': include_cover_art
+            })
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            return response
+        except Exception as e:
+            response = jsonify({'status': 'error', 'message': f'MPD error: {str(e)}'})
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            return response, 500
+    
+    except Exception as e:
+        response = jsonify({'status': 'error', 'message': str(e)})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response, 500
+
+@app.route('/api/export/status', methods=['GET'])
+def api_export_status():
+    """Get queue export progress"""
+    try:
+        status = get_export_status()
+        response = jsonify({
+            'status': 'success',
+            'data': status
+        })
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
+    except Exception as e:
+        response = jsonify({'status': 'error', 'message': str(e)})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response, 500
+
+@app.route('/api/export/download/<filename>', methods=['GET'])
+def api_download_export(filename):
+    """Download exported queue ZIP file"""
+    try:
+        import tempfile
+        
+        # Security: Only allow maestro_export_*.zip files
+        if not filename.startswith('maestro_export_') or not filename.endswith('.zip'):
+            response = jsonify({'status': 'error', 'message': 'Invalid file'})
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            return response, 400
+        
+        temp_dir = tempfile.gettempdir()
+        filepath = os.path.join(temp_dir, filename)
+        
+        # Verify file exists and is in temp directory
+        if not os.path.exists(filepath) or not os.path.isfile(filepath):
+            response = jsonify({'status': 'error', 'message': 'File not found'})
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            return response, 404
+        
+        # Check file is actually in temp directory (security)
+        if not os.path.realpath(filepath).startswith(os.path.realpath(temp_dir)):
+            response = jsonify({'status': 'error', 'message': 'Invalid file path'})
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            return response, 400
+        
+        # Send file with proper headers
+        response = send_from_directory(
+            temp_dir,
+            filename,
+            as_attachment=True,
+            download_name=filename
+        )
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
+    
+    except Exception as e:
+        response = jsonify({'status': 'error', 'message': str(e)})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response, 500
 
 # --- Application Startup ---
 if __name__ == '__main__':

@@ -287,14 +287,14 @@ When clicking "Replace Playlist" (🔄) button on browse_albums or recent_albums
 
 ---
 
-**Last Updated**: January 28, 2026
+**Last Updated**: March 11, 2026
 **Maintainer**: fausto
-**Current Version**: 2.9.3
+**Current Version**: 3.6.0
 **Environment**: Production Server (192.168.1.209)
 
 ---
 
-## 📋 Feature Documentation (v2.9.45)
+## 📋 Feature Documentation (v3.6.0)
 
 ### Browse Albums Feature
 **Files:**
@@ -354,7 +354,7 @@ When clicking "Replace Playlist" (🔄) button on browse_albums or recent_albums
   - Settings page now lets users change recent folder at runtime
   - Tested locally ✓, pushed to GitHub ✓
 
-**Last Updated**: March 4, 2026
+**Last Updated**: March 11, 2026
 **Maintainer**: fausto
-**Current Version**: 3.2.1
+**Current Version**: 3.6.0
 **Environment**: Dev (192.168.1.209), Production Arch (192.168.1.142)

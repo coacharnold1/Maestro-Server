@@ -782,7 +782,7 @@ def autocomplete_artists_handler(app_ctx):
 
 
 def add_from_artists_handler(app_ctx):
-    """Handle /api/add-from-artists route - create 25-song playlist from selected artists"""
+    """Handle /api/add-from-artists route - create playlist from selected artists"""
     connect_mpd_client = app_ctx['connect_mpd_client']
     client = None
     
@@ -791,6 +791,14 @@ def add_from_artists_handler(app_ctx):
         data = request.get_json()
         artist_names = data.get('artists', []) if data else []
         clear_queue = data.get('clear_queue', False) if data else False
+        song_count = data.get('song_count', 25) if data else 25
+        
+        # Validate song_count
+        try:
+            song_count = int(song_count)
+            song_count = max(1, min(500, song_count))  # Clamp between 1 and 500
+        except (ValueError, TypeError):
+            song_count = 25
         
         if not artist_names or not isinstance(artist_names, list):
             return jsonify({'status': 'error', 'message': 'Invalid or empty artist list'}), 400
@@ -842,8 +850,8 @@ def add_from_artists_handler(app_ctx):
                 'message': f'No songs found for the selected artists'
             }), 400
         
-        # Randomly select up to 25 songs
-        play_count = min(25, len(all_songs))
+        # Randomly select up to specified number of songs
+        play_count = min(song_count, len(all_songs))
         selected_songs = random.sample(all_songs, play_count)
         
         print(f"[DEBUG] Selected {play_count} random songs from {len(all_songs)} total for {len(artist_names)} artists", flush=True)
@@ -869,7 +877,7 @@ def add_from_artists_handler(app_ctx):
         
         return jsonify({
             'status': 'success',
-            'message': f'Created 25-song playlist from {len(artist_names)} artist(s)',
+            'message': f'Created playlist with {play_count} songs from {len(artist_names)} artist(s)',
             'songs_added': total_added,
             'total_available': len(all_songs)
         })
