@@ -14,18 +14,38 @@ import os
 import json
 import threading
 from pathlib import Path
-from library_maintenance import (
-    scan_library_covers,
-    cleanup_playlist_files,
-    scan_orphaned_artwork,
-    get_library_statistics,
-    start_async_cover_scan,
-    get_scan_status,
-    reset_scan_state,
-    start_async_stats_scan,
-    get_stats_status,
-    get_cached_stats
-)
+
+# Import library_maintenance - handles both git repo and deployed locations
+import sys
+try:
+    # Try direct import (for deployed /home/fausto/maestro/admin/ location)
+    from library_maintenance import (
+        scan_library_covers,
+        cleanup_playlist_files,
+        scan_orphaned_artwork,
+        get_library_statistics,
+        start_async_cover_scan,
+        get_scan_status,
+        reset_scan_state,
+        start_async_stats_scan,
+        get_stats_status,
+        get_cached_stats
+    )
+except ImportError:
+    # Fallback: try from services folder (for git repo development)
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+    from services.library_maintenance import (
+        scan_library_covers,
+        cleanup_playlist_files,
+        scan_orphaned_artwork,
+        get_library_statistics,
+        start_async_cover_scan,
+        get_scan_status,
+        reset_scan_state,
+        start_async_stats_scan,
+        get_stats_status,
+        get_cached_stats
+    )
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'maestro-admin-secret-key-change-in-production'
