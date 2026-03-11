@@ -82,7 +82,6 @@ def get_folder_structure_path(song: Dict, structure: str) -> str:
     title = song.get('title', 'Unknown Track').replace('/', '_')
     
     structures = {
-        'artist_album': f"{artist}/{album}",
         'artist_album_track': f"{artist}/{album}",  # Track filename will include artist - album - track
         'album_artist': f"{album} - {artist}",  # Album - Artist format
         'artist': f"{artist}",
@@ -90,7 +89,7 @@ def get_folder_structure_path(song: Dict, structure: str) -> str:
         'album': f"{album}",
     }
     
-    return structures.get(structure, structures['artist_album'])
+    return structures.get(structure, structures['artist_album_track'])
 
 def get_filename(song: Dict, folder_structure: str = 'artist_album') -> str:
     """Generate safe filename from song metadata"""
