@@ -72,18 +72,31 @@ curl http://localhost:5003
 ```
 
 ### Safe Update Workflow
+
+**For End Users - Simple One-Command Update:**
+```bash
+# Just run this - it pulls latest changes and updates everything automatically
+./update.sh
+```
+
+**For Developers - Manual Process (if needed):**
 ```bash
 # ALWAYS commit changes first
 cd /home/fausto/Maestro-Server
 git add -A
 git commit -m "your message"
 
-# THEN run update script as fausto user (not root!)
+# THEN run the bootstrap script (pulls latest, then runs update)
 cd /home/fausto
-/home/fausto/Maestro-Server/update-maestro.sh
+/home/fausto/Maestro-Server/update.sh
 
 # This will automatically copy files and restart services
 ```
+
+**How It Works:**
+- `update.sh` (bootstrap) → Pulls git first → Then runs `update-maestro.sh` with latest changes
+- This ensures script updates are picked up immediately without needing to run twice
+- The wrapper approach is transparent and foolproof
 
 ## 📍 Other Environments
 
