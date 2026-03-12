@@ -1662,8 +1662,8 @@
         </div>
 
         <div style="text-align: center; margin: 20px 0; padding: 15px; background: rgba(52, 152, 219, 0.1); border-radius: 8px; border: 1px solid rgba(52, 152, 219, 0.3);">
-            <a href="/admin/library_management#export" style="color: #3498db; text-decoration: none; font-weight: 500; font-size: 0.95em;">
-                📥 Export Current Queue to MP3
+            <a href="javascript:void(0);" onclick="openAdminExport()" style="color: #3498db; text-decoration: none; font-weight: 500; font-size: 0.95em;">
+                📥 Export Queue
             </a>
         </div>
 
@@ -2790,6 +2790,13 @@
             if (query) {
                 window.location.href = `/search?query=${encodeURIComponent(query)}&type=${searchType}`;
             }
+        }
+
+        // Open admin export modal
+        function openAdminExport() {
+            // Redirect to admin service library management page with export flag
+            const url = window.location.protocol + '//' + window.location.hostname + ':5004/library_management?export=true';
+            window.location.href = url;
         }
     </script>
 
