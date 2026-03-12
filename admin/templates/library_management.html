@@ -1223,8 +1223,9 @@
             }
             
             // Auto-open export modal if linked from queue page
-            if (window.location.hash === '#export') {
-                document.getElementById('export-modal').classList.add('active');
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('export') === 'true') {
+                setTimeout(() => openExportModal(), 300);
             }
         });
     </script>
