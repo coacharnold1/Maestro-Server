@@ -2794,9 +2794,9 @@
 
         // Open admin export modal
         function openAdminExport() {
-            // Redirect to admin service library page with export flag
+            // Redirect to admin service library page with export flag in new tab
             const url = window.location.protocol + '//' + window.location.hostname + ':5004/library?export=true';
-            window.location.href = url;
+            window.open(url, '_blank');
         }
     </script>
 
