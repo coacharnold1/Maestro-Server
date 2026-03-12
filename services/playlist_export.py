@@ -60,6 +60,18 @@ def get_export_status() -> Dict:
 
 def check_ffmpeg():
     """Check if FFmpeg is available for MP3 transcoding"""
+    import os
+    # Check common FFmpeg locations
+    ffmpeg_paths = [
+        '/usr/bin/ffmpeg',      # Linux standard location
+        '/usr/local/bin/ffmpeg', # Linux manual install
+        '/opt/homebrew/bin/ffmpeg',  # macOS ARM
+        '/usr/local/opt/ffmpeg/bin/ffmpeg'  # macOS Intel
+    ]
+    for path in ffmpeg_paths:
+        if os.path.isfile(path) and os.access(path, os.X_OK):
+            return True
+    # Fallback to which command
     try:
         result = subprocess.run(['which', 'ffmpeg'], capture_output=True, text=True)
         return result.returncode == 0
@@ -119,8 +131,10 @@ def transcode_to_mp3(input_file: str, output_file: str, bitrate: int = 192) -> b
         True if successful, False otherwise
     """
     try:
+        # Use full path to ffmpeg
+        ffmpeg_path = '/usr/bin/ffmpeg'
         cmd = [
-            'ffmpeg',
+            ffmpeg_path,
             '-i', input_file,
             '-b:a', f'{bitrate}k',
             '-q:a', '2',  # Variable bitrate quality
