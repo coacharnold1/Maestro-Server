@@ -1221,6 +1221,11 @@
                     }
                 });
             }
+            
+            // Auto-open export modal if linked from queue page
+            if (window.location.hash === '#export') {
+                document.getElementById('export-modal').classList.add('active');
+            }
         });
     </script>
 </body>
