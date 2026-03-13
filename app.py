@@ -2088,8 +2088,8 @@ def add_random_tracks_manual():
     
     artist_name_input = request.form.get('artist_name')
     num_tracks = request.form.get('num_tracks', type=int, default=5)
-    clear_playlist = request.form.get('clear_playlist') == 'true'
-    filter_by_genre = request.form.get('filter_by_genre') == 'true'
+    clear_playlist = 'clear_playlist' in request.form
+    filter_by_genre = 'filter_by_genre' in request.form
 
     # Clear genre station mode when manually adding tracks
     genre_station_mode = False

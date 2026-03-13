@@ -1969,8 +1969,8 @@
             </button>
             <div class="accordion-content" id="content-manual">
                 <div class="form-group">
-                    <label for="artist-input">Artist:</label>
-                    <input type="text" id="artist-input" value="{{ current_artist }}" placeholder="e.g., Motorhead">
+                    <label for="artist-input-random">Artist:</label>
+                    <input type="text" id="artist-input-random" value="{{ current_artist }}" placeholder="e.g., Motorhead">
                 </div>
                 <div class="form-group">
                     <label for="num-tracks-input">Number of Tracks to Add:</label>
@@ -2175,7 +2175,7 @@
                 .catch(err => console.error('Error fetching initial state:', err));
 
             // Manual Add elements
-            const artistInput = document.getElementById('artist-input');
+            const artistInput = document.getElementById('artist-input-random');
             const numTracksInput = document.getElementById('num-tracks-input');
             const clearPlaylistCheckbox = document.getElementById('clear-playlist-checkbox');
             const filterByGenreCheckbox = document.getElementById('filter-by-genre-checkbox');
@@ -2260,7 +2260,7 @@
 
             // --- Manual Add Event Listener ---
             addRandomBtn.addEventListener('click', function () {
-                const artistName = artistInput.value.trim();
+                const artistName = artistInput ? artistInput.value.trim() : '';
                 const numTracks = parseInt(numTracksInput.value);
                 const clearPlaylist = clearPlaylistCheckbox.checked;
                 const filterByGenre = filterByGenreCheckbox.checked;
@@ -2279,8 +2279,9 @@
                 const formData = new FormData();
                 formData.append('artist_name', artistName);
                 formData.append('num_tracks', numTracks);
-                formData.append('clear_playlist', clearPlaylist);
-                formData.append('filter_by_genre', filterByGenre);
+                // Only append checkbox fields if checked (mimics HTML form behavior)
+                if (clearPlaylist) formData.append('clear_playlist', 'on');
+                if (filterByGenre) formData.append('filter_by_genre', 'on');
 
                 fetch('/add_random_tracks', {
                     method: 'POST',
