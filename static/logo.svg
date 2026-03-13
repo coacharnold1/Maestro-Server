@@ -65,7 +65,7 @@
   
   <!-- Subtitle with animation -->
   <text x="300" y="90" font-family="Arial, sans-serif" font-size="20" fill="#86efac" text-anchor="middle" letter-spacing="4" opacity="0.9" filter="url(#glow)">
-    MPD CONTROL
+    MPD SERVER
     <animate attributeName="opacity" values="0.9;1;0.9" dur="3s" repeatCount="indefinite"/>
   </text>
   
