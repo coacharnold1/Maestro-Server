@@ -2883,7 +2883,8 @@ def get_lms_settings():
             'status': 'success',
             'lms_enabled': settings.get('lms_enabled', False),
             'lms_host': settings.get('lms_host', ''),
-            'lms_port': settings.get('lms_port', 9000)
+            'lms_port': settings.get('lms_port', 9000),
+            'lms_sync_delay_ms': settings.get('lms_sync_delay_ms', 500)
         })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
@@ -2899,6 +2900,7 @@ def update_lms_settings():
         settings['lms_enabled'] = data.get('lms_enabled', False)
         settings['lms_host'] = data.get('lms_host', '')
         settings['lms_port'] = data.get('lms_port', 9000)
+        settings['lms_sync_delay_ms'] = data.get('lms_sync_delay_ms', 500)
         
         if save_settings(settings):
             return jsonify({'status': 'success', 'message': 'LMS settings saved'})

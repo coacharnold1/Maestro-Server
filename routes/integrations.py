@@ -8,6 +8,7 @@ Handles:
 - LMS (Logitech Squeezebox) integration
 """
 
+import time
 from flask import jsonify, request, render_template
 
 
@@ -354,6 +355,7 @@ def api_lms_players_handler(app_ctx):
 def api_lms_sync_handler(app_ctx):
     """Sync MPD stream to selected Squeezebox players."""
     get_lms_client = app_ctx['get_lms_client']
+    load_settings = app_ctx['load_settings']
     
     try:
         data = request.json
@@ -366,12 +368,19 @@ def api_lms_sync_handler(app_ctx):
         if not client:
             return jsonify({'status': 'error', 'message': 'LMS not configured'}), 400
         
+        # Get sync delay from settings
+        settings = load_settings()
+        sync_delay_ms = settings.get('lms_sync_delay_ms', 500)
+        sync_delay_sec = sync_delay_ms / 1000.0
+        
         mpd_stream_url = f"http://{request.host.split(':')[0]}:8000"
         
         success_count = 0
         failed_players = []
         
         for player_id in player_ids:
+            # Apply delay before starting playback on this player
+            time.sleep(sync_delay_sec)
             if client.play_url(player_id, mpd_stream_url):
                 success_count += 1
             else:

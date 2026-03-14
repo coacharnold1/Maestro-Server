@@ -314,9 +314,20 @@
                     <input type="number" id="lms-port" placeholder="9000" value="9000"
                            style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #ecf0f1; font-size: 1em;">
                 </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px; color: #3498db;">Squeezebox Sync Delay</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="range" id="lms-sync-delay" min="0" max="2000" step="50" value="500"
+                               style="flex: 1; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.2); cursor: pointer;">
+                        <span id="lms-sync-delay-display" style="min-width: 60px; text-align: right; color: #ecf0f1; font-weight: bold;">500ms</span>
+                    </div>
+                    <div style="font-size: 0.85em; color: #95a5a6; margin-top: 4px;">
+                        Delay before Squeezebox playback starts (compensates for network latency and buffering)
+                    </div>
+                </div>
                 <div style="background: rgba(52, 152, 219, 0.1); border-left: 4px solid #3498db; padding: 12px; border-radius: 4px;">
                     <div style="color: #ecf0f1; font-size: 0.95em;">
-                        ℹ️ Enter the IP address and port of your Logitech Media Server. Default port is 9000.
+                        ℹ️ Enter the IP address and port of your Logitech Media Server. Default port is 9000. The sync delay helps synchronize playback between MPD and Squeezebox players (0-2000ms).
                     </div>
                 </div>
                 <div class="action-group">
@@ -578,6 +589,11 @@
         updateSystemInfo();
         loadLMSSettings();
         updateNFSHealth();
+        
+        // Setup slider listener for sync delay
+        document.getElementById('lms-sync-delay').addEventListener('input', function() {
+            document.getElementById('lms-sync-delay-display').textContent = this.value + 'ms';
+        });
 
         // Refresh every 5 seconds
         setInterval(updateSystemInfo, 5000);
@@ -674,6 +690,9 @@
                         document.getElementById('lms-enabled').checked = data.lms_enabled || false;
                         document.getElementById('lms-host').value = data.lms_host || '';
                         document.getElementById('lms-port').value = data.lms_port || 9000;
+                        const delay = data.lms_sync_delay_ms || 500;
+                        document.getElementById('lms-sync-delay').value = delay;
+                        document.getElementById('lms-sync-delay-display').textContent = delay + 'ms';
                     }
                 })
                 .catch(error => console.error('Error loading LMS settings:', error));
@@ -683,6 +702,7 @@
             const enabled = document.getElementById('lms-enabled').checked;
             const host = document.getElementById('lms-host').value.trim();
             const port = parseInt(document.getElementById('lms-port').value) || 9000;
+            const syncDelay = parseInt(document.getElementById('lms-sync-delay').value) || 500;
 
             if (enabled && !host) {
                 showMessage('❌ Error: LMS Server IP address is required when LMS is enabled.', 'error');
@@ -692,7 +712,8 @@
             const data = {
                 lms_enabled: enabled,
                 lms_host: host,
-                lms_port: port
+                lms_port: port,
+                lms_sync_delay_ms: syncDelay
             };
 
             fetch('/api/lms/settings', {
