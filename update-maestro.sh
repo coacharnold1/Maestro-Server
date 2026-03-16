@@ -77,6 +77,11 @@ echo -e "${GREEN}Current Version Being Deployed:${NC}"
 CURRENT_COMMIT=$(git rev-parse --short HEAD)
 CURRENT_MSG=$(git log --oneline -1)
 echo -e "  ${BLUE}$CURRENT_MSG${NC}"
+echo ""
+echo -e "${GREEN}Files Modified in This Commit:${NC}"
+git show --name-only --pretty="" HEAD | grep -v '^$' | while read file; do
+    echo -e "  ${YELLOW}• $file${NC}"
+done
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 echo -e "${GREEN}[2/6] Backing up current configuration...${NC}"
