@@ -300,6 +300,32 @@ def save_genre_stations(stations):
         print(f"Error saving genre stations: {e}")
         return False
 
+# Artist Stations Storage Functions
+ARTIST_STATIONS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'artist_stations.json')
+
+def load_artist_stations():
+    """Load artist stations from JSON file"""
+    try:
+        if os.path.exists(ARTIST_STATIONS_FILE):
+            with open(ARTIST_STATIONS_FILE, 'r') as f:
+                return json.load(f)
+        return {}
+    except (json.JSONDecodeError, IOError) as e:
+        print(f"Error loading artist stations: {e}")
+        return {}
+
+def save_artist_stations(stations):
+    """Save artist stations to JSON file"""
+    try:
+        # Ensure data directory exists
+        os.makedirs(os.path.dirname(ARTIST_STATIONS_FILE), exist_ok=True)
+        with open(ARTIST_STATIONS_FILE, 'w') as f:
+            json.dump(stations, f, indent=2)
+        return True
+    except IOError as e:
+        print(f"Error saving artist stations: {e}")
+        return False
+
 # Manual Radio Stations Management
 MANUAL_STATIONS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'manual_radio_stations.json')
 
@@ -2715,6 +2741,84 @@ def set_genre_station_mode():
             
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Error setting genre station mode: {str(e)}'}), 500
+
+# --- ARTIST STATIONS MANAGEMENT ---
+
+@app.route('/api/artist_stations', methods=['GET'])
+def get_artist_stations():
+    """Get all saved artist stations."""
+    try:
+        stations = load_artist_stations()
+        return jsonify({'status': 'success', 'stations': stations})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Error loading stations: {str(e)}'}), 500
+
+@app.route('/api/artist_stations', methods=['POST'])
+def save_artist_station():
+    """Save a new artist station."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'message': 'No data provided'}), 400
+        
+        station_name = data.get('name', '').strip()
+        artists = data.get('artists', [])
+        
+        if not station_name:
+            return jsonify({'status': 'error', 'message': 'Station name is required'}), 400
+        
+        if not artists or not isinstance(artists, list):
+            return jsonify({'status': 'error', 'message': 'At least one artist is required'}), 400
+        
+        # Load existing stations
+        stations = load_artist_stations()
+        
+        # Add new station
+        stations[station_name] = {
+            'artists': artists,
+            'created': int(time.time())
+        }
+        
+        # Save stations
+        if save_artist_stations(stations):
+            return jsonify({'status': 'success', 'message': f'Station "{station_name}" saved'})
+        else:
+            return jsonify({'status': 'error', 'message': 'Failed to save station'}), 500
+            
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Error saving station: {str(e)}'}), 500
+
+@app.route('/api/artist_stations/<station_name>', methods=['GET'])
+def get_artist_station(station_name):
+    """Get a specific artist station."""
+    try:
+        stations = load_artist_stations()
+        
+        if station_name not in stations:
+            return jsonify({'status': 'error', 'message': 'Station not found'}), 404
+        
+        return jsonify({'status': 'success', 'station': stations[station_name]})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Error loading station: {str(e)}'}), 500
+
+@app.route('/api/artist_stations/<station_name>', methods=['DELETE'])
+def delete_artist_station(station_name):
+    """Delete an artist station."""
+    try:
+        stations = load_artist_stations()
+        
+        if station_name not in stations:
+            return jsonify({'status': 'error', 'message': 'Station not found'}), 404
+        
+        del stations[station_name]
+        
+        if save_artist_stations(stations):
+            return jsonify({'status': 'success', 'message': f'Station "{station_name}" deleted'})
+        else:
+            return jsonify({'status': 'error', 'message': 'Failed to delete station'}), 500
+            
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Error deleting station: {str(e)}'}), 500
 
 # --- EXPERIMENTAL: Internet Radio Streaming ---
 @app.route('/api/streaming_radio/test', methods=['POST'])
