@@ -43,13 +43,31 @@ if ! git diff-index --quiet HEAD --; then
     git stash
 fi
 
-# Pull latest changes
-echo -e "${GREEN}Pulling latest changes from git...${NC}"
-if git pull origin main; then
-    echo -e "${GREEN}✓ Successfully pulled latest changes${NC}"
-else
-    echo -e "${RED}Failed to pull changes from git${NC}"
+# Explicit fetch first to ensure remote refs are up to date
+echo -e "${GREEN}Fetching remote changes from GitHub...${NC}"
+if ! git fetch origin main; then
+    echo -e "${RED}Failed to fetch from git${NC}"
     exit 1
+fi
+
+# Check how many commits we're behind
+BEHIND=$(git rev-list --count HEAD..origin/main)
+if [ "$BEHIND" -gt 0 ]; then
+    echo -e "${GREEN}Found $BEHIND new commits. Pulling...${NC}"
+    if ! git pull --ff-only origin main; then
+        echo -e "${RED}Failed to merge changes from GitHub${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✓ Successfully pulled $BEHIND new commits${NC}"
+    
+    # Show what was updated
+    echo ""
+    echo -e "${YELLOW}Recent changes:${NC}"
+    git log --oneline -n $BEHIND | while read line; do
+        echo "  • $line"
+    done
+else
+    echo -e "${GREEN}✓ Already up to date${NC}"
 fi
 
 echo ""
@@ -229,6 +247,7 @@ if [ ! -d "$REPO_DIR/routes" ]; then
     echo -e "${RED}✗ ERROR: routes directory not found in $REPO_DIR${NC}"
     exit 1
 fi
+echo "  → Copying route handlers..."
 sudo cp -r "$REPO_DIR/routes" "$INSTALL_DIR/web/"
 echo -e "${GREEN}✓ Updated route handlers${NC}"
 
@@ -237,6 +256,7 @@ if [ ! -d "$REPO_DIR/services" ]; then
     echo -e "${RED}✗ ERROR: services directory not found in $REPO_DIR${NC}"
     exit 1
 fi
+echo "  → Copying services..."
 sudo mkdir -p "$INSTALL_DIR/web/services"
 sudo cp -rf "$REPO_DIR/services/"* "$INSTALL_DIR/web/services/"
 echo -e "${GREEN}✓ Updated services${NC}"
@@ -246,16 +266,22 @@ if [ ! -d "$REPO_DIR/utils" ]; then
     echo -e "${RED}✗ ERROR: utils directory not found in $REPO_DIR${NC}"
     exit 1
 fi
+echo "  → Copying utilities..."
 sudo cp -r "$REPO_DIR/utils" "$INSTALL_DIR/web/"
 echo -e "${GREEN}✓ Updated utilities${NC}"
 
 # Copy static directory contents (create directory first, then copy contents)
+echo "  → Copying static files..."
 sudo mkdir -p "$INSTALL_DIR/static"
 sudo mkdir -p "$INSTALL_DIR/web/static"
 sudo cp -rf "$REPO_DIR/static/"* "$INSTALL_DIR/static/"
 sudo cp -rf "$REPO_DIR/static/"* "$INSTALL_DIR/web/static/"
+
+# Copy main app.py (contains Squeezebox sync changes if updated)
+echo "  → Copying app.py with any recent changes..."
 sudo cp "$REPO_DIR/app.py" "$INSTALL_DIR/"
 sudo cp "$REPO_DIR/app.py" "$INSTALL_DIR/web/"
+
 sudo cp "$REPO_DIR/requirements.txt" "$INSTALL_DIR/"
 # Copy LMS client library if it exists
 if [ -f "$REPO_DIR/lms_client.py" ]; then
@@ -274,9 +300,13 @@ echo -e "${GREEN}✓ Updated main application files${NC}"
 echo ""
 echo -e "${GREEN}[4/6] Updating admin interface...${NC}"
 # Copy admin files
+echo "  → Copying admin API..."
 sudo cp "$REPO_DIR/admin/admin_api.py" "$INSTALL_DIR/admin/"
 sudo cp "$REPO_DIR/admin/requirements.txt" "$INSTALL_DIR/admin/"
 sudo cp "$REPO_DIR/admin/library_maintenance.py" "$INSTALL_DIR/admin/"
+
+# Copy admin templates (includes Squeezebox sync delay UI if updated)
+echo "  → Copying admin templates (Squeezebox/LMS settings)..."
 sudo cp -r "$REPO_DIR/admin/templates" "$INSTALL_DIR/admin/"
 echo -e "${GREEN}✓ Updated admin interface files${NC}"
 

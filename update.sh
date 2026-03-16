@@ -32,13 +32,26 @@ if ! git diff-index --quiet HEAD --; then
     git stash
 fi
 
-# Pull
-if ! git pull origin main; then
-    echo -e "${RED}Failed to pull from git${NC}"
+# Explicit fetch first to ensure remote refs are up to date
+echo "Fetching remote changes..."
+if ! git fetch origin main; then
+    echo -e "${RED}Failed to fetch from git${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}✓ Latest changes pulled${NC}"
+# Now check what changed
+echo "Checking for new commits..."
+BEHIND=$(git rev-list --count HEAD..origin/main)
+if [ "$BEHIND" -gt 0 ]; then
+    echo "Found $BEHIND new commits. Pulling..."
+    if ! git pull --ff-only origin main; then
+        echo -e "${RED}Failed to merge changes. Try manual git pull.${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✓ Latest changes pulled ($BEHIND commits)${NC}"
+else
+    echo -e "${GREEN}✓ Already up to date${NC}"
+fi
 echo ""
 
 # Step 2: Run the actual update script (now with latest changes)
