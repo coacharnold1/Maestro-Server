@@ -5903,6 +5903,11 @@ def api_lms_sync():
         # Use LMS native sync grouping for real-time synchronization
         # instead of relying on HTTP buffering delays
         
+        # Get configured sync delay from settings (in milliseconds, default 2000ms)
+        settings = load_settings()
+        sync_delay_ms = settings.get('lms_sync_delay_ms', 2000)
+        sync_delay_sec = sync_delay_ms / 1000.0
+        
         master_id = player_ids[0]
         slave_ids = player_ids[1:] if len(player_ids) > 1 else []
         
@@ -5918,12 +5923,15 @@ def api_lms_sync():
         
         # For slaves, use LMS sync grouping to keep them synchronized with master
         if slave_ids:
-            # Small delay to let master start buffering
-            time.sleep(0.1)
+            # Wait for configured delay to let master start buffering and stabilize
+            # This allows the network/player buffering to sync across all devices
+            print(f"[LMS Sync] Waiting {sync_delay_ms}ms before syncing slaves...")
+            time.sleep(sync_delay_sec)
             
             # Sync slave players to master using LMS native sync
             if client.sync_players(master_id, slave_ids):
                 success_count += len(slave_ids)
+                print(f"[LMS Sync] Synced {len(slave_ids)} slave(s) with {sync_delay_ms}ms delay")
             else:
                 # If native sync fails, fall back to just starting them
                 for player_id in slave_ids:
@@ -5933,10 +5941,10 @@ def api_lms_sync():
                         failed_players.append(player_id)
         
         if success_count > 0:
-            message = f'Started streaming to {success_count} player(s) with LMS native sync'
+            message = f'Started streaming to {success_count} player(s) with{" " + str(sync_delay_ms) + "ms sync delay" if sync_delay_ms > 100 else ""}'
             if failed_players:
                 message += f', {len(failed_players)} failed'
-            return jsonify({'status': 'success', 'message': message, 'note': 'Network buffering typically causes 2-5 second delay'})
+            return jsonify({'status': 'success', 'message': message})
         else:
             return jsonify({'status': 'error', 'message': 'Failed to start streaming on any player'}), 500
             

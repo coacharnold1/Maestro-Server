@@ -115,6 +115,15 @@ if 'bandcamp_identity_token' not in settings:
     settings['bandcamp_identity_token'] = ''
     modified = True
 
+# Add missing LMS sync delay field (2000ms is better default for Squeezebox sync)
+if 'lms_sync_delay_ms' not in settings:
+    settings['lms_sync_delay_ms'] = 2000
+    modified = True
+elif settings.get('lms_sync_delay_ms', 500) == 500:
+    # Update old default (500ms) to new default (2000ms) for better sync
+    settings['lms_sync_delay_ms'] = 2000
+    modified = True
+
 if modified:
     with open('$settings_path', 'w') as f:
         json.dump(settings, f, indent=2)

@@ -355,6 +355,7 @@ def api_lms_players_handler(app_ctx):
 def api_lms_sync_handler(app_ctx):
     """Sync MPD stream to selected Squeezebox players using LMS native synchronization."""
     get_lms_client = app_ctx['get_lms_client']
+    load_settings = app_ctx.get('load_settings')
     
     try:
         data = request.json
@@ -372,10 +373,19 @@ def api_lms_sync_handler(app_ctx):
         
         mpd_stream_url = f"http://{request.host.split(':')[0]}:8000"
         
+        # Get configured sync delay from settings (in milliseconds, default 2000ms)
+        sync_delay_ms = 2000  # fallback default
+        if load_settings:
+            try:
+                settings = load_settings()
+                sync_delay_ms = settings.get('lms_sync_delay_ms', 2000)
+            except:
+                pass
+        sync_delay_sec = sync_delay_ms / 1000.0
+        
         # Strategy: Use LMS native sync grouping for real-time synchronization
         # instead of relying on HTTP streaming delays.
-        # Note: Network playback latency varies based on encoder/bitrate;
-        # typical buffering is 2-5 seconds.
+        # Apply configured delay to compensate for network buffering.
         
         # Pick first player as master, others as slaves
         master_id = player_ids[0]
@@ -397,15 +407,17 @@ def api_lms_sync_handler(app_ctx):
         
         # For slaves, use LMS sync grouping to keep them synchronized with master
         if slave_ids:
-            # Small delay to let master start buffering
-            time.sleep(0.1)
+            # Wait for configured delay to let master start buffering
+            # This allows network/player buffering to sync across all devices
+            print(f"[LMS Sync] Waiting {sync_delay_ms}ms before syncing {len(slave_ids)} slave(s)...")
+            time.sleep(sync_delay_sec)
             
             print(f"[LMS Sync] Syncing {len(slave_ids)} slave player(s) to master")
             
             # Sync slave players to master using LMS native sync
             if client.sync_players(master_id, slave_ids):
                 success_count += len(slave_ids)
-                print(f"[LMS Sync] Slave players synced successfully using LMS sync grouping")
+                print(f"[LMS Sync] Slave players synced successfully using LMS sync grouping with {sync_delay_ms}ms delay")
             else:
                 print(f"[LMS Sync] LMS sync grouping failed, falling back to individual playback")
                 # If native sync fails, fall back to just starting them
@@ -416,11 +428,11 @@ def api_lms_sync_handler(app_ctx):
                         failed_players.append(player_id)
         
         if success_count > 0:
-            message = f'Started streaming to {success_count} player(s) with LMS native sync'
+            message = f'Started streaming to {success_count} player(s) with {sync_delay_ms}ms sync delay'
             if failed_players:
                 message += f', {len(failed_players)} failed'
             print(f"[LMS Sync] Success: {message}")
-            return jsonify({'status': 'success', 'message': message, 'note': 'Network buffering typically causes 2-5 second delay'})
+            return jsonify({'status': 'success', 'message': message})
         else:
             return jsonify({'status': 'error', 'message': 'Failed to start streaming on any player'}), 500
             
