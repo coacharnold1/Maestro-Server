@@ -353,9 +353,8 @@ def api_lms_players_handler(app_ctx):
 
 
 def api_lms_sync_handler(app_ctx):
-    """Sync MPD stream to selected Squeezebox players."""
+    """Sync MPD stream to selected Squeezebox players using LMS native synchronization."""
     get_lms_client = app_ctx['get_lms_client']
-    load_settings = app_ctx['load_settings']
     
     try:
         data = request.json
@@ -368,33 +367,65 @@ def api_lms_sync_handler(app_ctx):
         if not client:
             return jsonify({'status': 'error', 'message': 'LMS not configured'}), 400
         
-        # Get sync delay from settings
-        settings = load_settings()
-        sync_delay_ms = settings.get('lms_sync_delay_ms', 500)
-        sync_delay_sec = sync_delay_ms / 1000.0
+        if len(player_ids) < 1:
+            return jsonify({'status': 'error', 'message': 'At least one player required'}), 400
         
         mpd_stream_url = f"http://{request.host.split(':')[0]}:8000"
+        
+        # Strategy: Use LMS native sync grouping for real-time synchronization
+        # instead of relying on HTTP streaming delays.
+        # Note: Network playback latency varies based on encoder/bitrate;
+        # typical buffering is 2-5 seconds.
+        
+        # Pick first player as master, others as slaves
+        master_id = player_ids[0]
+        slave_ids = player_ids[1:] if len(player_ids) > 1 else []
         
         success_count = 0
         failed_players = []
         
-        for player_id in player_ids:
-            # Apply delay before starting playback on this player
-            time.sleep(sync_delay_sec)
-            if client.play_url(player_id, mpd_stream_url):
-                success_count += 1
+        print(f"[LMS Sync] Starting master player: {master_id}")
+        
+        # Start playback on MASTER first
+        if client.play_url(master_id, mpd_stream_url):
+            success_count += 1
+            print(f"[LMS Sync] Master player started successfully")
+        else:
+            failed_players.append(master_id)
+            print(f"[LMS Sync] Failed to start master player")
+            return jsonify({'status': 'error', 'message': f'Failed to start master player {master_id}'}), 500
+        
+        # For slaves, use LMS sync grouping to keep them synchronized with master
+        if slave_ids:
+            # Small delay to let master start buffering
+            time.sleep(0.1)
+            
+            print(f"[LMS Sync] Syncing {len(slave_ids)} slave player(s) to master")
+            
+            # Sync slave players to master using LMS native sync
+            if client.sync_players(master_id, slave_ids):
+                success_count += len(slave_ids)
+                print(f"[LMS Sync] Slave players synced successfully using LMS sync grouping")
             else:
-                failed_players.append(player_id)
+                print(f"[LMS Sync] LMS sync grouping failed, falling back to individual playback")
+                # If native sync fails, fall back to just starting them
+                for player_id in slave_ids:
+                    if client.play_url(player_id, mpd_stream_url):
+                        success_count += 1
+                    else:
+                        failed_players.append(player_id)
         
         if success_count > 0:
-            message = f'Started streaming to {success_count} player(s)'
+            message = f'Started streaming to {success_count} player(s) with LMS native sync'
             if failed_players:
                 message += f', {len(failed_players)} failed'
-            return jsonify({'status': 'success', 'message': message})
+            print(f"[LMS Sync] Success: {message}")
+            return jsonify({'status': 'success', 'message': message, 'note': 'Network buffering typically causes 2-5 second delay'})
         else:
             return jsonify({'status': 'error', 'message': 'Failed to start streaming on any player'}), 500
             
     except Exception as e:
+        print(f"[LMS Sync] Error: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
