@@ -2556,6 +2556,63 @@ def get_genres():
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Server error: {str(e)}'}), 500
 
+@app.route('/api/autocomplete/artists', methods=['GET'])
+def autocomplete_artists():
+    """Return all artists for autocomplete in artist-based music addition."""
+    try:
+        client = connect_mpd_client()
+        if not client:
+            return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
+        
+        try:
+            # Get all unique artists using list('artist')
+            artists_raw = client.list('artist')
+            artists = sorted(set([
+                (a if isinstance(a, str) else a.get('artist', '')) 
+                for a in artists_raw if a
+            ]))
+        except Exception as artist_error:
+            print(f"[DEBUG] client.list('artist') failed, falling back to song scan: {artist_error}", flush=True)
+            # Fallback: scan all songs to extract unique artists
+            try:
+                all_songs = client.listallinfo()
+                artist_set = set()
+                for song in all_songs:
+                    artist = song.get('artist', '').strip()
+                    if artist:
+                        artist_set.add(artist)
+                artists = sorted(list(artist_set))
+            except Exception as fallback_error:
+                print(f"[DEBUG] Artist fallback also failed: {fallback_error}", flush=True)
+                artists = []
+        
+        # Filter out empty strings
+        artists = [a for a in artists if a]
+        
+        # Disconnect
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
+        
+        return jsonify({
+            'status': 'success',
+            'artists': artists,
+            'count': len(artists)
+        })
+        
+    except Exception as e:
+        # Disconnect on error if exists
+        try:
+            if 'client' in locals() and client:
+                client.disconnect()
+        except:
+            pass
+        
+        print(f"[DEBUG] Exception in /api/autocomplete/artists: {e}", flush=True)
+        return jsonify({'status': 'error', 'message': f'Error fetching artists: {str(e)}'}), 500
+
 @app.route('/api/genre_stations', methods=['GET'])
 def get_genre_stations():
     """Get all saved genre stations."""
