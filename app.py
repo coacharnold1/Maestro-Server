@@ -2639,6 +2639,116 @@ def autocomplete_artists():
         print(f"[DEBUG] Exception in /api/autocomplete/artists: {e}", flush=True)
         return jsonify({'status': 'error', 'message': f'Error fetching artists: {str(e)}'}), 500
 
+@app.route('/api/add-from-artists', methods=['POST'])
+def add_from_artists():
+    """Create playlist from selected artists."""
+    try:
+        client = connect_mpd_client()
+        if not client:
+            return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
+        
+        # Get artist names and options from request
+        data = request.get_json()
+        artist_names = data.get('artists', []) if data else []
+        clear_queue = data.get('clear_queue', False) if data else False
+        song_count = data.get('song_count', 25) if data else 25
+        
+        # Validate song_count
+        try:
+            song_count = int(song_count)
+            song_count = max(1, min(500, song_count))  # Clamp between 1 and 500
+        except (ValueError, TypeError):
+            song_count = 25
+        
+        if not artist_names or not isinstance(artist_names, list):
+            return jsonify({'status': 'error', 'message': 'Invalid or empty artist list'}), 400
+        
+        # Clear queue if requested
+        if clear_queue:
+            try:
+                client.clear()
+                print(f"[DEBUG] Cleared current queue", flush=True)
+            except Exception as e:
+                print(f"[DEBUG] Error clearing queue: {e}", flush=True)
+        
+        # Collect all songs from selected artists
+        all_songs = []
+        
+        for artist_name in artist_names:
+            artist_name = str(artist_name).strip()
+            if not artist_name:
+                continue
+            
+            try:
+                # Find all songs by this artist
+                songs = client.find('artist', artist_name)
+                
+                if not songs:
+                    # Try albumartist as fallback
+                    songs = client.find('albumartist', artist_name)
+                
+                if songs:
+                    all_songs.extend(songs)
+                    print(f"[DEBUG] Found {len(songs)} songs from artist '{artist_name}'", flush=True)
+                
+            except Exception as e:
+                print(f"[DEBUG] Error finding songs from artist '{artist_name}': {e}", flush=True)
+                continue
+        
+        if not all_songs:
+            if client:
+                try:
+                    client.disconnect()
+                except:
+                    pass
+            return jsonify({
+                'status': 'error',
+                'message': f'No songs found for the selected artists'
+            }), 400
+        
+        # Randomly select up to specified number of songs
+        play_count = min(song_count, len(all_songs))
+        selected_songs = random.sample(all_songs, play_count)
+        
+        print(f"[DEBUG] Selected {play_count} random songs from {len(all_songs)} total for {len(artist_names)} artists", flush=True)
+        
+        # Add selected songs to queue
+        total_added = 0
+        for song in selected_songs:
+            file_path = song.get('file')
+            if file_path:
+                try:
+                    client.add(file_path)
+                    total_added += 1
+                except Exception as e:
+                    print(f"[DEBUG] Error adding song to queue: {e}", flush=True)
+                    continue
+        
+        # Disconnect
+        if client:
+            try:
+                client.disconnect()
+            except:
+                pass
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'Created playlist with {play_count} songs from {len(artist_names)} artist(s)',
+            'songs_added': total_added,
+            'total_available': len(all_songs)
+        })
+        
+    except Exception as e:
+        # Disconnect on error
+        try:
+            if 'client' in locals() and client:
+                client.disconnect()
+        except:
+            pass
+        
+        print(f"[DEBUG] Exception in /api/add-from-artists: {e}", flush=True)
+        return jsonify({'status': 'error', 'message': f'Error creating playlist: {str(e)}'}), 500
+
 @app.route('/api/genre_stations', methods=['GET'])
 def get_genre_stations():
     """Get all saved genre stations."""
