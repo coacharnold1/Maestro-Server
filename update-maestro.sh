@@ -70,6 +70,14 @@ else
     echo -e "${GREEN}✓ Already up to date${NC}"
 fi
 
+# Always show current version being deployed
+echo ""
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${GREEN}Current Version Being Deployed:${NC}"
+CURRENT_COMMIT=$(git rev-parse --short HEAD)
+CURRENT_MSG=$(git log --oneline -1)
+echo -e "  ${BLUE}$CURRENT_MSG${NC}"
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 echo -e "${GREEN}[2/6] Backing up current configuration...${NC}"
 # Backup current settings

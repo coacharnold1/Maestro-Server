@@ -358,7 +358,7 @@ def api_lms_sync_handler(app_ctx):
     load_settings = app_ctx.get('load_settings')
     
     try:
-        current_app.logger.info("[LMS Sync] Sync request received")
+        print("[LMS Sync] ===== SYNC REQUEST RECEIVED =====", flush=True)
         data = request.json
         player_ids = data.get('players', [])
         
@@ -380,11 +380,11 @@ def api_lms_sync_handler(app_ctx):
             try:
                 settings = load_settings()
                 sync_delay_ms = settings.get('lms_sync_delay_ms', 2000)
-                current_app.logger.info(f"[LMS Sync] Loaded sync delay: {sync_delay_ms}ms from settings")
+                print(f"[LMS Sync] Loaded sync delay: {sync_delay_ms}ms from settings.json", flush=True)
             except Exception as e:
-                current_app.logger.warning(f"[LMS Sync] Failed to load settings, using default 2000ms: {e}")
+                print(f"[LMS Sync] WARNING: Failed to load settings: {e}", flush=True)
         else:
-            current_app.logger.warning(f"[LMS Sync] load_settings not available, using default 2000ms")
+            print(f"[LMS Sync] WARNING: load_settings not available, using default 2000ms", flush=True)
         sync_delay_sec = sync_delay_ms / 1000.0
         
         # Strategy: Use LMS native sync grouping for real-time synchronization
@@ -398,31 +398,31 @@ def api_lms_sync_handler(app_ctx):
         success_count = 0
         failed_players = []
         
-        current_app.logger.info(f"[LMS Sync] Starting master player {master_id}, {len(slave_ids)} slaves")
+        print(f"[LMS Sync] Starting playback on master player: {master_id}", flush=True)
         
         # Start playback on MASTER first
         if client.play_url(master_id, mpd_stream_url):
             success_count += 1
-            current_app.logger.info(f"[LMS Sync] Master started successfully")
+            print(f"[LMS Sync] Master player started OK", flush=True)
         else:
             failed_players.append(master_id)
-            current_app.logger.error(f"[LMS Sync] Failed to start master player {master_id}")
+            print(f"[LMS Sync] ERROR: Failed to start master player {master_id}", flush=True)
             return jsonify({'status': 'error', 'message': f'Failed to start master player {master_id}'}), 500
         
         # For slaves, use LMS sync grouping to keep them synchronized with master
         if slave_ids:
             # Wait for configured delay to let master start buffering
             # This allows network/player buffering to sync across all devices
-            current_app.logger.info(f"[LMS Sync] Waiting {sync_delay_ms}ms before syncing {len(slave_ids)} slave(s)...")
+            print(f"[LMS Sync] *** WAITING {sync_delay_ms}ms BEFORE SYNCING {len(slave_ids)} SLAVE(S) ***", flush=True)
             time.sleep(sync_delay_sec)
-            current_app.logger.info(f"[LMS Sync] Delay complete, syncing slaves now")
+            print(f"[LMS Sync] Delay complete! Syncing slaves to master now...", flush=True)
             
             # Sync slave players to master using LMS native sync
             if client.sync_players(master_id, slave_ids):
                 success_count += len(slave_ids)
-                current_app.logger.info(f"[LMS Sync] Slave players synced successfully using LMS sync grouping with {sync_delay_ms}ms delay")
+                print(f"[LMS Sync] SUCCESS: Synced {len(slave_ids)} slave(s) with {sync_delay_ms}ms delay", flush=True)
             else:
-                current_app.logger.warning(f"[LMS Sync] LMS sync grouping failed, falling back to individual playback")
+                print(f"[LMS Sync] WARNING: LMS sync_players() failed, falling back to individual playback", flush=True)
                 # If native sync fails, fall back to just starting them
                 for player_id in slave_ids:
                     if client.play_url(player_id, mpd_stream_url):
@@ -434,14 +434,16 @@ def api_lms_sync_handler(app_ctx):
             message = f'Started streaming to {success_count} player(s) with {sync_delay_ms}ms sync delay'
             if failed_players:
                 message += f', {len(failed_players)} failed'
-            current_app.logger.info(f"[LMS Sync] Success: {message}")
+            print(f"[LMS Sync] FINAL RESULT: {message}", flush=True)
             return jsonify({'status': 'success', 'message': message})
         else:
-            current_app.logger.error(f"[LMS Sync] Failed to start streaming on any player")
+            print(f"[LMS Sync] ERROR: Failed to start streaming on any player", flush=True)
             return jsonify({'status': 'error', 'message': 'Failed to start streaming on any player'}), 500
             
     except Exception as e:
-        current_app.logger.error(f"[LMS Sync] Unexpected error: {e}", exc_info=True)
+        print(f"[LMS Sync] EXCEPTION: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
