@@ -383,6 +383,15 @@
             
             <button class="btn btn-primary" onclick="openExportModal()" style="margin-bottom: 20px;">📥 Export Queue</button>
             
+            <!-- Previous Exports List -->
+            <div id="previous-exports-section" style="margin-top: 20px;">
+                <h3 style="color: #16a085; margin-bottom: 15px;">📦 Available Downloads</h3>
+                <div id="exports-list" style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 15px;">
+                    <p style="color: #7f8c8d; text-align: center;">Loading...</p>
+                </div>
+                <button class="btn" onclick="refreshExportsList()" style="margin-top: 10px;">🔄 Refresh List</button>
+            </div>
+            
             <div id="export-modal" class="modal">
                 <div class="modal-content" style="width: 90%; max-width: 600px;">
                     <div class="modal-header">
@@ -1178,6 +1187,9 @@
                                 document.getElementById('export-submit-btn').disabled = false;
                                 document.getElementById('export-submit-btn').textContent = 'Start Export';
                                 
+                                // Refresh the exports list to show the new file
+                                refreshExportsList();
+                                
                                 clearInterval(pollInterval);
                             }
                         }
@@ -1211,6 +1223,83 @@
             document.getElementById('download-export-btn').style.display = 'none';
         }
 
+        // ===== Previous Exports List Functions =====
+        function refreshExportsList() {
+            const listContainer = document.getElementById('exports-list');
+            listContainer.innerHTML = '<p style="color: #7f8c8d; text-align: center;">Loading...</p>';
+            
+            fetch(`http://${window.location.hostname}:5003/api/export/list`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        displayExportsList(data.exports);
+                    } else {
+                        listContainer.innerHTML = `<p style="color: #e74c3c; text-align: center;">Error: ${data.message}</p>`;
+                    }
+                })
+                .catch(error => {
+                    listContainer.innerHTML = `<p style="color: #e74c3c; text-align: center;">Failed to load exports: ${error.message}</p>`;
+                });
+        }
+
+        function displayExportsList(exports) {
+            const listContainer = document.getElementById('exports-list');
+            
+            if (!exports || exports.length === 0) {
+                listContainer.innerHTML = '<p style="color: #7f8c8d; text-align: center;">No exports available. Create one using the Export Queue button above.</p>';
+                return;
+            }
+            
+            let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
+            
+            exports.forEach(exp => {
+                html += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
+                        <div style="flex: 1;">
+                            <div style="color: #ecf0f1; font-weight: 500;">📦 ${exp.filename}</div>
+                            <div style="color: #7f8c8d; font-size: 0.85em; margin-top: 4px;">
+                                📅 ${exp.created} &nbsp;|&nbsp; 💾 ${exp.size_mb} MB
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-primary" onclick="downloadExportFile('${exp.filename}')" style="padding: 8px 12px; font-size: 0.9em;">
+                                ⬇️ Download
+                            </button>
+                            <button class="btn" onclick="deleteExportFile('${exp.filename}')" style="padding: 8px 12px; font-size: 0.9em; background: rgba(231,76,60,0.2); border-color: #e74c3c;">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            listContainer.innerHTML = html;
+        }
+
+        function downloadExportFile(filename) {
+            window.location.href = `http://${window.location.hostname}:5003/api/export/download/${filename}`;
+        }
+
+        function deleteExportFile(filename) {
+            if (!confirm(`Delete ${filename}?`)) return;
+            
+            fetch(`http://${window.location.hostname}:5003/api/export/delete/${filename}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    refreshExportsList();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Failed to delete: ' + error.message);
+            });
+        }
+
         // Close modal when clicking outside
         document.addEventListener('DOMContentLoaded', function() {
             const modal = document.getElementById('export-modal');
@@ -1227,6 +1316,9 @@
             if (urlParams.get('export') === 'true') {
                 setTimeout(() => openExportModal(), 300);
             }
+            
+            // Load exports list on page load
+            refreshExportsList();
         });
     </script>
 </body>

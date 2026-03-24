@@ -1,12 +1,14 @@
-Maestro MPD Server v3.6.1
+Maestro MPD Server v3.6.2
 Release Date: Mar 24 00:00:00 UTC 2026
-Version: 3.6.1
+Version: 3.6.2
 
-🔧 PLAYLIST EXPORT FIX 🔧
+📦 PLAYLIST EXPORT ENHANCEMENTS 📦
 
-Latest Features (Mar 24, 2026 - v3.6.1):
-✅ FIX: Added missing /api/export/queue, /api/export/status, /api/export/download routes
-✅ FIX: Playlist export to MP3 now works from Admin interface
+Latest Features (Mar 24, 2026 - v3.6.2):
+✅ NEW: Previous exports list - view, download, delete old exports
+✅ NEW: /api/export/list and /api/export/delete endpoints
+✅ FIX: Added CORS headers for cross-origin API requests
+✅ FIX: Added missing export API routes (queue, status, download)
 
 🎵 ARTIST STATIONS & UI POLISH 🎵
 

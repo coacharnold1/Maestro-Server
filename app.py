@@ -1,7 +1,7 @@
 print("[DEBUG] app.py loaded and running", flush=True)
 
 # Application version information
-APP_VERSION = "3.6.1"
+APP_VERSION = "3.6.2"
 APP_BUILD_DATE = "2026-03-24" 
 APP_NAME = "Maestro MPD Server"
 
@@ -6592,6 +6592,74 @@ def api_check_ffmpeg():
         'available': available,
         'message': 'FFmpeg is available' if available else 'FFmpeg not found - MP3 transcoding unavailable'
     })
+
+@app.route('/api/export/list')
+def api_export_list():
+    """List all available export ZIP files"""
+    import tempfile
+    from datetime import datetime
+    
+    try:
+        temp_dir = tempfile.gettempdir()
+        exports = []
+        
+        for filename in os.listdir(temp_dir):
+            if filename.startswith('maestro_export_') and filename.endswith('.zip'):
+                filepath = os.path.join(temp_dir, filename)
+                try:
+                    stat = os.stat(filepath)
+                    # Parse timestamp from filename: maestro_export_YYYYMMDD_HHMMSS.zip
+                    timestamp_str = filename.replace('maestro_export_', '').replace('.zip', '')
+                    try:
+                        created = datetime.strptime(timestamp_str, '%Y%m%d_%H%M%S')
+                        created_str = created.strftime('%Y-%m-%d %H:%M:%S')
+                    except:
+                        created_str = datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+                    
+                    exports.append({
+                        'filename': filename,
+                        'size_mb': round(stat.st_size / (1024 * 1024), 2),
+                        'created': created_str,
+                        'timestamp': stat.st_mtime
+                    })
+                except Exception as e:
+                    print(f"Error reading export file {filename}: {e}")
+                    continue
+        
+        # Sort by timestamp, newest first
+        exports.sort(key=lambda x: x['timestamp'], reverse=True)
+        
+        return jsonify({
+            'status': 'success',
+            'exports': exports,
+            'count': len(exports)
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/export/delete/<filename>', methods=['DELETE'])
+def api_export_delete(filename):
+    """Delete an export ZIP file"""
+    import tempfile
+    
+    try:
+        # Security: Only allow maestro_export_*.zip files
+        if not filename.startswith('maestro_export_') or not filename.endswith('.zip'):
+            return jsonify({'status': 'error', 'message': 'Invalid filename'}), 400
+        
+        temp_dir = tempfile.gettempdir()
+        file_path = os.path.join(temp_dir, filename)
+        
+        if not os.path.exists(file_path):
+            return jsonify({'status': 'error', 'message': 'File not found'}), 404
+        
+        os.remove(file_path)
+        return jsonify({
+            'status': 'success',
+            'message': f'Deleted {filename}'
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # --- Application Startup ---
 if __name__ == '__main__':
