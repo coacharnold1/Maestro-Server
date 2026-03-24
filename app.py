@@ -1,8 +1,8 @@
 print("[DEBUG] app.py loaded and running", flush=True)
 
 # Application version information
-APP_VERSION = "2.9.6"
-APP_BUILD_DATE = "2026-02-16" 
+APP_VERSION = "3.6.1"
+APP_BUILD_DATE = "2026-03-24" 
 APP_NAME = "Maestro MPD Server"
 
 # Simple threading mode to avoid eventlet issues
@@ -24,6 +24,20 @@ import requests
 import random
 import re
 import html
+
+# Import playlist export service
+try:
+    from services.playlist_export import (
+        export_queue,
+        get_export_status,
+        start_async_queue_export,
+        check_ffmpeg,
+        cleanup_old_exports
+    )
+    PLAYLIST_EXPORT_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: playlist_export service not available: {e}")
+    PLAYLIST_EXPORT_AVAILABLE = False
 
 # Settings and data files
 SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'settings.json')
@@ -6457,6 +6471,118 @@ def bandcamp_artwork(art_id):
     except Exception as e:
         print(f"Error fetching Bandcamp artwork: {e}")
         return '', 404
+
+# =============================================================================
+# PLAYLIST EXPORT API ROUTES
+# =============================================================================
+
+@app.route('/api/export/queue', methods=['POST'])
+def api_export_queue():
+    """Start exporting the current MPD queue to a ZIP file"""
+    if not PLAYLIST_EXPORT_AVAILABLE:
+        return jsonify({'status': 'error', 'message': 'Playlist export service not available'}), 500
+    
+    try:
+        data = request.get_json() or {}
+        format_type = data.get('format', 'flac')  # 'flac' or 'mp3'
+        mp3_bitrate = int(data.get('bitrate', 192))
+        folder_structure = data.get('structure', 'artist_album')
+        include_cover_art = data.get('include_cover_art', True)
+        
+        # Get current queue from MPD
+        client = connect_mpd_client()
+        if not client:
+            return jsonify({'status': 'error', 'message': 'Could not connect to MPD'}), 500
+        
+        try:
+            queue = client.playlistinfo()
+            client.disconnect()
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': f'Error getting playlist: {str(e)}'}), 500
+        
+        if not queue:
+            return jsonify({'status': 'error', 'message': 'Queue is empty'}), 400
+        
+        # Get music directory from settings
+        settings = load_settings()
+        music_dir = settings.get('music_directory', '/media/music')
+        
+        # Start async export
+        start_async_queue_export(
+            queue=queue,
+            format_type=format_type,
+            mp3_bitrate=mp3_bitrate,
+            folder_structure=folder_structure,
+            include_cover_art=include_cover_art,
+            music_dir=music_dir
+        )
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'Export started: {len(queue)} songs',
+            'total': len(queue)
+        })
+        
+    except Exception as e:
+        print(f"Export queue error: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/export/status')
+def api_export_status():
+    """Get the current export progress"""
+    if not PLAYLIST_EXPORT_AVAILABLE:
+        return jsonify({'status': 'error', 'message': 'Playlist export service not available'}), 500
+    
+    try:
+        status = get_export_status()
+        return jsonify({
+            'status': 'success',
+            'data': status
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/export/download/<filename>')
+def api_export_download(filename):
+    """Download the exported ZIP file"""
+    import tempfile
+    
+    if not PLAYLIST_EXPORT_AVAILABLE:
+        return jsonify({'status': 'error', 'message': 'Playlist export service not available'}), 500
+    
+    try:
+        # Security: Only allow maestro_export_*.zip files
+        if not filename.startswith('maestro_export_') or not filename.endswith('.zip'):
+            return jsonify({'status': 'error', 'message': 'Invalid filename'}), 400
+        
+        # Get the file from temp directory
+        temp_dir = tempfile.gettempdir()
+        file_path = os.path.join(temp_dir, filename)
+        
+        if not os.path.exists(file_path):
+            return jsonify({'status': 'error', 'message': 'Export file not found'}), 404
+        
+        return send_from_directory(
+            temp_dir,
+            filename,
+            as_attachment=True,
+            download_name=filename
+        )
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/export/check_ffmpeg')
+def api_check_ffmpeg():
+    """Check if FFmpeg is available for MP3 transcoding"""
+    if not PLAYLIST_EXPORT_AVAILABLE:
+        return jsonify({'status': 'error', 'available': False, 'message': 'Playlist export service not available'}), 500
+    
+    available = check_ffmpeg()
+    return jsonify({
+        'status': 'success',
+        'available': available,
+        'message': 'FFmpeg is available' if available else 'FFmpeg not found - MP3 transcoding unavailable'
+    })
 
 # --- Application Startup ---
 if __name__ == '__main__':
