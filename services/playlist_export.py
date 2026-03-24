@@ -17,6 +17,7 @@ import threading
 import tempfile
 import shutil
 import subprocess
+import random
 from pathlib import Path
 from typing import Dict, List, Optional, Callable
 import logging
@@ -198,7 +199,8 @@ def export_queue(
     include_cover_art: bool = True,
     music_dir: str = '/media/music',
     callback: Optional[Callable] = None,
-    custom_filename: Optional[str] = None
+    custom_filename: Optional[str] = None,
+    shuffle_friendly: bool = False
 ) -> Dict:
     """
     Export queue to downloadable ZIP file
@@ -212,6 +214,7 @@ def export_queue(
         music_dir: Root music directory
         callback: Progress callback function
         custom_filename: Optional custom filename (without .zip extension)
+        shuffle_friendly: Whether to randomize track order for basic players
     
     Returns:
         Dictionary with export results
@@ -248,6 +251,15 @@ def export_queue(
             if not check_ffmpeg():
                 raise ValueError("FFmpeg not found. Cannot transcode to MP3.")
         
+        # Generate random track numbers for shuffle-friendly mode
+        shuffle_track_numbers = {}
+        if shuffle_friendly:
+            # Create list of track numbers and shuffle them
+            track_nums = list(range(1, len(queue) + 1))
+            random.shuffle(track_nums)
+            for idx, song in enumerate(queue):
+                shuffle_track_numbers[idx] = track_nums[idx]
+        
         for idx, song in enumerate(queue):
             _export_state['progress'] = idx + 1
             _export_state['current_song'] = f"{song.get('artist', 'Unknown')} - {song.get('title', 'Unknown')}"
@@ -277,6 +289,12 @@ def export_queue(
                 # Determine output path and extension
                 folder_path = get_folder_structure_path(song, folder_structure)
                 filename = get_filename(song, folder_structure)
+                
+                # Prepend random track number for shuffle-friendly mode
+                if shuffle_friendly and idx in shuffle_track_numbers:
+                    track_num = shuffle_track_numbers[idx]
+                    # Pad to 3 digits for proper sorting on basic players
+                    filename = f"{track_num:03d} - {filename}"
                 
                 if format_type == 'flac':
                     # Native FLAC - copy original file
@@ -373,7 +391,8 @@ def start_async_queue_export(
     folder_structure: str = 'artist_album',
     include_cover_art: bool = True,
     music_dir: str = '/media/music',
-    custom_filename: Optional[str] = None
+    custom_filename: Optional[str] = None,
+    shuffle_friendly: bool = False
 ):
     """
     Start queue export in background thread
@@ -386,6 +405,7 @@ def start_async_queue_export(
         include_cover_art: Whether to include album art
         music_dir: Music library root directory
         custom_filename: Optional custom filename (without .zip extension)
+        shuffle_friendly: Whether to randomize track order for basic MP3 players
     """
     thread = threading.Thread(
         target=export_queue,
@@ -396,7 +416,8 @@ def start_async_queue_export(
             'folder_structure': folder_structure,
             'include_cover_art': include_cover_art,
             'music_dir': music_dir,
-            'custom_filename': custom_filename
+            'custom_filename': custom_filename,
+            'shuffle_friendly': shuffle_friendly
         },
         daemon=True
     )

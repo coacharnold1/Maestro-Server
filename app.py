@@ -6497,6 +6497,7 @@ def api_export_queue():
         mp3_bitrate = int(data.get('bitrate', 192))
         folder_structure = data.get('structure', 'artist_album')
         include_cover_art = data.get('include_cover_art', True)
+        shuffle_friendly = data.get('shuffle_friendly', False)  # Randomize track numbers
         custom_filename = data.get('filename')  # Optional custom filename
         
         # Sanitize custom filename if provided
@@ -6532,7 +6533,8 @@ def api_export_queue():
             folder_structure=folder_structure,
             include_cover_art=include_cover_art,
             music_dir=music_dir,
-            custom_filename=custom_filename
+            custom_filename=custom_filename,
+            shuffle_friendly=shuffle_friendly
         )
         
         return jsonify({

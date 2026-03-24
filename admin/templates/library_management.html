@@ -444,6 +444,17 @@
                             </label>
                         </div>
 
+                        <!-- Shuffle-Friendly Mode -->
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" id="shuffle-friendly" name="shuffle_friendly">
+                                <span>🔀 Shuffle-friendly mode (for basic MP3 players)</span>
+                            </label>
+                            <small style="color: #7f8c8d; font-size: 0.85em; margin-top: 5px; display: block; margin-left: 28px;">
+                                Randomizes track numbers so cheap players play in random order
+                            </small>
+                        </div>
+
                         <!-- Custom Filename -->
                         <div class="form-group">
                             <label>Export Filename</label>
@@ -1149,6 +1160,7 @@
             const bitrate = document.getElementById('mp3-bitrate').value;
             const structure = document.getElementById('folder-structure').value;
             const includeCoverArt = document.getElementById('include-cover-art').checked;
+            const shuffleFriendly = document.getElementById('shuffle-friendly').checked;
             let customFilename = document.getElementById('export-filename').value.trim();
             
             // Sanitize filename: remove .zip if user added it, remove invalid chars
@@ -1174,6 +1186,7 @@
                     bitrate: bitrate,
                     structure: structure,
                     include_cover_art: includeCoverArt,
+                    shuffle_friendly: shuffleFriendly,
                     filename: customFilename || null
                 })
             })
