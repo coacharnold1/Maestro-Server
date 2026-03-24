@@ -197,7 +197,8 @@ def export_queue(
     folder_structure: str = 'artist_album',
     include_cover_art: bool = True,
     music_dir: str = '/media/music',
-    callback: Optional[Callable] = None
+    callback: Optional[Callable] = None,
+    custom_filename: Optional[str] = None
 ) -> Dict:
     """
     Export queue to downloadable ZIP file
@@ -210,6 +211,7 @@ def export_queue(
         include_cover_art: Whether to copy cover.jpg files
         music_dir: Root music directory
         callback: Progress callback function
+        custom_filename: Optional custom filename (without .zip extension)
     
     Returns:
         Dictionary with export results
@@ -224,7 +226,12 @@ def export_queue(
     try:
         # Create temp export directory
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        export_name = f"maestro_export_{timestamp}"
+        # Use custom filename if provided, otherwise auto-generate
+        # Always prefix with 'maestro_' for identification and cleanup
+        if custom_filename:
+            export_name = f"maestro_{custom_filename}"
+        else:
+            export_name = f"maestro_export_{timestamp}"
         temp_export_dir = tempfile.mkdtemp(prefix=export_name)
         temp_music_dir = os.path.join(temp_export_dir, 'music')
         os.makedirs(temp_music_dir, exist_ok=True)
@@ -365,7 +372,8 @@ def start_async_queue_export(
     mp3_bitrate: int = 192,
     folder_structure: str = 'artist_album',
     include_cover_art: bool = True,
-    music_dir: str = '/media/music'
+    music_dir: str = '/media/music',
+    custom_filename: Optional[str] = None
 ):
     """
     Start queue export in background thread
@@ -377,10 +385,19 @@ def start_async_queue_export(
         folder_structure: Folder organization scheme
         include_cover_art: Whether to include album art
         music_dir: Music library root directory
+        custom_filename: Optional custom filename (without .zip extension)
     """
     thread = threading.Thread(
         target=export_queue,
-        args=(queue, format_type, mp3_bitrate, folder_structure, include_cover_art, music_dir),
+        kwargs={
+            'queue': queue,
+            'format_type': format_type,
+            'mp3_bitrate': mp3_bitrate,
+            'folder_structure': folder_structure,
+            'include_cover_art': include_cover_art,
+            'music_dir': music_dir,
+            'custom_filename': custom_filename
+        },
         daemon=True
     )
     thread.start()
@@ -400,7 +417,8 @@ def cleanup_old_exports(max_age_hours: int = 24):
         max_age_seconds = max_age_hours * 3600
         
         for filename in os.listdir(temp_dir):
-            if filename.startswith('maestro_export_') and filename.endswith('.zip'):
+            # Clean up all Maestro exports (both auto-generated and custom named)
+            if filename.startswith('maestro_') and filename.endswith('.zip'):
                 filepath = os.path.join(temp_dir, filename)
                 file_age = current_time - os.path.getmtime(filepath)
                 

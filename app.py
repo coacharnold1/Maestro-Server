@@ -1,7 +1,7 @@
 print("[DEBUG] app.py loaded and running", flush=True)
 
 # Application version information
-APP_VERSION = "3.6.2"
+APP_VERSION = "3.6.3"
 APP_BUILD_DATE = "2026-03-24" 
 APP_NAME = "Maestro MPD Server"
 
@@ -6497,6 +6497,14 @@ def api_export_queue():
         mp3_bitrate = int(data.get('bitrate', 192))
         folder_structure = data.get('structure', 'artist_album')
         include_cover_art = data.get('include_cover_art', True)
+        custom_filename = data.get('filename')  # Optional custom filename
+        
+        # Sanitize custom filename if provided
+        if custom_filename:
+            import re
+            custom_filename = re.sub(r'[^a-zA-Z0-9_\-]', '_', custom_filename)
+            if not custom_filename:
+                custom_filename = None
         
         # Get current queue from MPD
         client = connect_mpd_client()
@@ -6523,7 +6531,8 @@ def api_export_queue():
             mp3_bitrate=mp3_bitrate,
             folder_structure=folder_structure,
             include_cover_art=include_cover_art,
-            music_dir=music_dir
+            music_dir=music_dir,
+            custom_filename=custom_filename
         )
         
         return jsonify({
@@ -6560,8 +6569,8 @@ def api_export_download(filename):
         return jsonify({'status': 'error', 'message': 'Playlist export service not available'}), 500
     
     try:
-        # Security: Only allow maestro_export_*.zip files
-        if not filename.startswith('maestro_export_') or not filename.endswith('.zip'):
+        # Security: Only allow maestro_*.zip files (includes custom names)
+        if not filename.startswith('maestro_') or not filename.endswith('.zip'):
             return jsonify({'status': 'error', 'message': 'Invalid filename'}), 400
         
         # Get the file from temp directory
@@ -6604,16 +6613,21 @@ def api_export_list():
         exports = []
         
         for filename in os.listdir(temp_dir):
-            if filename.startswith('maestro_export_') and filename.endswith('.zip'):
+            # Match both auto-generated (maestro_export_) and custom (maestro_) filenames
+            if filename.startswith('maestro_') and filename.endswith('.zip'):
                 filepath = os.path.join(temp_dir, filename)
                 try:
                     stat = os.stat(filepath)
-                    # Parse timestamp from filename: maestro_export_YYYYMMDD_HHMMSS.zip
-                    timestamp_str = filename.replace('maestro_export_', '').replace('.zip', '')
-                    try:
-                        created = datetime.strptime(timestamp_str, '%Y%m%d_%H%M%S')
-                        created_str = created.strftime('%Y-%m-%d %H:%M:%S')
-                    except:
+                    # Try to parse timestamp from auto-generated filename
+                    if filename.startswith('maestro_export_'):
+                        timestamp_str = filename.replace('maestro_export_', '').replace('.zip', '')
+                        try:
+                            created = datetime.strptime(timestamp_str, '%Y%m%d_%H%M%S')
+                            created_str = created.strftime('%Y-%m-%d %H:%M:%S')
+                        except:
+                            created_str = datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+                    else:
+                        # Custom filename - use file modification time
                         created_str = datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
                     
                     exports.append({
@@ -6643,8 +6657,8 @@ def api_export_delete(filename):
     import tempfile
     
     try:
-        # Security: Only allow maestro_export_*.zip files
-        if not filename.startswith('maestro_export_') or not filename.endswith('.zip'):
+        # Security: Only allow maestro_*.zip files (includes custom names)
+        if not filename.startswith('maestro_') or not filename.endswith('.zip'):
             return jsonify({'status': 'error', 'message': 'Invalid filename'}), 400
         
         temp_dir = tempfile.gettempdir()

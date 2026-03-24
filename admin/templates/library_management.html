@@ -444,6 +444,20 @@
                             </label>
                         </div>
 
+                        <!-- Custom Filename -->
+                        <div class="form-group">
+                            <label>Export Filename</label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="text" id="export-filename" name="filename" 
+                                       placeholder="Auto-generated" 
+                                       style="flex: 1; padding: 10px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #ecf0f1;">
+                                <button type="button" onclick="generateDefaultFilename()" class="btn" style="padding: 10px 15px;" title="Reset to auto-generated name">🔄</button>
+                            </div>
+                            <small style="color: #7f8c8d; font-size: 0.85em; margin-top: 5px; display: block;">
+                                Leave blank for auto-generated name (maestro_export_YYYYMMDD_HHMMSS.zip)
+                            </small>
+                        </div>
+
                         <!-- Progress Bar (Hidden until export starts) -->
                         <div id="export-progress-section" style="display: none; margin-bottom: 20px;">
                             <p style="color: #95a5a6; margin-bottom: 10px;">
@@ -1107,6 +1121,17 @@
             document.getElementById('export-modal').classList.remove('active');
         }
 
+        // Generate default filename based on current date/time
+        function generateDefaultFilename() {
+            const now = new Date();
+            const pad = (n) => n.toString().padStart(2, '0');
+            const dateStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+            const timeStr = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+            const filename = `maestro_export_${dateStr}_${timeStr}`;
+            document.getElementById('export-filename').value = filename;
+            return filename;
+        }
+
         // Toggle bitrate selector when format changes
         document.addEventListener('DOMContentLoaded', function() {
             const formatRadios = document.querySelectorAll('input[name="format"]');
@@ -1124,6 +1149,13 @@
             const bitrate = document.getElementById('mp3-bitrate').value;
             const structure = document.getElementById('folder-structure').value;
             const includeCoverArt = document.getElementById('include-cover-art').checked;
+            let customFilename = document.getElementById('export-filename').value.trim();
+            
+            // Sanitize filename: remove .zip if user added it, remove invalid chars
+            if (customFilename) {
+                customFilename = customFilename.replace(/\.zip$/i, '');
+                customFilename = customFilename.replace(/[^a-zA-Z0-9_\-]/g, '_');
+            }
 
             // Disable submit and show progress
             const submitBtn = document.getElementById('export-submit-btn');
@@ -1141,7 +1173,8 @@
                     format: format,
                     bitrate: bitrate,
                     structure: structure,
-                    include_cover_art: includeCoverArt
+                    include_cover_art: includeCoverArt,
+                    filename: customFilename || null
                 })
             })
             .then(response => response.json())
