@@ -6680,9 +6680,33 @@ if __name__ == '__main__':
     print(f"[INFO] {APP_NAME} v{APP_VERSION} (Build: {APP_BUILD_DATE})")
     print("[DEBUG] app.py loaded and running")
     
+    # Clean up old export files at startup (older than 24 hours)
+    if PLAYLIST_EXPORT_AVAILABLE:
+        try:
+            cleanup_old_exports(max_age_hours=24)
+            print("[INFO] Cleaned up old playlist exports")
+        except Exception as e:
+            print(f"[WARN] Export cleanup failed: {e}")
+    
     # Start background monitoring threads
     socketio.start_background_task(target=mpd_status_monitor)
     socketio.start_background_task(target=auto_fill_monitor)
+    
+    # Start background export cleanup thread (runs every 6 hours)
+    def export_cleanup_monitor():
+        """Background thread to periodically clean up old exports"""
+        import time
+        while True:
+            time.sleep(6 * 3600)  # 6 hours
+            if PLAYLIST_EXPORT_AVAILABLE:
+                try:
+                    cleanup_old_exports(max_age_hours=24)
+                    print("[INFO] Periodic export cleanup completed")
+                except Exception as e:
+                    print(f"[WARN] Periodic export cleanup failed: {e}")
+    
+    if PLAYLIST_EXPORT_AVAILABLE:
+        socketio.start_background_task(target=export_cleanup_monitor)
     
     # Get configuration from environment or use defaults
     if ENV_LOADED:
