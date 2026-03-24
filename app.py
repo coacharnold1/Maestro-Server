@@ -232,6 +232,15 @@ last_tracked_song_id = None  # Track song ID to avoid duplicates
 # Configure SocketIO to use threading for async support (no eventlet issues)
 socketio = SocketIO(app, async_mode='threading', cors_allowed_origins="*")
 
+# CORS support for cross-origin API requests (admin on port 5004 calling main app on 5003)
+@app.after_request
+def add_cors_headers(response):
+    """Add CORS headers to allow requests from admin interface and other origins"""
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+    return response
+
 # Font path for image generation
 FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
