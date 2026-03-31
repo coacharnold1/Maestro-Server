@@ -39,6 +39,14 @@ except ImportError as e:
     print(f"Warning: playlist_export service not available: {e}")
     PLAYLIST_EXPORT_AVAILABLE = False
 
+# Import utility routes handlers
+from routes.utilities import (
+    get_version_info_handler, get_settings_info_handler,
+    get_auto_fill_status_handler, toggle_auto_fill_handler,
+    set_auto_fill_settings_handler, recent_albums_handler,
+    list_music_directories_handler
+)
+
 # Settings and data files
 SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'settings.json')
 GENRE_STATIONS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'genre_stations.json')
@@ -5266,6 +5274,14 @@ def recent_albums():
 def recent_albums_page():
     """Display the recent albums page."""
     return render_template('recent_albums.html')
+
+
+
+@app.route('/api/list_music_directories')
+def list_music_directories():
+    """List available directories within the music library for recent albums browsing."""
+    app_ctx = {}
+    return list_music_directories_handler(app_ctx)
 
 def get_recent_albums_from_mpd(limit=25, force_refresh=False):
     """
