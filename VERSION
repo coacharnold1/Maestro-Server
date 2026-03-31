@@ -1,15 +1,6 @@
 Maestro MPD Server v3.6.4
-Release Date: Mar 24 00:00:00 UTC 2026
+Release Date: Mar 30 00:00:00 UTC 2026
 Version: 3.6.4
-
-📦 PLAYLIST EXPORT ENHANCEMENTS 📦
-
-Latest Features (Mar 24, 2026 - v3.6.3):
-✅ NEW: Custom filename option for playlist exports
-✅ NEW: Previous exports list - view, download, delete old exports
-✅ NEW: /api/export/list and /api/export/delete endpoints
-✅ FIX: Added CORS headers for cross-origin API requests
-✅ FIX: Added missing export API routes (queue, status, download)
 
 🎵 ARTIST STATIONS & UI POLISH 🎵
 
