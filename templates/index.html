@@ -1663,10 +1663,10 @@
             <p class="status-item" style="margin-bottom: 8px;"><span>Message:</span> <span id="mpd-message">{{ mpd_info.message }}</span></p>
             {% if mpd_info.state != 'disconnected' and mpd_info.state != 'error' %}
             <div class="status-items-grid">
-                <p class="status-item"><span>Artist:</span> <span id="current-artist"><a href="/search?query={{ mpd_info.artist|strip_location|urlencode }}&type=artist" style="color:#27ae60; text-decoration:underline;">{{ mpd_info.artist }}</a></span></p>
+                <p class="status-item"><span>Artist:</span> <span id="current-artist"><a href="/search?query={{ mpd_info.artist|strip_location }}&type=artist" style="color:#27ae60; text-decoration:underline;">{{ mpd_info.artist }}</a></span></p>
                 <p class="status-item"><span>Title:</span> <span id="current-title">{{ mpd_info.song_title }}</span></p>
                 <p class="status-item"><span>Album:</span> <span id="current-album">{{ mpd_info.album }}</span></p>
-                <p class="status-item"><span>Genre:</span> <span id="current-genre"><a href="/browse/artists?genre={{ mpd_info.get('genre')|urlencode }}" style="color:#27ae60; text-decoration:underline;">{{ mpd_info.get('genre') if mpd_info.get('genre') else 'N/A' }}</a></span></p>
+                <p class="status-item"><span>Genre:</span> <span id="current-genre"><a href="/browse/artists?genre={{ mpd_info.get('genre') }}" style="color:#27ae60; text-decoration:underline;">{{ mpd_info.get('genre') if mpd_info.get('genre') else 'N/A' }}</a></span></p>
                 {% if mpd_info.get('is_stream') %}
                 <p class="status-item"><span>Type:</span> <span id="current-type" style="color: #e74c3c; font-weight: bold;">🔴 STREAM</span></p>
                 {% endif %}
