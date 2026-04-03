@@ -316,6 +316,8 @@ function displayTracks(tracks, index) {
     let tracksHtml = '';
     tracks.forEach((track, trackIndex) => {
         const duration = track.time ? formatDuration(parseInt(track.time)) : '--:--';
+        // Use data-file attribute instead of onclick to safely handle special characters
+        const safeFilePath = track.file.replace(/"/g, '&quot;');
         tracksHtml += `
             <div class="track-item">
                 <div class="track-info">
@@ -323,8 +325,8 @@ function displayTracks(tracks, index) {
                     <div class="track-duration">${duration}</div>
                 </div>
                 <div class="track-actions">
-                    <button class="btn btn-primary" style="padding: 4px 8px; font-size: 0.8em;" 
-                            onclick="addTrackToPlaylist('${escapeHtml(track.file)}')">
+                    <button class="btn btn-primary track-add-btn" style="padding: 4px 8px; font-size: 0.8em;" 
+                            data-file="${safeFilePath}">
                         ➕ Add
                     </button>
                 </div>
@@ -333,6 +335,16 @@ function displayTracks(tracks, index) {
     });
 
     tracksDiv.innerHTML = tracksHtml;
+    
+    // Attach click handlers to all track add buttons
+    tracksDiv.querySelectorAll('.track-add-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const filePath = this.getAttribute('data-file');
+            if (filePath) {
+                addTrackToPlaylist(filePath);
+            }
+        });
+    });
 }
 
 function displayMultiDiscTracks(discStructure, albumName, artistName, index) {
@@ -371,6 +383,8 @@ function displayMultiDiscTracks(discStructure, albumName, artistName, index) {
         
         discTracks.forEach((track, trackIndex) => {
             const duration = track.time ? formatDuration(parseInt(track.time)) : '--:--';
+            // Use data-file attribute instead of onclick to safely handle special characters
+            const safeFilePath = track.file.replace(/"/g, '&quot;');
             discsHtml += `
                 <div class="track-item">
                     <div class="track-info">
@@ -378,8 +392,8 @@ function displayMultiDiscTracks(discStructure, albumName, artistName, index) {
                         <div class="track-duration">${duration}</div>
                     </div>
                     <div class="track-actions">
-                        <button class="btn btn-primary" style="padding: 4px 8px; font-size: 0.8em;" 
-                                onclick="addTrackToPlaylist('${escapeHtml(track.file)}')">
+                        <button class="btn btn-primary track-add-btn" style="padding: 4px 8px; font-size: 0.8em;" 
+                                data-file="${safeFilePath}">
                             ➕ Add
                         </button>
                     </div>
@@ -394,6 +408,16 @@ function displayMultiDiscTracks(discStructure, albumName, artistName, index) {
     });
     
     tracksDiv.innerHTML = discsHtml;
+    
+    // Attach click handlers to all track add buttons in multi-disc layout
+    tracksDiv.querySelectorAll('.track-add-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const filePath = this.getAttribute('data-file');
+            if (filePath) {
+                addTrackToPlaylist(filePath);
+            }
+        });
+    });
 }
 
 function addTrackToPlaylist(filePath) {
