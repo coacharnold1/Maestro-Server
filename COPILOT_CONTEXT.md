@@ -1,12 +1,17 @@
 # Copilot Context - READ THIS FIRST
 
 ⚠️ **TL;DR - IF YOU ONLY READ ONE THING:**
-- Edit files in `/home/fausto/Maestro-Server` (git repo)
-- COPY files to `/home/fausto/maestro/web/` IMMEDIATELY (running app is here!)
-- Restart: `sudo systemctl restart maestro-web.service`
-- Test on http://192.168.1.209:5003
-- THEN commit to git and push
-- Without the copy+restart, your changes WILL NOT appear!
+## Two Services Run Independently!
+- **Main Web (port 5003)**: Edit → Copy to `/maestro/web/` → Restart `maestro-web.service`
+- **Admin (port 5004)**: Edit → Copy to BOTH `/maestro/admin/` AND `/maestro/web/admin/` → Restart `maestro-admin.service`
+
+**Steps for EVERY change:**
+1. Edit in `/home/fausto/Maestro-Server` (git repo)
+2. Copy to running directories (see which service below)
+3. Restart correct service
+4. Test the change
+5. Commit to git and push
+- **Without copy+restart, changes WILL NOT appear!**
 
 ## 🚨 CRITICAL: Environment & Paths
 
@@ -15,19 +20,51 @@
 
 ### Path Structure (ALWAYS REMEMBER THIS!)
 - **Git Repository**: `/home/fausto/Maestro-Server` (where you edit files)
-- **Running Application**: `/home/fausto/maestro/web` (where systemd service runs from)
-- **Service Name**: `maestro-web.service`
+- **Main Web App**: `/home/fausto/maestro/web` (where maestro-web.service runs from)
+- **Admin App**: Runs separately from same location but has own template dirs
+
+### ⚠️ TWO SEPARATE SERVICES (READ CAREFULLY!)
+
+**There are TWO independent Flask apps running:**
+
+#### 1️⃣ **Main Maestro Web Service**
+- **Service**: `maestro-web.service`
+- **Port**: 5003
+- **URL**: http://192.168.1.209:5003
+- **Files Located At**:
+  - Source: `/home/fausto/Maestro-Server/` (git repo)
+  - Running: `/home/fausto/maestro/web/` 
+  - Templates: `/home/fausto/maestro/templates/` AND `/home/fausto/maestro/web/templates/`
+  - Static: `/home/fausto/maestro/web/static/`
+- **Restart**: `sudo systemctl restart maestro-web.service`
+
+#### 2️⃣ **Admin Service** (SEPARATE!)
+- **Service**: `maestro-admin.service`
+- **Port**: 5004
+- **URL**: http://192.168.1.209:5004
+- **Files**: Admin templates and Python in `/admin/` folder
+- **Copy Templates To BOTH**:
+  - `/home/fausto/maestro/admin/templates/` (template location 1)
+  - `/home/fausto/maestro/web/admin/templates/` (template location 2)
+- **Restart**: `sudo systemctl restart maestro-admin.service`
+- **Pages**: library_management.html, audio_tweaks.html, system_admin.html, etc.
 
 ### ⚠️ CRITICAL DEPLOYMENT WORKFLOW (DO NOT SKIP STEPS)
 
-**Changes ONLY appear on the live server if you copy files to `/home/fausto/maestro/web/`**
+**Changes ONLY appear on the live server if you copy files to the RUNNING directories!**
 
 **MANDATORY for EVERY code change:**
 
 1. ✅ **Edit file in `/home/fausto/Maestro-Server`** (git repo)
-2. ✅ **MUST copy to `/home/fausto/maestro/web`** (REQUIRED - app runs from here, not git repo)
-3. ✅ **Restart service**: `sudo systemctl restart maestro-web.service`
-4. ✅ **Test the change** on http://192.168.1.209:5003
+2. ✅ **MUST copy to correct running directory:**
+   - **Main app**: Copy to `/home/fausto/maestro/web/`
+   - **Admin app**: Copy to BOTH `/home/fausto/maestro/admin/` AND `/home/fausto/maestro/web/admin/`
+3. ✅ **Restart correct service:**
+   - Main app: `sudo systemctl restart maestro-web.service`
+   - Admin app: `sudo systemctl restart maestro-admin.service`
+4. ✅ **Test the change:**
+   - Main: http://192.168.1.209:5003
+   - Admin: http://192.168.1.209:5004
 5. ✅ **THEN commit to git** and push to GitHub
 
 ### DANGER: Common Mistakes That Waste Time
@@ -35,6 +72,16 @@
 ❌ **WRONG**: "I edited the file in git repo, why isn't it working?"
 - Because the running app serves from `/home/fausto/maestro/web/`, NOT the git repo!
 - You MUST copy the files after editing
+
+❌ **WRONG**: "The admin page changes aren't showing!"
+- You probably only copied to `/maestro/web/admin/` but NOT `/maestro/admin/`
+- ALWAYS copy admin templates to BOTH locations!
+- Then restart maestro-admin.service (not maestro-web.service!)
+
+❌ **WRONG**: "I restarted maestro-web.service but the admin page still didn't change"
+- Admin uses maestro-admin.service, not maestro-web.service
+- You restarted the WRONG service!
+- Use: `sudo systemctl restart maestro-admin.service`
 
 ❌ **WRONG**: "The update-maestro.sh script reverted my changes!"
 - The script runs `git stash` which resets uncommitted changes
@@ -47,29 +94,65 @@
 
 ❌ **WRONG**: "I changed the code but service still shows old behavior"
 - You MUST restart the service after copying files
-- `sudo systemctl restart maestro-web.service` is NOT optional
+- Service restart is NOT optional
 
 ### Quick Copy Commands
 ```bash
-# Python files
+# Main web app - Python files
 sudo cp /home/fausto/Maestro-Server/app.py /home/fausto/maestro/web/app.py
 
-# ⚠️ IMPORTANT: Copy templates to BOTH locations (Flask uses /home/fausto/maestro/templates/)
+# ⚠️ Main web app - Templates (copy to BOTH locations!)
 sudo cp /home/fausto/Maestro-Server/templates/*.html /home/fausto/maestro/web/templates/
 sudo cp /home/fausto/Maestro-Server/templates/*.html /home/fausto/maestro/templates/
 
-# All static files (JS, CSS)
+# Main web app - Static files (JS, CSS)
 sudo cp /home/fausto/Maestro-Server/static/* /home/fausto/maestro/web/static/
 
-# Admin files
+# ⚠️ ADMIN APP - Templates (copy to BOTH locations!)
+sudo cp /home/fausto/Maestro-Server/admin/templates/*.html /home/fausto/maestro/admin/templates/
+sudo cp /home/fausto/Maestro-Server/admin/templates/*.html /home/fausto/maestro/web/admin/templates/
+
+# Admin app - Python files
 sudo cp /home/fausto/Maestro-Server/admin/*.py /home/fausto/maestro/web/admin/
 
-# After copying, ALWAYS restart:
+# After copying MAIN app files, restart MAIN service:
 sudo systemctl restart maestro-web.service
 
-# Verify it worked:
+# After copying ADMIN app files, restart ADMIN service:
+sudo systemctl restart maestro-admin.service
+
+# Verify main app (port 5003):
 curl http://localhost:5003
+
+# Verify admin app (port 5004):
+curl http://localhost:5004
 ```
+
+### Quick Reference: Which Service Runs Which Pages?
+
+**Main Web Service (port 5003) - maestro-web.service**
+- Browse albums, artists, genres
+- Search results
+- Playlist management
+- Now playing display
+- Settings
+- Radio
+- Recent albums
+
+**Admin Service (port 5004) - maestro-admin.service**
+- Library management (`/admin/` - URL localhost:5004/)
+- Audio tweaks
+- System administration
+- Bandcamp settings
+- CD ripper
+- Database backup & restore
+- Cover art management
+- Queue export modal (library_management.html)
+
+**Need to update Admin pages (e.g., library_management.html)?**
+1. Copy to: `/home/fausto/maestro/admin/templates/` AND `/home/fausto/maestro/web/admin/templates/`
+2. Restart: `sudo systemctl restart maestro-admin.service`
+3. Test at: http://192.168.1.209:5004
 
 ### Safe Update Workflow
 
@@ -371,3 +454,6 @@ When clicking "Replace Playlist" (🔄) button on browse_albums or recent_albums
 **Maintainer**: fausto
 **Current Version**: 3.6.0
 **Environment**: Dev (192.168.1.209), Production Arch (192.168.1.142)
+
+
+
