@@ -219,19 +219,53 @@
         .modal-content {
             background: #1a1a2e;
             border-radius: 15px;
-            padding: 30px;
-            max-width: 800px;
-            width: 95%;
+            padding: 0;
+            max-width: 550px;
+            width: 85%;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            max-height: 90vh;
-            overflow-y: auto;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
         
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 25px;
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+        }
+        
+        .modal-title {
+            font-size: 1.5em;
+            color: #3498db;
+        }
+        
+        #export-form {
+            padding: 15px 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        #export-form .form-group {
+            margin-bottom: 10px;
+        }
+        
+        #export-form label {
+            margin-bottom: 5px;
+            font-size: 0.95em;
+        }
+        
+        #export-form input, #export-form select {
+            padding: 8px;
+            font-size: 0.95em;
+        }
+        
+        #export-form small {
+            font-size: 0.8em !important;
+            margin-top: 3px !important;
         }
         
         .modal-title {
@@ -243,11 +277,11 @@
             background: none;
             border: none;
             color: #95a5a6;
-            font-size: 2em;
+            font-size: 1.5em;
             cursor: pointer;
             padding: 0;
-            width: 40px;
-            height: 40px;
+            width: 30px;
+            height: 30px;
         }
         
         .close-btn:hover {
@@ -395,7 +429,7 @@
             </div>
             
             <div id="export-modal" class="modal">
-                <div class="modal-content" style="width: 90%; max-width: 600px;">
+                <div class="modal-content">
                     <div class="modal-header">
                         <h2 class="modal-title">📥 Export to Local Device</h2>
                         <button class="close-btn" onclick="closeExportModal()">×</button>
@@ -472,32 +506,32 @@
                         </div>
 
                         <!-- Progress Bar (Hidden until export starts) -->
-                        <div id="export-progress-section" style="display: none; margin-bottom: 20px;">
-                            <p style="color: #95a5a6; margin-bottom: 10px;">
+                        <div id="export-progress-section" style="display: none; margin-bottom: 10px;">
+                            <p style="color: #95a5a6; margin-bottom: 5px; font-size: 0.9em;">
                                 <strong id="export-current-song">Preparing export...</strong>
                             </p>
-                            <div style="background: rgba(0,0,0,0.3); border-radius: 5px; height: 25px; overflow: hidden; margin-bottom: 10px;">
+                            <div style="background: rgba(0,0,0,0.3); border-radius: 5px; height: 20px; overflow: hidden; margin-bottom: 5px;">
                                 <div id="export-progress-bar" style="height: 100%; background: linear-gradient(90deg, #16a085, #1abc9c); width: 0%; transition: width 0.3s ease;"></div>
                             </div>
-                            <p style="color: #95a5a6; font-size: 0.9em; text-align: center;">
+                            <p style="color: #95a5a6; font-size: 0.8em; text-align: center;">
                                 <span id="export-count">0</span> / <span id="export-total">0</span> songs
                             </p>
                         </div>
 
                         <!-- Buttons -->
-                        <div style="display: flex; gap: 10px; margin-top: 20px;">
-                            <button type="button" onclick="closeExportModal()" class="btn" style="flex: 1;">Cancel</button>
-                            <button type="submit" id="export-submit-btn" class="btn btn-primary" style="flex: 1;">Start Export</button>
+                        <div style="display: flex; gap: 10px; margin-top: 10px;">
+                            <button type="button" onclick="closeExportModal()" class="btn" style="flex: 1; padding: 8px;">Cancel</button>
+                            <button type="submit" id="export-submit-btn" class="btn btn-primary" style="flex: 1; padding: 8px;">Start Export</button>
                         </div>
 
                         <!-- Result Section (Hidden until complete) -->
-                        <div id="export-result-section" style="display: none; margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid #27ae60;">
-                            <p style="color: #27ae60; margin: 0 0 10px 0;">
+                        <div id="export-result-section" style="display: none; margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid #27ae60;">
+                            <p style="color: #27ae60; margin: 0 0 5px 0; font-size: 0.95em;">
                                 ✅ <strong id="export-result-message">Export Complete!</strong>
                             </p>
-                            <p style="color: #95a5a6; margin: 5px 0;"><strong>File Size:</strong> <span id="export-file-size">0</span> MB</p>
-                            <button id="download-export-btn" type="button" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
-                                ⬇️ Download ZIP File
+                            <p style="color: #95a5a6; margin: 3px 0; font-size: 0.85em;"><strong>Size:</strong> <span id="export-file-size">0</span> MB</p>
+                            <button id="download-export-btn" type="button" class="btn btn-primary" style="width: 100%; margin-top: 8px; padding: 8px;">
+                                ⬇️ Download
                             </button>
                         </div>
                     </form>
@@ -1231,12 +1265,6 @@
                                 document.getElementById('export-result-section').style.display = 'block';
                                 document.getElementById('export-result-message').textContent = `✅ Export Complete! ${status.songs_processed} songs exported`;
                                 document.getElementById('export-file-size').textContent = status.file_size_mb;
-                                
-                                // Scroll result section into view
-                                const resultSection = document.getElementById('export-result-section');
-                                if (resultSection) {
-                                    setTimeout(() => resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
-                                }
                                 
                                 document.getElementById('export-submit-btn').disabled = false;
                                 document.getElementById('export-submit-btn').textContent = 'Start Export';
