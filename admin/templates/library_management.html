@@ -1232,6 +1232,12 @@
                                 document.getElementById('export-result-message').textContent = `✅ Export Complete! ${status.songs_processed} songs exported`;
                                 document.getElementById('export-file-size').textContent = status.file_size_mb;
                                 
+                                // Scroll result section into view
+                                const resultSection = document.getElementById('export-result-section');
+                                if (resultSection) {
+                                    setTimeout(() => resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+                                }
+                                
                                 document.getElementById('export-submit-btn').disabled = false;
                                 document.getElementById('export-submit-btn').textContent = 'Start Export';
                                 
