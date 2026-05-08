@@ -110,22 +110,53 @@ except ImportError:
     print("rudimentary_search not available. Search functionality will be limited.")
     SEARCH_AVAILABLE = False
     def perform_search(client, search_tag, query):
-        """Smart search function - groups by albums for artist/album searches"""
+        """Smart search function - uses MPD's list() for albums when appropriate"""
         try:
-            if search_tag == 'any':
-                results = client.search('any', query)
-            else:
-                results = client.search(search_tag, query)
+            # For artist/album searches, use MPD's list() to get albums directly, then filter
+            if search_tag == 'artist':
+                # Get all unique albums and find ones with this artist
+                all_albums = client.list('album', 'artist', query)
+                
+                if isinstance(all_albums, list) and len(all_albums) > 0:
+                    # all_albums is a list of album names for this artist
+                    # Now get song info for each album to build result
+                    albums_dict = {}
+                    for album_name in all_albums:
+                        if isinstance(album_name, dict):
+                            album_name = album_name.get('album', '')
+                        if not album_name:
+                            continue
+                        
+                        # Get first song of this album to get metadata
+                        songs = client.find('artist', query, 'album', album_name)
+                        if songs:
+                            first_song = songs[0]
+                            song_file = first_song.get('file', '')
+                            genre = first_song.get('genre', 'Unknown Genre')
+                            album_dir = os.path.dirname(song_file) if song_file else ''
+                            album_key = f"{query}|||{album_name}|||{album_dir}"
+                            
+                            if album_key not in albums_dict:
+                                albums_dict[album_key] = {
+                                    'item_type': 'album',
+                                    'artist': query,
+                                    'album': album_name,
+                                    'genre': genre,
+                                    'track_count': len(songs),
+                                    'sample_file': song_file
+                                }
+                    
+                    return list(albums_dict.values()) if albums_dict else []
             
-            # For artist or album searches, group by albums
-            if search_tag in ['artist', 'album']:
+            # For album searches, search by album name and group results
+            if search_tag == 'album':
+                results = client.search('album', query)
                 albums_dict = {}
                 for song in results:
                     album_name = song.get('album', 'Unknown Album')
                     artist_name = song.get('artist', 'Unknown Artist')
                     song_file = song.get('file', '')
                     genre = song.get('genre', 'Unknown Genre')
-                    # Group by artist, album, AND directory to show each physical copy separately
                     album_dir = os.path.dirname(song_file) if song_file else ''
                     album_key = f"{artist_name}|||{album_name}|||{album_dir}"
                     
@@ -136,14 +167,55 @@ except ImportError:
                             'album': album_name,
                             'genre': genre,
                             'track_count': 0,
-                            'sample_file': song_file  # First song file for album art
+                            'sample_file': song_file
                         }
                     albums_dict[album_key]['track_count'] += 1
                 
                 return list(albums_dict.values())
             
-            # For title/any searches, return individual songs
+            # For 'any' searches, try to be smart about grouping
+            if search_tag == 'any':
+                results = client.search('any', query)
+                print(f"[DEBUG] 'any' search for '{query}' returned {len(results)} results", flush=True)
+                
+                if not results:
+                    return []
+                
+                # For 'any' searches, ALWAYS try grouping by album first
+                # This is better than trying to guess if it's an artist search
+                albums_dict = {}
+                for song in results:
+                    album_name = song.get('album', 'Unknown Album')
+                    artist_name = song.get('artist', 'Unknown Artist')
+                    song_file = song.get('file', '')
+                    genre = song.get('genre', 'Unknown Genre')
+                    album_dir = os.path.dirname(song_file) if song_file else ''
+                    album_key = f"{artist_name}|||{album_name}|||{album_dir}"
+                    
+                    if album_key not in albums_dict:
+                        albums_dict[album_key] = {
+                            'item_type': 'album',
+                            'artist': artist_name,
+                            'album': album_name,
+                            'genre': genre,
+                            'track_count': 0,
+                            'sample_file': song_file
+                        }
+                    albums_dict[album_key]['track_count'] += 1
+                
+                if albums_dict:
+                    print(f"[DEBUG] Grouped into {len(albums_dict)} albums", flush=True)
+                    return list(albums_dict.values())
+            
+            # Default: return individual songs for title searches or when grouping fails
             formatted_results = []
+            if search_tag == 'any':
+                results = client.search('any', query)
+            elif search_tag == 'title':
+                results = client.search('title', query)
+            else:
+                results = client.search(search_tag, query)
+            
             for song in results:
                 formatted_results.append({
                     'item_type': 'song',

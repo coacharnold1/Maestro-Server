@@ -1267,7 +1267,7 @@
             {% if search_tag == 'album' %}
             Found <strong>{{ results|length }}</strong> album(s) matching "<strong>{{ query }}</strong>"
             {% elif search_tag == 'artist' %}
-            Found <strong>{{ results|length }}</strong> result(s) for artist "<strong>{{ query }}</strong>"
+            Found <strong>{{ results|length }}</strong> album(s) by artist "<strong>{{ query }}</strong>"
             {% elif search_tag == 'title' %}
             Found <strong>{{ results|length }}</strong> song(s) matching "<strong>{{ query }}</strong>"
             {% else %}
@@ -1346,11 +1346,11 @@
         <div class="no-results">
             <h3>No results found</h3>
             {% if search_tag == 'album' %}
-            <p>No results found for album "<strong>{{ query }}</strong>".</p>
+            <p>No albums found matching "<strong>{{ query }}</strong>".</p>
             {% elif search_tag == 'artist' %}
-            <p>No results found for artist "<strong>{{ query }}</strong>".</p>
+            <p>No albums found for artist "<strong>{{ query }}</strong>".</p>
             {% elif search_tag == 'title' %}
-            <p>No results found for song title "<strong>{{ query }}</strong>".</p>
+            <p>No songs found matching "<strong>{{ query }}</strong>".</p>
             {% else %}
             <p>No results found for "<strong>{{ query }}</strong>" in {{ search_tag }}.</p>
             {% endif %}
