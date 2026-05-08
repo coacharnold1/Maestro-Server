@@ -2486,8 +2486,6 @@ def set_volume():
     volume = request.form.get('volume', type=int, default=None)
     change = request.form.get('change', type=int, default=None)
     
-    print(f"[DEBUG set_volume] Received - volume={volume}, change={change}")
-    
     # If using relative change, fetch current volume first
     if change is not None and volume is None:
         try:
@@ -2515,11 +2513,7 @@ def set_volume():
     try:
         client = connect_mpd_client()
         if client:
-            print(f"[DEBUG set_volume] Setting MPD volume to {volume}")
             client.setvol(volume)
-            status_after = client.status()
-            actual_volume = status_after.get('volume', 'unknown')
-            print(f"[DEBUG set_volume] MPD confirm - volume set to {actual_volume}")
             client.disconnect()
             print(f"[Volume Control] Set volume to {volume}%")
             # Emit updated status to all clients after a brief delay to ensure MPD has updated

@@ -2171,10 +2171,7 @@
             socket.on('mpd_status', function(data) {
                 // Update volume display
                 const volumeDisplay = document.getElementById('volume-percentage-display');
-                if (volumeDisplay) {
-                    console.log('[mpd_status] Updating volume display to:', data.volume);
-                    volumeDisplay.textContent = data.volume + '%';
-                }
+                if (volumeDisplay) volumeDisplay.textContent = data.volume + '%';
 
                 if (data.state === 'play' || data.state === 'pause') {
                     // Show now playing bar and update content
