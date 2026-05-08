@@ -420,6 +420,47 @@
             background-color: #27ae60;
         }
 
+        /* ===== COMPACT VOLUME CONTROL (Easy to adjust) ===== */
+        .volume-mini-controls {
+            text-align: center;
+            margin-top: 12px;
+            margin-bottom: 20px;
+            padding: 8px 15px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 0.9em;
+            border: 1px solid;
+        }
+        .volume-mini-label {
+            color: #95a5a6;
+            font-weight: 500;
+            min-width: 45px;
+            text-align: right;
+        }
+        .volume-mini-display {
+            color: #1abc9c;
+            font-weight: bold;
+            min-width: 35px;
+            text-align: center;
+        }
+        .volume-mini-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            min-width: 40px;
+            transition: background-color 0.2s ease;
+        }
+        .volume-mini-btn:hover {
+            background-color: #2980b9;
+        }
+
         .stats {
             text-align: center;
             margin-bottom: 20px;
@@ -726,7 +767,8 @@
         body.light .stats,
         body.light #playlist-container,
         body.light .playlist-item,
-        body.light .mpd-options-controls {
+        body.light .mpd-options-controls,
+        body.light .volume-mini-controls {
             background-color: #f0f3f6;
             border-color: #d0d7de;
             color: #1a1a1a;
@@ -772,7 +814,8 @@
         body.high-contrast .stats,
         body.high-contrast #playlist-container,
         body.high-contrast .playlist-item,
-        body.high-contrast .mpd-options-controls {
+        body.high-contrast .mpd-options-controls,
+        body.high-contrast .volume-mini-controls {
             background-color: #000000;
             border: 2px solid #ffff00;
             color: #ffff00;
@@ -815,7 +858,8 @@
         body.desert .stats,
         body.desert #playlist-container,
         body.desert .playlist-item,
-        body.desert .mpd-options-controls {
+        body.desert .mpd-options-controls,
+        body.desert .volume-mini-controls {
             background-color: #4a3b2a;
             border-color: #cd853f;
         }
@@ -861,7 +905,8 @@
         body.terminal .stats,
         body.terminal #playlist-container,
         body.terminal .playlist-item,
-        body.terminal .mpd-options-controls {
+        body.terminal .mpd-options-controls,
+        body.terminal .volume-mini-controls {
             background-color: #1a1a1a;
             border-color: #00cc00;
         }
@@ -903,7 +948,8 @@
         body.sunset .stats,
         body.sunset #playlist-container,
         body.sunset .playlist-item,
-        body.sunset .mpd-options-controls {
+        body.sunset .mpd-options-controls,
+        body.sunset .volume-mini-controls {
             background-color: #3d2534;
             border-color: #ff6b35;
         }
@@ -949,7 +995,8 @@
         body.forest .stats,
         body.forest #playlist-container,
         body.forest .playlist-item,
-        body.forest .mpd-options-controls {
+        body.forest .mpd-options-controls,
+        body.forest .volume-mini-controls {
             background-color: #233d23;
             border-color: #4a7c4e;
         }
@@ -995,7 +1042,8 @@
         body.midnight .stats,
         body.midnight #playlist-container,
         body.midnight .playlist-item,
-        body.midnight .mpd-options-controls {
+        body.midnight .mpd-options-controls,
+        body.midnight .volume-mini-controls {
             background-color: #2a1f4a;
             border-color: #6a4c93;
         }
@@ -1622,6 +1670,13 @@
             <button onclick="playbackAction('stop')" style="background-color: #f39c12; color: white;">⏹️ Stop</button>
             <button onclick="playbackAction('pause')" style="background-color: #e74c3c; color: white;">⏸️ Pause</button>
             <button onclick="playbackAction('next')" style="background-color: #3498db; color: white;">⏭️ Next</button>
+        </div>
+
+        <div class="volume-mini-controls">
+            <span class="volume-mini-label">🔊 Volume:</span>
+            <span class="volume-mini-display" id="volume-mini-display">{{ mpd_info.volume | default(0) }}%</span>
+            <button class="volume-mini-btn" onclick="adjustVolume(-2)">−2</button>
+            <button class="volume-mini-btn" onclick="adjustVolume(2)">+2</button>
         </div>
 
         <div class="stats">

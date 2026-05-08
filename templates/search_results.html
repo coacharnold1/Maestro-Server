@@ -120,6 +120,46 @@
             transform: translateY(-1px);
         }
 
+        .volume-mini-controls {
+            text-align: center;
+            margin-top: 12px;
+            margin-bottom: 20px;
+            padding: 8px 15px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 0.9em;
+            border: 1px solid;
+        }
+        .volume-mini-label {
+            color: #95a5a6;
+            font-weight: 500;
+            min-width: 45px;
+            text-align: right;
+        }
+        .volume-mini-display {
+            color: #1abc9c;
+            font-weight: bold;
+            min-width: 35px;
+            text-align: center;
+        }
+        .volume-mini-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            min-width: 40px;
+            transition: background-color 0.2s ease;
+        }
+        .volume-mini-btn:hover {
+            background-color: #2980b9;
+        }
+
         .results-info {
             background-color: #34495e;
             padding: 15px;
@@ -444,7 +484,8 @@
             color: #1a1a1a;
         }
         body.light .nav-links,
-        body.light .controls {
+        body.light .controls,
+        body.light .volume-mini-controls {
             background-color: #f0f3f6;
             border-color: #d0d7de;
         }
@@ -498,7 +539,8 @@
             border: 2px solid #ffff00;
         }
         body.high-contrast .nav-links,
-        body.high-contrast .controls {
+        body.high-contrast .controls,
+        body.high-contrast .volume-mini-controls {
             background-color: #000000;
             border: 2px solid #ffff00;
         }
@@ -548,7 +590,8 @@
             border-color: #8b4513;
         }
         body.desert .nav-links,
-        body.desert .controls {
+        body.desert .controls,
+        body.desert .volume-mini-controls {
             background-color: #4a3b2a;
             border-color: #cd853f;
         }
@@ -593,7 +636,8 @@
             border-color: #00cc00;
         }
         body.terminal .nav-links,
-        body.terminal .controls {
+        body.terminal .controls,
+        body.terminal .volume-mini-controls {
             background-color: #1a1a1a;
             border-color: #00cc00;
         }
@@ -634,7 +678,8 @@
             border-color: #ff6b35;
         }
         body.sunset .nav-links,
-        body.sunset .controls {
+        body.sunset .controls,
+        body.sunset .volume-mini-controls {
             background-color: #3d2534;
             border-color: #ff6b35;
         }
@@ -679,7 +724,8 @@
             border-color: #4a7c4e;
         }
         body.forest .nav-links,
-        body.forest .controls {
+        body.forest .controls,
+        body.forest .volume-mini-controls {
             background-color: #233d23;
             border-color: #4a7c4e;
         }
@@ -724,7 +770,8 @@
             border-color: #6a4c93;
         }
         body.midnight .nav-links,
-        body.midnight .controls {
+        body.midnight .controls,
+        body.midnight .volume-mini-controls {
             background-color: #2a1f4a;
             border-color: #6a4c93;
         }
@@ -1260,6 +1307,13 @@
             <button onclick="playbackAction('stop')" class="btn-stop">⏹️ Stop</button>
             <button onclick="playbackAction('pause')" class="btn-pause">⏸️ Pause</button>
             <button onclick="playbackAction('next')" class="btn-next">⏭️ Next</button>
+        </div>
+
+        <div class="volume-mini-controls">
+            <span class="volume-mini-label">🔊 Volume:</span>
+            <span class="volume-mini-display" id="volume-mini-display">{{ mpd_info.volume | default(0) }}%</span>
+            <button class="volume-mini-btn" onclick="adjustVolume(-2)">−2</button>
+            <button class="volume-mini-btn" onclick="adjustVolume(2)">+2</button>
         </div>
 
         {% if results %}

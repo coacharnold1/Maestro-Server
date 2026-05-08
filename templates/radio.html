@@ -515,6 +515,46 @@
             color: white;
         }
 
+        .volume-mini-controls {
+            text-align: center;
+            margin-top: 12px;
+            margin-bottom: 20px;
+            padding: 8px 15px;
+            background-color: #34495e;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 0.9em;
+        }
+        .volume-mini-label {
+            color: #95a5a6;
+            font-weight: 500;
+            min-width: 45px;
+            text-align: right;
+        }
+        .volume-mini-display {
+            color: #1abc9c;
+            font-weight: bold;
+            min-width: 35px;
+            text-align: center;
+        }
+        .volume-mini-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            min-width: 40px;
+            transition: background-color 0.2s ease;
+        }
+        .volume-mini-btn:hover {
+            background-color: #2980b9;
+        }
+
         .radio-tabs {
             display: flex;
             gap: 10px;
@@ -783,7 +823,8 @@
         body.light .playback-controls,
         body.light .location-selector,
         body.light .station-card,
-        body.light .manual-add {
+        body.light .manual-add,
+        body.light .volume-mini-controls {
             background-color: #f0f3f6;
             border-color: #d0d7de;
         }
@@ -823,7 +864,8 @@
         body.high-contrast .playback-controls,
         body.high-contrast .location-selector,
         body.high-contrast .station-card,
-        body.high-contrast .manual-add {
+        body.high-contrast .manual-add,
+        body.high-contrast .volume-mini-controls {
             background-color: #000000;
             border: 2px solid #ffff00;
         }
@@ -860,7 +902,8 @@
         body.desert .playback-controls,
         body.desert .location-selector,
         body.desert .station-card,
-        body.desert .manual-add {
+        body.desert .manual-add,
+        body.desert .volume-mini-controls {
             background-color: #4a3b2a;
             border-color: #cd853f;
         }
@@ -901,7 +944,8 @@
         body.terminal .playback-controls,
         body.terminal .location-selector,
         body.terminal .station-card,
-        body.terminal .manual-add {
+        body.terminal .manual-add,
+        body.terminal .volume-mini-controls {
             background-color: #1a1a1a;
             border-color: #00cc00;
         }
@@ -938,7 +982,8 @@
         body.sunset .playback-controls,
         body.sunset .location-selector,
         body.sunset .station-card,
-        body.sunset .manual-add {
+        body.sunset .manual-add,
+        body.sunset .volume-mini-controls {
             background-color: #3d2534;
             border-color: #ff6b35;
         }
@@ -979,7 +1024,8 @@
         body.forest .playback-controls,
         body.forest .location-selector,
         body.forest .station-card,
-        body.forest .manual-add {
+        body.forest .manual-add,
+        body.forest .volume-mini-controls {
             background-color: #233d23;
             border-color: #4a7c4e;
         }
@@ -1020,7 +1066,8 @@
         body.midnight .playback-controls,
         body.midnight .location-selector,
         body.midnight .station-card,
-        body.midnight .manual-add {
+        body.midnight .manual-add,
+        body.midnight .volume-mini-controls {
             background-color: #2a1f4a;
             border-color: #6a4c93;
         }
@@ -1209,6 +1256,13 @@
                 Pause</button>
             <button onclick="nextTrack()" style="background-color: #3498db; color: white;" data-i18n="next">⏭️
                 Next</button>
+        </div>
+
+        <div class="volume-mini-controls">
+            <span class="volume-mini-label">🔊 Volume:</span>
+            <span class="volume-mini-display" id="volume-mini-display">{{ mpd_info.volume | default(0) }}%</span>
+            <button class="volume-mini-btn" onclick="adjustVolume(-2)">−2</button>
+            <button class="volume-mini-btn" onclick="adjustVolume(2)">+2</button>
         </div>
 
         <h2>📻 Internet Radio</h2>

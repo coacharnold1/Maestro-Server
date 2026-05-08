@@ -1,8 +1,8 @@
 print("[DEBUG] app.py loaded and running", flush=True)
 
 # Application version information
-APP_VERSION = "3.6.4"
-APP_BUILD_DATE = "2026-03-30" 
+APP_VERSION = "3.6.5"
+APP_BUILD_DATE = "2026-05-08" 
 APP_NAME = "Maestro MPD Server"
 
 # Simple threading mode to avoid eventlet issues
@@ -2190,6 +2190,7 @@ def search_autocomplete_data():
 @app.route('/search', methods=['GET', 'POST'])
 def search():
     """Search page with improved functionality from beta version."""
+    mpd_info = get_mpd_status_for_display()
     print(f"Request method: {request.method}, Request form: {dict(request.form)}, Request args: {dict(request.args)}", flush=True)
     
     # Handle both POST and GET requests
@@ -2217,7 +2218,8 @@ def search():
                 result = render_template('search_results.html', 
                                      results=search_results, 
                                      query=query, 
-                                     search_tag=search_tag)
+                                     search_tag=search_tag,
+                                     mpd_info=mpd_info)
                 return result
             except Exception as e:
                 client.disconnect()
@@ -2234,6 +2236,7 @@ def search():
 @app.route('/random_albums', methods=['GET'])
 def random_albums():
     """Return 25 random albums from the library."""
+    mpd_info = get_mpd_status_for_display()
     try:
         client = connect_mpd_client()
         if not client:
@@ -2294,7 +2297,8 @@ def random_albums():
             return render_template('search_results.html', 
                                  results=albums_list, 
                                  query='Random Selection', 
-                                 search_tag='album')
+                                 search_tag='album',
+                                 mpd_info=mpd_info)
         except Exception as e:
             if client:
                 client.disconnect()
@@ -2624,7 +2628,7 @@ def add_music_page():
     mpd_info = get_mpd_status_for_display()
     current_artist = mpd_info.get('artist', '') if mpd_info else ''
     current_genre = mpd_info.get('genre', '') if mpd_info else ''
-    return render_template('add_music.html', current_artist=current_artist, current_genre=current_genre)
+    return render_template('add_music.html', mpd_info=mpd_info, current_artist=current_artist, current_genre=current_genre)
 
 @app.route('/add_random_tracks', methods=['POST'])
 def add_random_tracks_manual():
@@ -4414,13 +4418,15 @@ def get_mpd_playlist():
 @app.route('/playlist')
 def playlist_page():
     """Renders the playlist HTML page."""
+    mpd_info = get_mpd_status_for_display()
     playlist = get_mpd_playlist()
-    return render_template('playlist.html', playlist=playlist)
+    return render_template('playlist.html', playlist=playlist, mpd_info=mpd_info)
 
 @app.route('/radio')
 def radio_page():
     """Renders the internet radio page."""
-    return render_template('radio.html')
+    mpd_info = get_mpd_status_for_display()
+    return render_template('radio.html', mpd_info=mpd_info)
 
 # Album Art Routes
 @app.route('/clear_art_cache', methods=['POST'])
@@ -5345,7 +5351,8 @@ def recent_albums():
 @app.route('/recent')
 def recent_albums_page():
     """Display the recent albums page."""
-    return render_template('recent_albums.html')
+    mpd_info = get_mpd_status_for_display()
+    return render_template('recent_albums.html', mpd_info=mpd_info)
 
 
 
@@ -5630,7 +5637,8 @@ def test_disconnect():
 @app.route('/browse')
 def browse_genres_page():
     """Browse genres page."""
-    return render_template('browse_genres.html')
+    mpd_info = get_mpd_status_for_display()
+    return render_template('browse_genres.html', mpd_info=mpd_info)
 
 @app.route('/browse/artists')
 def browse_artists_page():

@@ -319,6 +319,46 @@
             box-sizing: border-box;
         }
 
+        .volume-mini-controls {
+            text-align: center;
+            margin-top: 12px;
+            margin-bottom: 20px;
+            padding: 8px 15px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 0.9em;
+            border: 1px solid;
+        }
+        .volume-mini-label {
+            color: #95a5a6;
+            font-weight: 500;
+            min-width: 45px;
+            text-align: right;
+        }
+        .volume-mini-display {
+            color: #1abc9c;
+            font-weight: bold;
+            min-width: 35px;
+            text-align: center;
+        }
+        .volume-mini-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            min-width: 40px;
+            transition: background-color 0.2s ease;
+        }
+        .volume-mini-btn:hover {
+            background-color: #2980b9;
+        }
+
         .album-details {
             margin-top: 15px;
             padding: 15px;
@@ -374,7 +414,8 @@
         body.light .playback-controls,
         body.light .stats,
         body.light .album-item,
-        body.light .album-details {
+        body.light .album-details,
+        body.light .volume-mini-controls {
             background-color: #f0f3f6;
             border-color: #d0d7de;
         }
@@ -415,7 +456,8 @@
         body.high-contrast .playback-controls,
         body.high-contrast .stats,
         body.high-contrast .album-item,
-        body.high-contrast .album-details {
+        body.high-contrast .album-details,
+        body.high-contrast .volume-mini-controls {
             background-color: #000000;
             border: 2px solid #ffff00;
         }
@@ -453,7 +495,8 @@
         body.desert .playback-controls,
         body.desert .stats,
         body.desert .album-item,
-        body.desert .album-details {
+        body.desert .album-details,
+        body.desert .volume-mini-controls {
             background-color: #4a3b2a;
             border-color: #cd853f;
         }
@@ -538,7 +581,8 @@
         body.terminal .playback-controls,
         body.terminal .stats,
         body.terminal .album-item,
-        body.terminal .album-details {
+        body.terminal .album-details,
+        body.terminal .volume-mini-controls {
             background-color: #1a1a1a;
             border-color: #00cc00;
         }
@@ -576,7 +620,8 @@
         body.sunset .playback-controls,
         body.sunset .stats,
         body.sunset .album-item,
-        body.sunset .album-details {
+        body.sunset .album-details,
+        body.sunset .volume-mini-controls {
             background-color: #3d2534;
             border-color: #ff6b35;
         }
@@ -618,7 +663,8 @@
         body.forest .playback-controls,
         body.forest .stats,
         body.forest .album-item,
-        body.forest .album-details {
+        body.forest .album-details,
+        body.forest .volume-mini-controls {
             background-color: #233d23;
             border-color: #4a7c4e;
         }
@@ -660,7 +706,8 @@
         body.midnight .playback-controls,
         body.midnight .stats,
         body.midnight .album-item,
-        body.midnight .album-details {
+        body.midnight .album-details,
+        body.midnight .volume-mini-controls {
             background-color: #2a1f4a;
             border-color: #6a4c93;
         }
@@ -1140,6 +1187,13 @@
                     style="background-color: #3498db; color: white; padding: 10px 15px; border-radius: 6px; font-size: 0.9em; min-width: 80px; font-weight: bold; flex: 0 0 auto;">⏭️
                     Next</button>
             </div>
+        </div>
+
+        <div class="volume-mini-controls">
+            <span class="volume-mini-label">🔊 Volume:</span>
+            <span class="volume-mini-display" id="volume-mini-display">{{ mpd_info.volume | default(0) }}%</span>
+            <button class="volume-mini-btn" onclick="adjustVolume(-2)">−2</button>
+            <button class="volume-mini-btn" onclick="adjustVolume(2)">+2</button>
         </div>
 
         <div style="text-align: center; margin: 20px 0;">

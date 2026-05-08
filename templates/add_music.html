@@ -794,6 +794,47 @@
             box-shadow: none;
         }
 
+        /* ===== COMPACT VOLUME CONTROL (Easy to adjust) ===== */
+        .volume-mini-controls {
+            text-align: center;
+            margin-top: 12px;
+            margin-bottom: 20px;
+            padding: 8px 15px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 0.9em;
+            border: 1px solid;
+        }
+        .volume-mini-label {
+            color: #95a5a6;
+            font-weight: 500;
+            min-width: 45px;
+            text-align: right;
+        }
+        .volume-mini-display {
+            color: #1abc9c;
+            font-weight: bold;
+            min-width: 35px;
+            text-align: center;
+        }
+        .volume-mini-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            min-width: 40px;
+            transition: background-color 0.2s ease;
+        }
+        .volume-mini-btn:hover {
+            background-color: #2980b9;
+        }
+
         /* Enhanced Styles for the message display area */
         #message-area {
             position: fixed;
@@ -1023,7 +1064,8 @@
         body.light #stations-container,
         body.light #artist-stations-list,
         body.light #artist-stations-container,
-        body.light .station-item {
+        body.light .station-item,
+        body.light .volume-mini-controls {
             background-color: #f0f3f6 !important;
             border-color: #d0d7de;
         }
@@ -1083,7 +1125,8 @@
         body.high-contrast #stations-container,
         body.high-contrast #artist-stations-list,
         body.high-contrast #artist-stations-container,
-        body.high-contrast .station-item {
+        body.high-contrast .station-item,
+        body.high-contrast .volume-mini-controls {
             background-color: #000000 !important;
             border: 2px solid #ffff00;
         }
@@ -1135,7 +1178,8 @@
         body.desert #stations-container,
         body.desert #artist-stations-list,
         body.desert #artist-stations-container,
-        body.desert .station-item {
+        body.desert .station-item,
+        body.desert .volume-mini-controls {
             background-color: #4a3b2a !important;
             border-color: #cd853f;
         }
@@ -1190,7 +1234,8 @@
         body.terminal #stations-container,
         body.terminal #artist-stations-list,
         body.terminal #artist-stations-container,
-        body.terminal .station-item {
+        body.terminal .station-item,
+        body.terminal .volume-mini-controls {
             background-color: #1a1a1a;
             border-color: #00cc00;
         }
@@ -1241,7 +1286,8 @@
         body.sunset #stations-container,
         body.sunset #artist-stations-list,
         body.sunset #artist-stations-container,
-        body.sunset .station-item {
+        body.sunset .station-item,
+        body.sunset .volume-mini-controls {
             background-color: #3d2534;
             border-color: #ff6b35;
         }
@@ -1296,7 +1342,8 @@
         body.forest #stations-container,
         body.forest #artist-stations-list,
         body.forest #artist-stations-container,
-        body.forest .station-item {
+        body.forest .station-item,
+        body.forest .volume-mini-controls {
             background-color: #233d23;
             border-color: #4a7c4e;
         }
@@ -1351,7 +1398,8 @@
         body.midnight #stations-container,
         body.midnight #artist-stations-list,
         body.midnight #artist-stations-container,
-        body.midnight .station-item {
+        body.midnight .station-item,
+        body.midnight .volume-mini-controls {
             background-color: #2a1f4a;
             border-color: #6a4c93;
         }
@@ -1811,6 +1859,13 @@
             <button onclick="playbackAction('stop')" style="background-color: #f39c12; color: white;">⏹️ Stop</button>
             <button onclick="playbackAction('pause')" style="background-color: #e74c3c; color: white;">⏸️ Pause</button>
             <button onclick="playbackAction('next')" style="background-color: #3498db; color: white;">⏭️ Next</button>
+        </div>
+
+        <div class="volume-mini-controls">
+            <span class="volume-mini-label">🔊 Volume:</span>
+            <span class="volume-mini-display" id="volume-mini-display">{{ mpd_info.volume | default(0) }}%</span>
+            <button class="volume-mini-btn" onclick="adjustVolume(-2)">-2</button>
+            <button class="volume-mini-btn" onclick="adjustVolume(2)">+2</button>
         </div>
 
         <!-- NEW SECTION: Accordion: Artist-Based Music Addition -->
