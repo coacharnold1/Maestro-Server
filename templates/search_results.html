@@ -1462,6 +1462,12 @@
             }
         });
 
+        socket.on('mpd_status', function(data) {
+            // Update volume display
+            const volumeDisplay = document.getElementById('volume-percentage-display');
+            if (volumeDisplay) volumeDisplay.textContent = data.volume + '%';
+        });
+
         socket.on('disconnect', function() {
             // Use static logo when not connected
             if (maestroLogo) maestroLogo.src = "/static/logo-static.svg";

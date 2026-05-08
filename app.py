@@ -2486,6 +2486,8 @@ def set_volume():
     volume = request.form.get('volume', type=int, default=None)
     change = request.form.get('change', type=int, default=None)
     
+    print(f"[DEBUG set_volume] Received - volume={volume}, change={change}")
+    
     # If using relative change, fetch current volume first
     if change is not None and volume is None:
         try:
@@ -2513,18 +2515,27 @@ def set_volume():
     try:
         client = connect_mpd_client()
         if client:
+            print(f"[DEBUG set_volume] Setting MPD volume to {volume}")
             client.setvol(volume)
+            status_after = client.status()
+            actual_volume = status_after.get('volume', 'unknown')
+            print(f"[DEBUG set_volume] MPD confirm - volume set to {actual_volume}")
             client.disconnect()
             print(f"[Volume Control] Set volume to {volume}%")
-            # After setting volume, immediately trigger an update
-            socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))
+            # Emit updated status to all clients after a brief delay to ensure MPD has updated
+            def broadcast_volume_update():
+                import time
+                time.sleep(0.1)
+                status = get_mpd_status_for_display()
+                if status:
+                    socketio.emit('mpd_status', status, broadcast=True)
+            socketio.start_background_task(broadcast_volume_update)
             return 'OK', 200
         else:
             print("Failed to connect to MPD for set_volume.")
             return 'Error: MPD connection failed', 500
     except Exception as e:
         print(f"Error setting volume: {e}")
-        return f'Error setting volume: {e}', 500
         return f'Error setting volume: {e}', 500
 
 @app.route('/restart_mpd')

@@ -1524,6 +1524,10 @@
 
             // Update now playing bar with MPD status
             socket.on('mpd_status', function(data) {
+                // Update volume display
+                const volumeDisplay = document.getElementById('volume-percentage-display');
+                if (volumeDisplay) volumeDisplay.textContent = data.volume + '%';
+
                 if (data.state === 'play' || data.state === 'pause') {
                     if (data.artist && data.artist !== 'N/A' && data.song_title && data.song_title !== 'N/A') {
                         nowPlayingBar.style.display = 'flex';
