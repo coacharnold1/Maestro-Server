@@ -1330,7 +1330,7 @@
 
         <div class="volume-mini-controls">
             <span class="volume-mini-label">🔊 Volume:</span>
-            <span class="volume-mini-display" id="volume-mini-display">{{ mpd_info.volume | default(0) }}%</span>
+            <span class="volume-mini-display" id="volume-percentage-display">{{ mpd_info.volume | default(0) }}%</span>
             <button class="volume-mini-btn" onclick="adjustVolume(-2)">−2</button>
             <button class="volume-mini-btn" onclick="adjustVolume(2)">+2</button>
         </div>
