@@ -1,5 +1,35 @@
 # Maestro Server - Changelog
 
+## Version 3.6.5 - Volume Controls & Search Fix (May 8, 2026)
+
+### 🔊 Volume Controls on Secondary Pages
+- **Added Volume Controls**: Mini volume controls (-2, +2 buttons) now available on all 6 secondary pages: Add Music, Queue/Playlist, Recent Albums, Browse Genres, Radio, and Search Results
+- **Real-time Updates**: Volume display updates instantly via socket.io when adjusting volume
+- **Theme-Aware Styling**: Volume box matches each of the 8 theme color schemes with subtle borders
+- **Proper Spacing**: Added margin-bottom to prevent overlap with page content
+
+### 🔍 Artist Search Fix
+- **Fixed Album Grouping**: Artist searches now correctly return albums instead of individual tracks
+- **Search Logic Improved**: Using MPD's `list('album', 'artist', query)` instead of `search()` for artist queries
+- **Better UX**: Users searching for "Sun Ra" now get album results instead of 1,868+ individual tracks
+
+### 🛠️ Backend Improvements
+- **Socket.IO Broadcasting**: Volume changes now broadcast status updates to all connected clients
+- **Route Context Fixes**: All secondary page routes now pass `mpd_info` context to templates for proper data display
+- **Volume Persistence**: Volume settings persist across page navigation and socket updates
+
+### 📁 Files Modified
+- `app.py` - Artist search fix, route context fixes, volume broadcast endpoint
+- `templates/add_music.html` - Volume controls, socket listener updates
+- `templates/playlist.html` - Volume controls, socket listener updates
+- `templates/recent_albums.html` - Volume controls, socket listener updates
+- `templates/browse_genres.html` - Volume controls, socket listener updates
+- `templates/radio.html` - Volume controls, socket listener updates
+- `templates/search_results.html` - Volume controls, socket listener updates
+- `VERSION` - Bumped to 3.6.5, updated date to May 8, 2026
+
+---
+
 ## Version 3.2 - Enhanced Search & Autocomplete (March 3, 2026)
 
 ### 🔍 Universal Autocomplete Search
