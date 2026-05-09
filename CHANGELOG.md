@@ -1,5 +1,36 @@
 # Maestro Server - Changelog
 
+## Version 3.6.6 - Multi-Directory Recent Albums Management (May 9, 2026)
+
+### 📀 Enhanced Recent Albums Directories
+- **Multi-Directory Support**: Configure multiple folders for scanning recent albums (e.g., downloads, backups, ripped music)
+- **Admin Settings Interface**: New dedicated Settings page in Admin Panel for intuitive directory management
+- **Visual Directory Browser**: Multi-select checkbox interface to browse and select directories from your system
+- **Status Indicators**: Real-time validation showing directory existence, readability, and item count for each folder
+- **Manual Path Entry**: Support for comma-separated paths or individual directory additions
+- **Directory Display**: Clearly shows all configured recent album directories with full paths and status badges
+
+### 🎵 Improved Recent Albums Retrieval
+- **Increased Default Limit**: Bumped default limit from 25 to 50 albums to better handle multiple directories
+- **Configurable Limit**: Added `limit` parameter to `/recent_albums` API endpoint for flexible results
+- **Intelligent Path Conversion**: Automatically converts absolute paths to MPD-compatible relative paths
+- **Multi-Directory Sorting**: Returns most recent albums across all configured directories, sorted by date
+
+### 📋 Streamlined Main App Settings
+- **Cleaner Settings Page**: Removed duplicate Recent Albums Directory text input from main app settings.html
+- **Centralized Management**: Redirects users to Admin Panel → Settings for all recent directory configuration
+- **Better UX**: Single source of truth for directory management, avoiding confusion
+
+### 📁 Files Modified
+- `admin/admin_api.py` - Added GET/POST endpoints for `/api/settings/recent-dirs`
+- `admin/templates/admin_settings.html` - NEW: Full-featured settings interface for managing recent directories
+- `admin/templates/admin_home.html` - Added Settings card to admin dashboard
+- `app.py` - Increased default limit to 50, added limit parameter support
+- `templates/settings.html` - Replaced Recent Albums Directory input with link to admin settings
+- `VERSION` - Updated to 3.6.6
+
+---
+
 ## Version 3.6.5 - Volume Controls & Search Fix (May 8, 2026)
 
 ### 🔊 Volume Controls on Secondary Pages
@@ -31,6 +62,103 @@
 ---
 
 ## Version 3.2 - Enhanced Search & Autocomplete (March 3, 2026)
+
+### 🔍 Universal Autocomplete Search
+- **Autocomplete Across All Pages**: Implemented on search results and all 4 browse pages (albums, artists, genres, recent)
+- **Consistent Behavior**: Same autocomplete dropdown style and functionality everywhere
+- **"All Types" Option**: New search option to quickly search across artists, albums, and titles simultaneously
+- **Fixed Search Parameters**: Corrected backend parameter names (album/artist/title instead of albums/artists/songs)
+
+### 🎨 Album Artwork & Visual Improvements
+- **Song Search Results**: Album artwork now displays as thumbnails next to song results (was missing)
+- **Autocomplete Dropdown Layout**: Fixed CSS overlap issues between dropdown and search button
+- **Playback Controls Redesign**: Reorganized layout to prevent centering issues from float properties
+- **Theme-Specific Styling**: Now-playing-bar now respects all 8 themes with proper colors on browse_albums
+
+### 📁 Files Modified
+- `templates/search_results.html` - Album artwork display, autocomplete data fetching
+- `templates/browse_albums.html` - Autocomplete, playback controls, theme CSS for now-playing-bar
+- `templates/browse_artists.html` - Autocomplete, playback controls layout
+- `templates/browse_genres.html` - Autocomplete, playback controls layout
+- `templates/recent_albums.html` - Autocomplete, removed redundant Clear Playlist button
+- `app.py` - Version bumped to 3.2
+
+---
+
+## Version 3.0.1 - Phase 2A UI Modernization (March 3, 2026)
+
+### 🎭 Fixed Header Navigation (Phase 2A)
+- **Persistent Navigation**: Fixed header bar stays visible during scrolling across all pages
+- **Consistent Header Design**: Unified navigation across index.html, search_results.html, and all browse pages
+- **Integrated Search Bar**: Search functionality in header with autocomplete suggestions
+- **Dynamic Page Headings**: Genre names and artist names displayed in page titles
+
+### 📚 Enhanced Browse Pages
+- **browse_albums.html**: Full Phase 2A header integration with artist/album browsing
+- **browse_artists.html**: Alphabetic artist listing with phase 2A header
+- **browse_genres.html**: Genre-based music discovery with fixed header
+- **recent_albums.html**: Recently added albums with consistent navigation
+
+<<<<<<< HEAD
+## Version 3.6.5 - Volume Controls & Search Fix (May 8, 2026)
+
+### 🔊 Volume Controls on Secondary Pages
+- **Added Volume Controls**: Mini volume controls (-2, +2 buttons) now available on all 6 secondary pages: Add Music, Queue/Playlist, Recent Albums, Browse Genres, Radio, and Search Results
+- **Real-time Updates**: Volume display updates instantly via socket.io when adjusting volume
+- **Theme-Aware Styling**: Volume box matches each of the 8 theme color schemes with subtle borders
+- **Proper Spacing**: Added margin-bottom to prevent overlap with page content
+
+### 🔍 Artist Search Fix
+- **Fixed Album Grouping**: Artist searches now correctly return albums instead of individual tracks
+- **Search Logic Improved**: Using MPD's `list('album', 'artist', query)` instead of `search()` for artist queries
+- **Better UX**: Users searching for "Sun Ra" now get album results instead of 1,868+ individual tracks
+
+### 🛠️ Backend Improvements
+- **Socket.IO Broadcasting**: Volume changes now broadcast status updates to all connected clients
+- **Route Context Fixes**: All secondary page routes now pass `mpd_info` context to templates for proper data display
+- **Volume Persistence**: Volume settings persist across page navigation and socket updates
+
+### 📁 Files Modified
+- `app.py` - Artist search fix, route context fixes, volume broadcast endpoint
+- `templates/add_music.html` - Volume controls, socket listener updates
+- `templates/playlist.html` - Volume controls, socket listener updates
+- `templates/recent_albums.html` - Volume controls, socket listener updates
+- `templates/browse_genres.html` - Volume controls, socket listener updates
+- `templates/radio.html` - Volume controls, socket listener updates
+- `templates/search_results.html` - Volume controls, socket listener updates
+- `VERSION` - Bumped to 3.6.5, updated date to May 8, 2026
+=======
+## Version 3.3 - Multi-Directory Recent Albums Management (May 9, 2026)
+
+### 📀 Enhanced Recent Albums Directories
+- **Multi-Directory Support**: Configure multiple folders for scanning recent albums (e.g., downloads, backups, ripped music)
+- **Admin Settings Interface**: New dedicated Settings page in Admin Panel for intuitive directory management
+- **Visual Directory Browser**: Multi-select checkbox interface to browse and select directories from your system
+- **Status Indicators**: Real-time validation showing directory existence, readability, and item count for each folder
+- **Manual Path Entry**: Support for comma-separated paths or individual directory additions
+- **Directory Display**: Clearly shows all configured recent album directories with full paths and status badges
+
+### 🎵 Improved Recent Albums Retrieval
+- **Increased Default Limit**: Bumped default limit from 25 to 50 albums to better handle multiple directories
+- **Configurable Limit**: Added `limit` parameter to `/recent_albums` API endpoint for flexible results
+- **Intelligent Path Conversion**: Automatically converts absolute paths to MPD-compatible relative paths
+- **Multi-Directory Sorting**: Returns most recent albums across all configured directories, sorted by date
+
+### 📋 Streamlined Main App Settings
+- **Cleaner Settings Page**: Removed duplicate Recent Albums Directory text input from main app settings.html
+- **Centralized Management**: Redirects users to Admin Panel → Settings for all recent directory configuration
+- **Better UX**: Single source of truth for directory management, avoiding confusion
+
+### 📁 Files Modified
+- `admin/admin_api.py` - Added GET/POST endpoints for `/api/settings/recent-dirs`
+- `admin/templates/admin_settings.html` - NEW: Full-featured settings interface for managing recent directories
+- `admin/templates/admin_home.html` - Added Settings card to admin dashboard
+- `app.py` - Increased default limit to 50, added limit parameter support
+- `templates/settings.html` - Replaced Recent Albums Directory input with link to admin settings
+- `VERSION` - Updated to 3.3
+>>>>>>> da3f2a7 (Feature: Multi-directory Recent Albums Management)
+
+---
 
 ### 🔍 Universal Autocomplete Search
 - **Autocomplete Across All Pages**: Implemented on search results and all 4 browse pages (albums, artists, genres, recent)

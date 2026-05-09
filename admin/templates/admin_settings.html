@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Maestro Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #ecf0f1;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        h1 {
+            font-size: 2em;
+            color: #3498db;
+        }
+        
+        .back-btn {
+            background: rgba(52, 152, 219, 0.2);
+            color: #3498db;
+            border: 1px solid #3498db;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .back-btn:hover {
+            background: #3498db;
+            color: white;
+        }
+        
+        .section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .section-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #27ae60;
+        }
+        
+        .section-subtitle {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            color: #95a5a6;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #95a5a6;
+            font-weight: 500;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            color: #ecf0f1;
+            font-size: 1em;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #3498db;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+        }
+        
+        .btn-primary:hover {
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+        
+        .btn-danger:hover {
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+        
+        .recent-dirs-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .recent-dir-item {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .recent-dir-info {
+            flex: 1;
+        }
+        
+        .recent-dir-path {
+            font-size: 1.1em;
+            color: #3498db;
+            margin-bottom: 5px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .recent-dir-status {
+            font-size: 0.9em;
+            color: #95a5a6;
+            display: flex;
+            gap: 15px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+        
+        .status-ok {
+            background: rgba(39, 174, 96, 0.3);
+            color: #2ecc71;
+        }
+        
+        .status-error {
+            background: rgba(231, 76, 60, 0.3);
+            color: #e74c3c;
+        }
+        
+        .status-info {
+            background: rgba(52, 152, 219, 0.3);
+            color: #3498db;
+        }
+        
+        .add-dir-form {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .add-dir-form-title {
+            font-size: 1.1em;
+            color: #f39c12;
+            margin-bottom: 15px;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        
+        .form-row input {
+            flex: 1;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .alert-success {
+            background: rgba(39, 174, 96, 0.2);
+            border: 1px solid rgba(39, 174, 96, 0.5);
+            color: #2ecc71;
+        }
+        
+        .alert-error {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid rgba(231, 76, 60, 0.5);
+            color: #e74c3c;
+        }
+        
+        .alert-info {
+            background: rgba(52, 152, 219, 0.2);
+            border: 1px solid rgba(52, 152, 219, 0.5);
+            color: #3498db;
+        }
+        
+        .alert-icon {
+            font-size: 1.3em;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #95a5a6;
+        }
+        
+        .empty-state-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚙️ Settings</h1>
+            <a href="/" class="back-btn">← Back to Dashboard</a>
+        </header>
+        
+        <div id="alert-container"></div>
+        
+        <!-- Recent Albums Section -->
+        <div class="section">
+            <h2 class="section-title">📀 Recent Albums Directories</h2>
+            <p class="section-subtitle">Manage which folders are scanned for recently added albums</p>
+            
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Loading configuration...</p>
+            </div>
+            
+            <div id="content">
+                <!-- Currently Configured Directories -->
+                <div style="background: rgba(39, 174, 96, 0.08); border: 2px solid rgba(39, 174, 96, 0.3); border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                    <h3 style="color: #2ecc71; margin-bottom: 15px; font-size: 1.1em;">✓ Currently Configured:</h3>
+                    <div id="recent-dirs-list" class="recent-dirs-container">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <div class="add-dir-form">
+                    <div class="add-dir-form-title">➕ Add Directory/Directories</div>
+                    
+                    <!-- Directory browser mode -->
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Select from system (click to browse):</label>
+                        <div id="dir-browser" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; max-height: 300px; overflow-y: auto;">
+                            <div style="padding: 20px; text-align: center; color: #95a5a6;">
+                                <div class="spinner" style="margin: 0 auto 10px;"></div>
+                                Loading directories...
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Manual entry mode -->
+                    <div style="border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 15px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Or paste path manually:</label>
+                        <div class="form-row">
+                            <input type="text" id="newDirPath" placeholder="/full/path/to/directory" />
+                            <button class="btn btn-primary" onclick="addDirectory()">Add</button>
+                        </div>
+                    </div>
+                    
+                    <p style="font-size: 0.9em; color: #95a5a6; margin-top: 10px;">
+                        💡 You can select multiple directories from the browser above, or type paths separated by commas
+                    </p>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="refreshStatus()">🔄 Refresh Status</button>
+                    <button class="btn" onclick="saveChanges()">💾 Save All Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentDirectories = [];
+        let directoriesChanged = false;
+        let directoryBrowserLoaded = false;
+        
+        // Track directories selected in browser
+        let browserSelectedDirs = new Set();
+        
+        async function loadRecentDirs() {
+            try {
+                const response = await fetch('/api/settings/recent-dirs');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    currentDirectories = data.directories;
+                    displayDirectories();
+                } else {
+                    showAlert('Error loading directories: ' + data.message, 'error');
+                }
+            } catch (error) {
+                showAlert('Failed to load directories: ' + error.message, 'error');
+            }
+        }
+        
+        async function loadDirectoryBrowser() {
+            if (directoryBrowserLoaded) return;
+            
+            try {
+                // Load available music directories
+                const response = await fetch('/api/library/mpd-info');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    const browser = document.getElementById('dir-browser');
+                    const musicDir = data.music_directory;
+                    const dirs = data.directories || [];
+                    
+                    // Build directory tree
+                    let html = `
+                        <div style="padding: 10px;">
+                            <div style="margin-bottom: 10px; padding: 10px; background: rgba(52,152,219,0.2); border-radius: 4px; cursor: pointer;" onclick="toggleDirBrowser('${musicDir}')">
+                                <input type="checkbox" id="chk_${musicDir}" onchange="toggleDirSelection('${musicDir}', this.checked)" style="margin-right: 8px;">
+                                <span style="color: #3498db; font-weight: 600;">${musicDir}</span>
+                            </div>
+                    `;
+                    
+                    // List subdirectories
+                    for (const dir of dirs) {
+                        const fullPath = dir.path;
+                        const name = dir.name;
+                        const items = dir.file_count;
+                        
+                        html += `
+                            <div style="margin-left: 20px; margin-bottom: 8px; padding: 8px; background: rgba(255,255,255,0.04); border-radius: 4px; border-left: 3px solid rgba(52,152,219,0.3);">
+                                <input type="checkbox" id="chk_${fullPath}" onchange="toggleDirSelection('${fullPath}', this.checked)" style="margin-right: 8px;">
+                                <label for="chk_${fullPath}" style="cursor: pointer; user-select: none;">
+                                    <strong>${escapeHtml(name)}</strong>
+                                    <span style="color: #95a5a6; margin-left: 10px; font-size: 0.9em;">(${items} items)</span>
+                                </label>
+                            </div>
+                        `;
+                    }
+                    
+                    html += '</div>';
+                    browser.innerHTML = html;
+                    directoryBrowserLoaded = true;
+                    
+                } else {
+                    document.getElementById('dir-browser').innerHTML = `<div style="padding: 20px; color: #e74c3c;">Error loading directories: ${data.message}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('dir-browser').innerHTML = `<div style="padding: 20px; color: #e74c3c;">Failed to load browser: ${error.message}</div>`;
+            }
+        }
+        
+        function toggleDirSelection(path, checked) {
+            if (checked) {
+                browserSelectedDirs.add(path);
+            } else {
+                browserSelectedDirs.delete(path);
+            }
+            updateBrowserSelection();
+        }
+        
+        function updateBrowserSelection() {
+            if (browserSelectedDirs.size > 0) {
+                // Add all selected directories to current list
+                for (const dir of browserSelectedDirs) {
+                    if (!currentDirectories.some(d => d.path === dir)) {
+                        currentDirectories.push({
+                            path: dir,
+                            exists: true,
+                            accessible: true,
+                            item_count: 0
+                        });
+                    }
+                }
+                directoriesChanged = true;
+                displayDirectories();
+                browserSelectedDirs.clear();
+                // Uncheck all
+                document.querySelectorAll('#dir-browser input[type="checkbox"]').forEach(cb => cb.checked = false);
+            }
+        }
+        
+        function displayDirectories() {
+            const container = document.getElementById('recent-dirs-list');
+            
+            if (currentDirectories.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <p>No recent album directories configured yet</p>
+                        <p style="font-size: 0.9em; color: #95a5a6; margin-top: 10px;">Configure directories below to get started</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = currentDirectories.map((dir, index) => `
+                <div class="recent-dir-item">
+                    <div class="recent-dir-info">
+                        <div class="recent-dir-path" style="word-break: break-all; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 4px; margin-bottom: 8px;">${escapeHtml(dir.path)}</div>
+                        <div class="recent-dir-status">
+                            <span class="status-badge ${dir.exists ? 'status-ok' : 'status-error'}">
+                                ${dir.exists ? '✓ Exists' : '✗ Not found'}
+                            </span>
+                            <span class="status-badge ${dir.accessible ? 'status-ok' : 'status-error'}">
+                                ${dir.accessible ? '✓ Readable' : '✗ No access'}
+                            </span>
+                            <span class="status-badge status-info">
+                                📁 ${dir.item_count} items
+                            </span>
+                        </div>
+                    </div>
+                    <button class="btn btn-danger" onclick="removeDirectory(${index})">Remove</button>
+                </div>
+            `).join('');
+        }
+        
+        async function addDirectory() {
+            const input = document.getElementById('newDirPath');
+            const paths = input.value.trim();
+            
+            if (!paths) {
+                showAlert('Please enter a directory path', 'error');
+                return;
+            }
+            
+            // Split by comma to support multiple directories
+            const pathArray = paths.split(',').map(p => p.trim()).filter(p => p);
+            
+            if (pathArray.length === 0) {
+                showAlert('Please enter at least one directory path', 'error');
+                return;
+            }
+            
+            let addedCount = 0;
+            let skippedCount = 0;
+            
+            for (const path of pathArray) {
+                if (!path.startsWith('/')) {
+                    showAlert(`Skipped: "${path}" - must start with /`, 'error');
+                    skippedCount++;
+                    continue;
+                }
+                
+                // Check if already in list
+                if (currentDirectories.some(d => d.path === path)) {
+                    showAlert(`Skipped: "${path}" - already in list`, 'error');
+                    skippedCount++;
+                    continue;
+                }
+                
+                // Add to list
+                currentDirectories.push({
+                    path: path,
+                    exists: false,
+                    accessible: false,
+                    item_count: 0
+                });
+                addedCount++;
+            }
+            
+            if (addedCount > 0) {
+                directoriesChanged = true;
+                input.value = '';
+                displayDirectories();
+                showAlert(`Added ${addedCount} directory/directories (not yet saved)`, 'info');
+            }
+            
+            if (skippedCount > 0) {
+                showAlert(`${skippedCount} directory/directories skipped`, 'error');
+            }
+        }
+        
+        function removeDirectory(index) {
+            currentDirectories.splice(index, 1);
+            directoriesChanged = true;
+            displayDirectories();
+            showAlert('Directory removed (not yet saved)', 'info');
+        }
+        
+        async function refreshStatus() {
+            showAlert('Refreshing status...', 'info');
+            await loadRecentDirs();
+            showAlert('Status refreshed', 'success');
+        }
+        
+        async function saveChanges() {
+            const dirPaths = currentDirectories.map(d => d.path);
+            
+            try {
+                const response = await fetch('/api/settings/recent-dirs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ directories: dirPaths })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    directoriesChanged = false;
+                    showAlert(`✓ ${data.message}`, 'success');
+                    
+                    // Reload to show actual status
+                    await loadRecentDirs();
+                } else {
+                    showAlert(`Error: ${data.message}`, 'error');
+                    if (data.errors) {
+                        data.errors.forEach(err => showAlert(`  - ${err}`, 'error'));
+                    }
+                }
+            } catch (error) {
+                showAlert('Failed to save: ' + error.message, 'error');
+            }
+        }
+        
+        function showAlert(message, type = 'info') {
+            const container = document.getElementById('alert-container');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            
+            const icon = {
+                'success': '✓',
+                'error': '✗',
+                'info': 'ℹ'
+            }[type] || '•';
+            
+            alertDiv.innerHTML = `
+                <span class="alert-icon">${icon}</span>
+                <span>${escapeHtml(message)}</span>
+            `;
+            
+            container.insertBefore(alertDiv, container.firstChild);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => alertDiv.remove(), 5000);
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Load on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('content').style.display = 'none';
+            
+            loadRecentDirs().then(() => {
+                loadDirectoryBrowser();
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+            });
+        });
+        
+        // Warn before leaving if changes unsaved
+        window.addEventListener('beforeunload', (e) => {
+            if (directoriesChanged) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+    </script>
+</body>
+</html>

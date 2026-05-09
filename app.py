@@ -5339,7 +5339,9 @@ def recent_albums():
         # Check for force refresh parameter (accept both 'force' and 'force_refresh')
         force_refresh = (request.args.get('force', '0') == '1' or 
                         request.args.get('force_refresh', '0') == '1')
-        recent_albums_data = get_recent_albums_from_mpd(force_refresh=force_refresh)
+        # Get limit parameter (default 25)
+        limit = int(request.args.get('limit', 25))
+        recent_albums_data = get_recent_albums_from_mpd(limit=limit, force_refresh=force_refresh)
         return jsonify({
             'status': 'success',
             'albums': recent_albums_data,
@@ -5367,7 +5369,7 @@ def list_music_directories():
     app_ctx = {}
     return list_music_directories_handler(app_ctx)
 
-def get_recent_albums_from_mpd(limit=25, force_refresh=False):
+def get_recent_albums_from_mpd(limit=50, force_refresh=False):
     """
     Get recently added albums from configured directories in settings.json.
     This is much faster and more accurate than scanning the entire database.
@@ -5380,10 +5382,36 @@ def get_recent_albums_from_mpd(limit=25, force_refresh=False):
     settings = load_settings()
     recent_dirs = settings.get('recent_albums_dir', 'ripped')
     
-    # Parse comma-separated directories and clean them up
+    # Parse comma-separated directories and convert to MPD relative paths
     if isinstance(recent_dirs, str):
-        # Remove /media/music/ prefix if present, MPD uses relative paths
-        directories_to_check = [d.strip().replace('/media/music/', '') for d in recent_dirs.split(',') if d.strip()]
+        directories_to_check = []
+        for d in recent_dirs.split(','):
+            d = d.strip()
+            if not d:
+                continue
+            
+            # If absolute path, convert to relative (MPD-compatible)
+            if d.startswith('/'):
+                # Try to get MPD's music directory
+                mpd_music_dir = '/media/music'  # default
+                try:
+                    with open('/etc/mpd.conf', 'r') as f:
+                        for line in f:
+                            if line.strip().startswith('music_directory') and not line.strip().startswith('#'):
+                                mpd_music_dir = line.split('"')[1]
+                                break
+                except:
+                    pass
+                
+                # Convert absolute to relative
+                if d.startswith(mpd_music_dir + '/'):
+                    d = d[len(mpd_music_dir)+1:]  # Remove music_dir prefix
+                elif d.startswith(mpd_music_dir):
+                    d = d[len(mpd_music_dir):]  # Remove just the directory
+                # else: keep as-is, maybe it's already relative or a different mount
+            
+            if d:
+                directories_to_check.append(d)
     else:
         directories_to_check = ['ripped']  # fallback default
     

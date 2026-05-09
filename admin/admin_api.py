@@ -180,6 +180,11 @@ def cd_settings_page():
     """CD settings page"""
     return render_template('cd_settings.html')
 
+@app.route('/settings')
+def settings_page():
+    """Admin settings page (recent albums, etc)"""
+    return render_template('admin_settings.html')
+
 @app.route('/files')
 def file_browser_page():
     """File browser page"""
@@ -2989,6 +2994,141 @@ def update_bandcamp_settings():
             return jsonify({'status': 'success', 'message': 'Bandcamp settings saved'})
         else:
             return jsonify({'status': 'error', 'message': 'Failed to save settings'}), 500
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# ============================================================================
+# API ENDPOINTS - SETTINGS (RECENT ALBUMS)
+# ============================================================================
+
+@app.route('/api/settings/recent-dirs', methods=['GET'])
+def api_get_recent_dirs():
+    """Get current recent album directories configuration"""
+    try:
+        # Add paths to find utils module (admin and web use different locations)
+        web_path = '/home/fausto/maestro/web'
+        admin_path = '/home/fausto/maestro/admin'
+        
+        if web_path not in sys.path:
+            sys.path.insert(0, web_path)
+        if admin_path not in sys.path:
+            sys.path.insert(0, admin_path)
+        
+        from utils.settings import load_settings
+        
+        settings = load_settings()
+        recent_dirs_str = settings.get('recent_albums_dir', '')
+        
+        # Parse comma-separated directories
+        directories = []
+        if recent_dirs_str:
+            directories = [d.strip() for d in recent_dirs_str.split(',') if d.strip()]
+        
+        # Check which directories exist
+        dir_status = []
+        for directory in directories:
+            exists = os.path.exists(directory)
+            is_accessible = exists and os.access(directory, os.R_OK)
+            
+            # Count subdirectories and files if accessible
+            item_count = 0
+            if is_accessible:
+                try:
+                    items = os.listdir(directory)
+                    item_count = len(items)
+                except:
+                    pass
+            
+            dir_status.append({
+                'path': directory,
+                'exists': exists,
+                'accessible': is_accessible,
+                'item_count': item_count
+            })
+        
+        return jsonify({
+            'status': 'success',
+            'directories': dir_status,
+            'raw_config': recent_dirs_str,
+            'count': len(directories)
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/settings/recent-dirs', methods=['POST'])
+def api_set_recent_dirs():
+    """Update recent album directories configuration"""
+    try:
+        data = request.json
+        directories = data.get('directories', [])
+        
+        if not isinstance(directories, list):
+            return jsonify({'status': 'error', 'message': 'directories must be a list'}), 400
+        
+        # Validate directories
+        validated_dirs = []
+        errors = []
+        
+        for directory in directories:
+            directory = directory.strip()
+            if not directory:
+                continue
+            
+            # Check if directory exists
+            if not os.path.exists(directory):
+                errors.append(f"Directory does not exist: {directory}")
+                continue
+            
+            # Check if it's a directory
+            if not os.path.isdir(directory):
+                errors.append(f"Path is not a directory: {directory}")
+                continue
+            
+            # Check if readable
+            if not os.access(directory, os.R_OK):
+                errors.append(f"Directory is not readable: {directory}")
+                continue
+            
+            validated_dirs.append(directory)
+        
+        if not validated_dirs:
+            return jsonify({
+                'status': 'error',
+                'message': 'No valid directories provided',
+                'errors': errors
+            }), 400
+        
+        # Add paths to find utils module
+        web_path = '/home/fausto/maestro/web'
+        admin_path = '/home/fausto/maestro/admin'
+        
+        if web_path not in sys.path:
+            sys.path.insert(0, web_path)
+        if admin_path not in sys.path:
+            sys.path.insert(0, admin_path)
+        
+        from utils.settings import load_settings, save_settings
+        
+        # Load current settings
+        settings = load_settings()
+        
+        # Update recent_albums_dir - join with commas
+        settings['recent_albums_dir'] = ','.join(validated_dirs)
+        
+        # Save settings
+        if save_settings(settings):
+            print(f"[Settings] Recent albums directories updated to: {settings['recent_albums_dir']}", flush=True)
+            
+            return jsonify({
+                'status': 'success',
+                'message': f'Recent albums directories updated ({len(validated_dirs)} directory/directories)',
+                'directories': validated_dirs,
+                'config': ','.join(validated_dirs),
+                'errors': errors if errors else []
+            })
+        else:
+            return jsonify({'status': 'error', 'message': 'Failed to save settings'}), 500
+            
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
