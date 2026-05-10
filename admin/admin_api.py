@@ -990,6 +990,73 @@ def api_get_mpd_info():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@app.route('/api/library/browse', methods=['GET'])
+def api_browse_directory():
+    """Browse into a directory and list subdirectories"""
+    try:
+        browse_path = request.args.get('path', '/media/music')
+        
+        # Security: prevent path traversal
+        if not os.path.isabs(browse_path):
+            browse_path = '/media/music'
+        
+        # Normalize path
+        browse_path = os.path.abspath(browse_path)
+        
+        # Check if path exists and is a directory
+        if not os.path.exists(browse_path):
+            return jsonify({'status': 'error', 'message': 'Path does not exist'}), 404
+        
+        if not os.path.isdir(browse_path):
+            return jsonify({'status': 'error', 'message': 'Path is not a directory'}), 400
+        
+        if not os.access(browse_path, os.R_OK):
+            return jsonify({'status': 'error', 'message': 'Path is not readable'}), 403
+        
+        # List subdirectories
+        directories = []
+        try:
+            for item in sorted(os.listdir(browse_path)):
+                item_path = os.path.join(browse_path, item)
+                
+                # Skip hidden files
+                if item.startswith('.'):
+                    continue
+                
+                if os.path.isdir(item_path):
+                    # Get file count
+                    file_count = '?'
+                    try:
+                        if os.access(item_path, os.R_OK):
+                            count_result = subprocess.run(
+                                ['find', item_path, '-type', 'f', '-readable'],
+                                capture_output=True,
+                                text=True,
+                                timeout=2
+                            )
+                            if count_result.returncode == 0:
+                                lines = count_result.stdout.strip().split('\n') if count_result.stdout.strip() else []
+                                file_count = len([l for l in lines if l])
+                    except:
+                        pass
+                    
+                    directories.append({
+                        'name': item,
+                        'path': item_path,
+                        'file_count': file_count
+                    })
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': f'Error listing directory: {str(e)}'}), 500
+        
+        return jsonify({
+            'status': 'success',
+            'current_path': browse_path,
+            'directories': directories,
+            'count': len(directories)
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 # ============================================================================
 # API ENDPOINTS - LIBRARY MAINTENANCE
 # ============================================================================

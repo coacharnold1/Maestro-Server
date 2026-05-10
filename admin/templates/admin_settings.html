@@ -319,12 +319,19 @@
                     
                     <!-- Directory browser mode -->
                     <div style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Select from system (click to browse):</label>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Select from system (click folder to browse):</label>
                         <div id="dir-browser" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; max-height: 300px; overflow-y: auto;">
                             <div style="padding: 20px; text-align: center; color: #95a5a6;">
                                 <div class="spinner" style="margin: 0 auto 10px;"></div>
                                 Loading directories...
                             </div>
+                        </div>
+                        <div style="padding: 10px; background: rgba(52,73,94,0.3); border-radius: 4px; margin-top: 10px; text-align: center;">
+                            <strong id="folder-browser-summary" style="color: #f39c12;">No folders selected</strong>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-top: 10px;">
+                            <button type="button" class="btn btn-primary" onclick="applyFolderSelection()" style="flex: 1;">✓ Apply Selection</button>
+                            <button type="button" class="btn" style="background: #7f8c8d; color: #ecf0f1; flex: 1;" onclick="clearFolderSelection()">✕ Clear</button>
                         </div>
                     </div>
                     
@@ -374,55 +381,77 @@
             }
         }
         
-        async function loadDirectoryBrowser() {
-            if (directoryBrowserLoaded) return;
+        async function loadDirectoryBrowser(browsePath) {
+            const browser = document.getElementById('dir-browser');
+            const currentPath = browsePath || '/media/music';
             
             try {
-                // Load available music directories
-                const response = await fetch('/api/library/mpd-info');
-                const data = await response.json();
+                // Get subdirectories from current path
+                const response = await fetch(`/api/library/browse?path=${encodeURIComponent(currentPath)}`);
+                let data = await response.json();
                 
-                if (data.status === 'success') {
-                    const browser = document.getElementById('dir-browser');
-                    const musicDir = data.music_directory;
-                    const dirs = data.directories || [];
+                // If endpoint doesn't exist, fallback to listing root directories
+                if (response.status === 404 || !data.status) {
+                    const rootResponse = await fetch('/api/library/mpd-info');
+                    data = await rootResponse.json();
                     
-                    // Build directory tree
-                    let html = `
-                        <div style="padding: 10px;">
-                            <div style="margin-bottom: 10px; padding: 10px; background: rgba(52,152,219,0.2); border-radius: 4px; cursor: pointer;" onclick="toggleDirBrowser('${musicDir}')">
-                                <input type="checkbox" id="chk_${musicDir}" onchange="toggleDirSelection('${musicDir}', this.checked)" style="margin-right: 8px;">
-                                <span style="color: #3498db; font-weight: 600;">${musicDir}</span>
-                            </div>
-                    `;
-                    
-                    // List subdirectories
+                    if (data.status !== 'success' || currentPath !== '/media/music') {
+                        browser.innerHTML = `<div style="padding: 20px; color: #e74c3c;">Cannot browse: path not accessible</div>`;
+                        return;
+                    }
+                } else if (data.status !== 'success' && !data.directories) {
+                    browser.innerHTML = `<div style="padding: 20px; color: #e74c3c;">Error: ${data.message || 'Failed to load'}</div>`;
+                    return;
+                }
+                
+                browser.dataset.browsePath = currentPath;
+                const dirs = data.directories || [];
+                
+                // Build directory list
+                let html = '<div style="padding: 10px;">';
+                
+                // Show current path
+                html += `<div style="margin-bottom: 12px; padding: 8px; background: rgba(52,152,219,0.1); border-radius: 4px; color: #3498db; font-family: monospace; font-size: 0.85em; word-break: break-all;">📁 ${escapeHtml(currentPath)}</div>`;
+                
+                // Back button if not at root
+                if (currentPath !== '/media/music') {
+                    const parentPath = currentPath.substring(0, currentPath.lastIndexOf('/')) || '/media/music';
+                    html += `<div style="margin-bottom: 10px;"><button type="button" onclick="loadDirectoryBrowser('${parentPath.replace(/'/g, "\\'")}');" style="background: #3498db; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.9em;">↑ Back</button></div>`;
+                }
+                
+                if (dirs.length === 0) {
+                    html += '<div style="color: #95a5a6; padding: 10px; text-align: center;">No folders found</div>';
+                } else {
                     for (const dir of dirs) {
                         const fullPath = dir.path;
                         const name = dir.name;
-                        const items = dir.file_count;
+                        const fileCount = dir.file_count;
+                        const countDisplay = fileCount === 'network' ? 'network items' : fileCount === '?' ? '? items' : fileCount + ' items';
+                        const isSelected = browserSelectedDirs.has(fullPath);
                         
                         html += `
-                            <div style="margin-left: 20px; margin-bottom: 8px; padding: 8px; background: rgba(255,255,255,0.04); border-radius: 4px; border-left: 3px solid rgba(52,152,219,0.3);">
-                                <input type="checkbox" id="chk_${fullPath}" onchange="toggleDirSelection('${fullPath}', this.checked)" style="margin-right: 8px;">
-                                <label for="chk_${fullPath}" style="cursor: pointer; user-select: none;">
+                            <div style="margin-bottom: 8px; padding: 10px; background: ${isSelected ? 'rgba(46,204,113,0.2)' : 'rgba(255,255,255,0.04)'}; border-radius: 4px; border-left: 3px solid ${isSelected ? '#2ecc71' : 'rgba(52,152,219,0.3)'}; display: flex; gap: 10px; align-items: center;">
+                                <input type="checkbox" id="chk_${fullPath}" onchange="toggleDirSelection('${fullPath}', this.checked)" style="width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;" ${isSelected ? 'checked' : ''}>
+                                <label for="chk_${fullPath}" style="flex: 1; cursor: pointer; user-select: none; margin: 0;">
                                     <strong>${escapeHtml(name)}</strong>
-                                    <span style="color: #95a5a6; margin-left: 10px; font-size: 0.9em;">(${items} items)</span>
+                                    <span style="color: #95a5a6; margin-left: 10px; font-size: 0.85em;">(${countDisplay})</span>
                                 </label>
+                                <button type="button" onclick="loadDirectoryBrowser('${fullPath.replace(/'/g, "\\'")}');" style="background: #27ae60; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em; white-space: nowrap;">Open →</button>
                             </div>
                         `;
                     }
-                    
-                    html += '</div>';
-                    browser.innerHTML = html;
-                    directoryBrowserLoaded = true;
-                    
-                } else {
-                    document.getElementById('dir-browser').innerHTML = `<div style="padding: 20px; color: #e74c3c;">Error loading directories: ${data.message}</div>`;
                 }
+                
+                html += '</div>';
+                browser.innerHTML = html;
+                
             } catch (error) {
-                document.getElementById('dir-browser').innerHTML = `<div style="padding: 20px; color: #e74c3c;">Failed to load browser: ${error.message}</div>`;
+                browser.innerHTML = `<div style="padding: 20px; color: #e74c3c;">Error: ${error.message}</div>`;
             }
+        }
+        
+        function browsePath(path) {
+            loadDirectoryBrowser(path);
         }
         
         function toggleDirSelection(path, checked) {
@@ -435,24 +464,58 @@
         }
         
         function updateBrowserSelection() {
-            if (browserSelectedDirs.size > 0) {
-                // Add all selected directories to current list
-                for (const dir of browserSelectedDirs) {
-                    if (!currentDirectories.some(d => d.path === dir)) {
-                        currentDirectories.push({
-                            path: dir,
-                            exists: true,
-                            accessible: true,
-                            item_count: 0
-                        });
-                    }
-                }
-                directoriesChanged = true;
-                displayDirectories();
-                browserSelectedDirs.clear();
-                // Uncheck all
-                document.querySelectorAll('#dir-browser input[type="checkbox"]').forEach(cb => cb.checked = false);
+            const summary = document.getElementById('folder-browser-summary');
+            if (browserSelectedDirs.size === 0) {
+                summary.textContent = 'No folders selected';
+                summary.style.color = '#f39c12';
+            } else {
+                summary.textContent = `${browserSelectedDirs.size} folder(s) selected`;
+                summary.style.color = '#2ecc71';
             }
+            
+            // Refresh the display to show checked status, preserving current browse path
+            const browser = document.getElementById('dir-browser');
+            const currentPath = browser.dataset.browsePath || '/media/music';
+            loadDirectoryBrowser(currentPath);
+        }
+        
+        function applyFolderSelection() {
+            if (browserSelectedDirs.size === 0) {
+                showAlert('Please select at least one folder', 'error');
+                return;
+            }
+            
+            // Add all selected directories to current list
+            let addedCount = 0;
+            for (const dir of browserSelectedDirs) {
+                if (!currentDirectories.some(d => d.path === dir)) {
+                    currentDirectories.push({
+                        path: dir,
+                        exists: true,
+                        accessible: true,
+                        item_count: 0
+                    });
+                    addedCount++;
+                }
+            }
+            
+            directoriesChanged = true;
+            displayDirectories();
+            showAlert(`✓ Added ${addedCount} folder(s)`, 'success');
+            
+            // Clear selection
+            browserSelectedDirs.clear();
+            const summary = document.getElementById('folder-browser-summary');
+            summary.textContent = 'No folders selected';
+            summary.style.color = '#f39c12';
+        }
+        
+        function clearFolderSelection() {
+            browserSelectedDirs.clear();
+            const summary = document.getElementById('folder-browser-summary');
+            summary.textContent = 'No folders selected';
+            summary.style.color = '#f39c12';
+            loadDirectoryBrowser();
         }
         
         function displayDirectories() {
