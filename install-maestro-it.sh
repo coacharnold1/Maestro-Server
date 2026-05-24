@@ -653,6 +653,12 @@ EOF
     sudo chown -R $USER:$USER /media/music
     sudo chmod -R 755 /media/music
     
+    # Grant MPD user access to music library
+    echo -e "${YELLOW}Configurazione accesso libreria MPD...${NC}"
+    sudo usermod -a -G $USER mpd
+    sudo chmod g+rx /home/$USER 2>/dev/null || true
+    echo -e "  ${GREEN}✓ Utente MPD aggiunto al gruppo $USER${NC}"
+    
     # Enable and start vsftpd
     sudo systemctl enable vsftpd
     sudo systemctl restart vsftpd
