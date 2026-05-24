@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browse by Genre - MPD Web Control</title>    <script src="/static/version-loader.js"></script>    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #1a1a1a;
+            color: #ecf0f1;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #2c3e50;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 18px rgba(0, 0, 0, 0.4);
+        }
+
+        h1 {
+            color: #ecf0f1;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* Logo styling */
+        .logo-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .logo-container img {
+            max-width: 600px;
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
+
+        /* Now Playing Bar */
+        .now-playing-bar {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            border: 1px solid #4a6279;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+        }
+        .now-playing-bar .np-art { width: 50px; height: 50px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background-color: #2c3e50; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); }
+        .now-playing-bar .np-content { flex: 1; text-align: center; min-width: 0; }
+        .now-playing-bar .label { font-size: 0.8em; color: #95a5a6; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 1px; }
+        .now-playing-bar .info { font-size: 1.1em; color: #ecf0f1; font-weight: 500; }
+        .now-playing-bar .artist { color: #27ae60; }
+        .now-playing-bar .separator { color: #7f8c8d; margin: 0 8px; }
+        .now-playing-bar .track { color: #3498db; }
+        .now-playing-bar .album { color: #e67e22; }
+        @media (max-width: 600px) {
+            .now-playing-bar .np-art { width: 40px; height: 40px; }
+            .now-playing-bar .info { font-size: 0.9em; }
+            .now-playing-bar .separator { margin: 0 4px; }
+        }
+
+        /* Light theme */
+        body.light .now-playing-bar {
+            background: linear-gradient(135deg, #f0f3f6 0%, #e8ecf0 100%);
+            border-color: #d0d7de;
+        }
+        body.light .now-playing-bar .label {
+            color: #6b7280;
+        }
+        body.light .now-playing-bar .info,
+        body.light .now-playing-bar .track {
+            color: #1a1a1a;
+        }
+        body.light .now-playing-bar .artist {
+            color: #059669;
+        }
+        body.light .now-playing-bar .album {
+            color: #d97706;
+        }
+        body.light .now-playing-bar .separator {
+            color: #d0d7de;
+        }
+
+        /* High-contrast theme */
+        body.high-contrast .now-playing-bar {
+            background: linear-gradient(135deg, #000000 0%, #111111 100%);
+            border: 2px solid #ffff00;
+        }
+        body.high-contrast .now-playing-bar .label {
+            color: #ffff00;
+        }
+        body.high-contrast .now-playing-bar .info,
+        body.high-contrast .now-playing-bar .track,
+        body.high-contrast .now-playing-bar .artist,
+        body.high-contrast .now-playing-bar .album {
+            color: #ffff00;
+        }
+        body.high-contrast .now-playing-bar .separator {
+            color: #ffff00;
+        }
+
+        /* Desert theme */
+        body.desert .now-playing-bar {
+            background: linear-gradient(135deg, #4a3b2a 0%, #3d2f20 100%);
+            border-color: #cd853f;
+        }
+        body.desert .now-playing-bar .label {
+            color: #d2b48c;
+        }
+        body.desert .now-playing-bar .info,
+        body.desert .now-playing-bar .track {
+            color: #f4e4bc;
+        }
+        body.desert .now-playing-bar .artist {
+            color: #daa520;
+        }
+        body.desert .now-playing-bar .album {
+            color: #cd853f;
+        }
+        body.desert .now-playing-bar .separator {
+            color: #8b4513;
+        }
+
+        /* Terminal theme */
+        body.terminal .now-playing-bar {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            border-color: #00cc00;
+        }
+        body.terminal .now-playing-bar .label {
+            color: #00aa00;
+        }
+        body.terminal .now-playing-bar .info,
+        body.terminal .now-playing-bar .track,
+        body.terminal .now-playing-bar .artist,
+        body.terminal .now-playing-bar .album {
+            color: #00ff00;
+        }
+        body.terminal .now-playing-bar .separator {
+            color: #009900;
+        }
+
+        /* Sunset theme */
+        body.sunset .now-playing-bar {
+            background: linear-gradient(135deg, #3d2534 0%, #2d1b2e 100%);
+            border-color: #ff6b35;
+        }
+        body.sunset .now-playing-bar .label {
+            color: #ffb380;
+        }
+        body.sunset .now-playing-bar .info,
+        body.sunset .now-playing-bar .track {
+            color: #ffe4b5;
+        }
+        body.sunset .now-playing-bar .artist {
+            color: #ffb347;
+        }
+        body.sunset .now-playing-bar .album {
+            color: #ff6b35;
+        }
+        body.sunset .now-playing-bar .separator {
+            color: #ff8c42;
+        }
+
+        /* Forest theme */
+        body.forest .now-playing-bar {
+            background: linear-gradient(135deg, #233d23 0%, #1a2e1a 100%);
+            border-color: #4a7c4e;
+        }
+        body.forest .now-playing-bar .label {
+            color: #7cb342;
+        }
+        body.forest .now-playing-bar .info,
+        body.forest .now-playing-bar .track {
+            color: #c9e4c5;
+        }
+        body.forest .now-playing-bar .artist {
+            color: #7cb342;
+        }
+        body.forest .now-playing-bar .album {
+            color: #4a7c4e;
+        }
+        body.forest .now-playing-bar .separator {
+            color: #558b2f;
+        }
+
+        /* Midnight theme */
+        body.midnight .now-playing-bar {
+            background: linear-gradient(135deg, #2a1f4a 0%, #1e1435 100%);
+            border-color: #6a4c93;
+        }
+        body.midnight .now-playing-bar .label {
+            color: #b19cd9;
+        }
+        body.midnight .now-playing-bar .info,
+        body.midnight .now-playing-bar .track {
+            color: #e0d4f7;
+        }
+        body.midnight .now-playing-bar .artist {
+            color: #bb86fc;
+        }
+        body.midnight .now-playing-bar .album {
+            color: #6a4c93;
+        }
+        body.midnight .now-playing-bar .separator {
+            color: #8367a7;
+        }
+        @media (max-width: 600px) {
+            .now-playing-bar .np-art { width: 40px; height: 40px; }
+            .now-playing-bar .info { font-size: 0.9em; }
+            .now-playing-bar .separator { margin: 0 4px; }
+        }
+
+        /* Navigation Links */
+        .nav-links {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .nav-links a,
+        .nav-links button {
+            color: #3498db;
+            text-decoration: none;
+            margin: 0 6px 5px 6px;
+            padding: 6px 12px;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            transition: all 0.3s;
+            background: none;
+            cursor: pointer;
+            font-size: 13px;
+            display: inline-block;
+        }
+
+        .nav-links a:hover,
+        .nav-links button:hover {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .nav-links .current-page {
+            background-color: #e67e22 !important;
+            color: white !important;
+            border-color: #e67e22 !important;
+        }
+
+        .nav-links .clear-btn {
+            background-color: #e74c3c;
+            color: white;
+            border-color: #e74c3c;
+        }
+
+        .nav-links .clear-btn:hover {
+            background-color: #c0392b;
+            border-color: #c0392b;
+        }
+
+        .playback-controls {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #34495e;
+            border-radius: 8px;
+        }
+
+        .playback-controls h2 {
+            margin: 0 0 10px 0;
+            color: #ecf0f1;
+            font-size: 1.1em;
+        }
+
+        .playback-controls a {
+            display: inline-block;
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            text-decoration: none;
+            padding: 10px 15px;
+            margin: 4px;
+            border-radius: 6px;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .playback-controls a:hover {
+            background-color: #bdc3c7;
+            transform: translateY(-1px);
+        }
+
+        .playback-controls button {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            border: none;
+            padding: 10px 15px;
+            margin: 4px;
+            border-radius: 6px;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            min-width: 80px;
+            font-size: 0.9em;
+        }
+
+        .playback-controls button:hover {
+            background-color: #bdc3c7;
+            transform: translateY(-1px);
+        }
+
+        .playback-controls button:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .playback-controls button:disabled {
+            background-color: #6c7a89;
+            color: #aeb6bf;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .volume-mini-controls {
+            text-align: center;
+            margin-top: 12px;
+            margin-bottom: 20px;
+            padding: 8px 15px;
+            background-color: #34495e;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 0.9em;
+        }
+        .volume-mini-label {
+            color: #95a5a6;
+            font-weight: 500;
+            min-width: 45px;
+            text-align: right;
+        }
+        .volume-mini-display {
+            color: #1abc9c;
+            font-weight: bold;
+            min-width: 35px;
+            text-align: center;
+        }
+        .volume-mini-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            min-width: 40px;
+            transition: background-color 0.2s ease;
+        }
+        .volume-mini-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+            color: #bdc3c7;
+        }
+
+        .error {
+            background-color: #e74c3c;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .genre-list {
+            margin-top: 20px;
+        }
+
+        .genre-item {
+            background-color: #34495e;
+            padding: 15px 20px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            margin-bottom: 12px;
+            transition: all 0.3s;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .genre-item:hover {
+            background-color: #3d566e;
+            border-left-color: #2ecc71;
+            transform: translateX(5px);
+        }
+
+        .genre-info {
+            flex: 1;
+        }
+
+        .genre-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #ecf0f1;
+            margin-bottom: 5px;
+        }
+
+        .genre-count {
+            color: #bdc3c7;
+            font-size: 0.9em;
+        }
+
+        .genre-arrow {
+            color: #3498db;
+            font-size: 1.2em;
+            margin-left: 15px;
+        }
+
+        .message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            transition: opacity 0.3s;
+        }
+
+        .message.success {
+            background-color: #27ae60;
+        }
+
+        .message.error {
+            background-color: #e74c3c;
+        }
+
+        .message.info {
+            background-color: #3498db;
+        }
+
+        .letter-nav {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #34495e;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .letter-nav h3 {
+            margin: 0 0 10px 0;
+            color: #ecf0f1;
+            font-size: 1em;
+        }
+
+        .letter-btn {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            padding: 5px 8px;
+            margin: 2px;
+            border-radius: 3px;
+            transition: background-color 0.3s;
+            font-weight: bold;
+            font-size: 0.9em;
+            cursor: pointer;
+            border: none;
+        }
+
+        .letter-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .letter-btn.active {
+            background-color: #e74c3c;
+        }
+
+        /* Minimal theme overrides */
+        body.light {
+            background-color: #f5f5f7;
+            color: #1a1a1a;
+        }
+        body.light .container {
+            background-color: #ffffff;
+            color: #1a1a1a;
+        }
+        body.light .playback-controls,
+        body.light .stats,
+        body.light .genre-item,
+        body.light .letter-nav,
+        body.light .volume-mini-controls {
+            background-color: #f0f3f6;
+            border-color: #d0d7de;
+        }
+        body.light .error {
+            color: #ffffff;
+        }
+
+        body.light .now-playing-bar {
+            background: linear-gradient(135deg, #f0f3f6 0%, #e8ecf0 100%);
+            border-color: #d0d7de;
+        }
+        body.light .now-playing-bar .label {
+            color: #6b7280;
+        }
+        body.light .now-playing-bar .info,
+        body.light .now-playing-bar .track {
+            color: #1a1a1a;
+        }
+        body.light .now-playing-bar .artist {
+            color: #059669;
+        }
+        body.light .now-playing-bar .album {
+            color: #d97706;
+        }
+        body.light .now-playing-bar .separator {
+            color: #d0d7de;
+        }
+
+        body.high-contrast {
+            background-color: #000000;
+            color: #ffff00;
+        }
+        body.high-contrast .container {
+            background-color: #000000;
+            color: #ffff00;
+            border: 2px solid #ffff00;
+        }
+        body.high-contrast .playback-controls,
+        body.high-contrast .stats,
+        body.high-contrast .genre-item,
+        body.high-contrast .letter-nav,
+        body.high-contrast .volume-mini-controls {
+            background-color: #000000;
+            border: 2px solid #ffff00;
+        }
+
+        body.high-contrast .now-playing-bar {
+            background: linear-gradient(135deg, #000000 0%, #111111 100%);
+            border: 2px solid #ffff00;
+        }
+        body.high-contrast .now-playing-bar .label {
+            color: #ffff00;
+        }
+        body.high-contrast .now-playing-bar .info,
+        body.high-contrast .now-playing-bar .track,
+        body.high-contrast .now-playing-bar .artist,
+        body.high-contrast .now-playing-bar .album {
+            color: #ffff00;
+        }
+        body.high-contrast .now-playing-bar .separator {
+            color: #ffff00;
+        }
+
+        /* Desert theme */
+        body.desert {
+            background-color: #2c1810;
+            color: #f4e4bc;
+        }
+        body.desert .container {
+            background-color: #3d2f20;
+            color: #f4e4bc;
+            border-color: #8b4513;
+        }
+        body.desert .playback-controls,
+        body.desert .stats,
+        body.desert .genre-item,
+        body.desert .letter-nav,
+        body.desert .volume-mini-controls {
+            background-color: #4a3b2a;
+            border-color: #cd853f;
+        }
+
+        body.desert .now-playing-bar {
+            background: linear-gradient(135deg, #4a3b2a 0%, #3d2f20 100%);
+            border-color: #cd853f;
+        }
+        body.desert .now-playing-bar .label {
+            color: #d2b48c;
+        }
+        body.desert .now-playing-bar .info,
+        body.desert .now-playing-bar .track {
+            color: #f4e4bc;
+        }
+        body.desert .now-playing-bar .artist {
+            color: #daa520;
+        }
+        body.desert .now-playing-bar .album {
+            color: #cd853f;
+        }
+        body.desert .now-playing-bar .separator {
+            color: #8b4513;
+        }
+
+        /* Terminal theme */
+        body.terminal {
+            background-color: #000000;
+            color: #00ff00;
+        }
+        body.terminal .container {
+            background-color: #0a0a0a;
+            color: #00ff00;
+            border-color: #00cc00;
+        }
+        body.terminal .playback-controls,
+        body.terminal .stats,
+        body.terminal .genre-item,
+        body.terminal .letter-nav,
+        body.terminal .volume-mini-controls {
+            background-color: #1a1a1a;
+            border-color: #00cc00;
+        }
+
+        body.terminal .now-playing-bar {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            border-color: #00cc00;
+        }
+        body.terminal .now-playing-bar .label {
+            color: #00aa00;
+        }
+        body.terminal .now-playing-bar .info,
+        body.terminal .now-playing-bar .track,
+        body.terminal .now-playing-bar .artist,
+        body.terminal .now-playing-bar .album {
+            color: #00ff00;
+        }
+        body.terminal .now-playing-bar .separator {
+            color: #009900;
+        }
+
+        /* Sunset theme */
+        body.sunset {
+            background-color: #1a0f1f;
+            color: #ffe4b5;
+        }
+        body.sunset .container {
+            background-color: #2d1b2e;
+            color: #ffe4b5;
+            border-color: #ff6b35;
+        }
+        body.sunset .playback-controls,
+        body.sunset .stats,
+        body.sunset .genre-item,
+        body.sunset .letter-nav,
+        body.sunset .volume-mini-controls {
+            background-color: #3d2534;
+            border-color: #ff6b35;
+        }
+
+        body.sunset .now-playing-bar {
+            background: linear-gradient(135deg, #3d2534 0%, #2d1b2e 100%);
+            border-color: #ff6b35;
+        }
+        body.sunset .now-playing-bar .label {
+            color: #ffb380;
+        }
+        body.sunset .now-playing-bar .info,
+        body.sunset .now-playing-bar .track {
+            color: #ffe4b5;
+        }
+        body.sunset .now-playing-bar .artist {
+            color: #ffb347;
+        }
+        body.sunset .now-playing-bar .album {
+            color: #ff6b35;
+        }
+        body.sunset .now-playing-bar .separator {
+            color: #ff8c42;
+        }
+
+        /* Forest theme */
+        body.forest {
+            background-color: #0d1b0d;
+            color: #c9e4c5;
+        }
+        body.forest .container {
+            background-color: #1a2e1a;
+            color: #c9e4c5;
+            border-color: #4a7c4e;
+        }
+        body.forest .playback-controls,
+        body.forest .stats,
+        body.forest .genre-item,
+        body.forest .letter-nav,
+        body.forest .volume-mini-controls {
+            background-color: #233d23;
+            border-color: #4a7c4e;
+        }
+
+        body.forest .now-playing-bar {
+            background: linear-gradient(135deg, #233d23 0%, #1a2e1a 100%);
+            border-color: #4a7c4e;
+        }
+        body.forest .now-playing-bar .label {
+            color: #7cb342;
+        }
+        body.forest .now-playing-bar .info,
+        body.forest .now-playing-bar .track {
+            color: #c9e4c5;
+        }
+        body.forest .now-playing-bar .artist {
+            color: #7cb342;
+        }
+        body.forest .now-playing-bar .album {
+            color: #4a7c4e;
+        }
+        body.forest .now-playing-bar .separator {
+            color: #558b2f;
+        }
+
+        /* Midnight theme */
+        body.midnight {
+            background-color: #0f0a1e;
+            color: #e0d4f7;
+        }
+        body.midnight .container {
+            background-color: #1e1435;
+            color: #e0d4f7;
+            border-color: #6a4c93;
+        }
+        body.midnight .playback-controls,
+        body.midnight .stats,
+        body.midnight .genre-item,
+        body.midnight .letter-nav,
+        body.midnight .volume-mini-controls {
+            background-color: #2a1f4a;
+            border-color: #6a4c93;
+        }
+
+        body.midnight .now-playing-bar {
+            background: linear-gradient(135deg, #2a1f4a 0%, #1e1435 100%);
+            border-color: #6a4c93;
+        }
+        body.midnight .now-playing-bar .label {
+            color: #b19cd9;
+        }
+        body.midnight .now-playing-bar .info,
+        body.midnight .now-playing-bar .track {
+            color: #e0d4f7;
+        }
+        body.midnight .now-playing-bar .artist {
+            color: #bb86fc;
+        }
+        body.midnight .now-playing-bar .album {
+            color: #6a4c93;
+        }
+        body.midnight .now-playing-bar .separator {
+            color: #8367a7;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+
+            .nav-links {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                align-items: center;
+            }
+
+            .nav-links a {
+                margin: 0;
+                width: 80%;
+                max-width: 200px;
+                text-align: center;
+            }
+
+            /* Mobile-friendly letter navigation */
+            .letter-nav {
+                padding: 10px;
+            }
+
+            .letter-nav h3 {
+                font-size: 0.9em;
+                margin-bottom: 8px;
+            }
+
+            .letter-btn {
+                padding: 8px 10px;
+                margin: 3px;
+                font-size: 1em;
+                min-width: 32px;
+                min-height: 32px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                touch-action: manipulation;
+            }
+
+            .genre-item {
+                margin-bottom: 8px;
+                padding: 12px 15px;
+            }
+
+            .genre-name {
+                font-size: 1.1em;
+            }
+        }
+
+        /* ==================== PHASE 2: FIXED HEADER NAVIGATION ==================== */
+
+        /* Theme-specific header colors */
+        body .fixed-header {
+            background-color: #2c3e50;
+            border-bottom-color: #34495e;
+        }
+        body .header-nav a, body .header-nav button {
+            color: #3498db;
+            border-color: #3498db;
+        }
+        body .header-search input, body .header-search select {
+            background-color: #34495e;
+            color: #ecf0f1;
+            border-color: #3498db;
+        }
+
+        body.light .fixed-header {
+            background-color: #e8e8e8;
+            border-bottom-color: #cccccc;
+        }
+        body.light .header-nav a, body.light .header-nav button {
+            color: #0066cc;
+            border-color: #0066cc;
+        }
+        body.light .header-search input, body.light .header-search select {
+            background-color: #ffffff;
+            color: #333333;
+            border-color: #0066cc;
+        }
+        body.light .header-search input::placeholder {
+            color: #999999;
+        }
+
+        body.high-contrast .fixed-header {
+            background-color: #000000;
+            border-bottom: 2px solid #ffff00;
+        }
+        body.high-contrast .header-nav a, body.high-contrast .header-nav button {
+            color: #ffff00;
+            border-color: #ffff00;
+        }
+        body.high-contrast .header-search input, body.high-contrast .header-search select {
+            background-color: #000000;
+            color: #ffff00;
+            border: 2px solid #ffff00;
+        }
+        body.high-contrast .header-search input::placeholder {
+            color: #ffff00;
+            opacity: 0.5;
+        }
+
+        body.desert .fixed-header {
+            background-color: #3d2f20;
+            border-bottom-color: #8b4513;
+        }
+        body.desert .header-nav a, body.desert .header-nav button {
+            color: #cd853f;
+            border-color: #cd853f;
+        }
+        body.desert .header-search input, body.desert .header-search select {
+            background-color: #4a3b2a;
+            color: #f4e4bc;
+            border-color: #cd853f;
+        }
+        body.desert .header-search input::placeholder {
+            color: #b8956f;
+        }
+
+        body.terminal .fixed-header {
+            background-color: #0a0a0a;
+            border-bottom: 2px solid #00cc00;
+        }
+        body.terminal .header-nav a, body.terminal .header-nav button {
+            color: #00ff00;
+            border-color: #00cc00;
+        }
+        body.terminal .header-search input, body.terminal .header-search select {
+            background-color: #1a1a1a;
+            color: #00ff00;
+            border-color: #00cc00;
+        }
+        body.terminal .header-search input::placeholder {
+            color: #00cc00;
+            opacity: 0.6;
+        }
+
+        body.sunset .fixed-header {
+            background-color: #2d1b2e;
+            border-bottom-color: #ff6b35;
+        }
+        body.sunset .header-nav a, body.sunset .header-nav button {
+            color: #ff8c42;
+            border-color: #ff8c42;
+        }
+        body.sunset .header-search input, body.sunset .header-search select {
+            background-color: #3d2534;
+            color: #ffe4b5;
+            border-color: #ff8c42;
+        }
+        body.sunset .header-search input::placeholder {
+            color: #c9a47a;
+        }
+
+        body.forest .fixed-header {
+            background-color: #1a2e1a;
+            border-bottom-color: #4a7c4e;
+        }
+        body.forest .header-nav a, body.forest .header-nav button {
+            color: #66bb6a;
+            border-color: #66bb6a;
+        }
+        body.forest .header-search input, body.forest .header-search select {
+            background-color: #233d23;
+            color: #c9e4c5;
+            border-color: #66bb6a;
+        }
+        body.forest .header-search input::placeholder {
+            color: #7cb342;
+        }
+
+        body.midnight .fixed-header {
+            background-color: #1e1435;
+            border-bottom-color: #6a4c93;
+        }
+        body.midnight .header-nav a, body.midnight .header-nav button {
+            color: #bb86fc;
+            border-color: #bb86fc;
+        }
+        body.midnight .header-search input, body.midnight .header-search select {
+            background-color: #2a1f4a;
+            color: #e0d4f7;
+            border-color: #bb86fc;
+        }
+        body.midnight .header-search input::placeholder {
+            color: #b19cd9;
+        }
+
+        .fixed-header {
+            background-color: #2c3e50;
+            border-bottom: 2px solid #34495e;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            padding: 0;
+            margin: 0 0 20px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .header-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px 20px;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .header-nav a,
+        .header-nav button {
+            color: #3498db;
+            text-decoration: none;
+            padding: 8px 14px;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            background: none;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .header-nav a:hover,
+        .header-nav button:hover {
+            color: white;
+            background-color: #3498db;
+        }
+
+        .header-nav a.active {
+            color: #1a1a1a;
+            background-color: #f39c12 !important;
+            border-color: #f39c12 !important;
+            font-weight: bold;
+        }
+
+        .header-search {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: nowrap;
+            justify-content: center;
+        }
+
+        .header-search input,
+        .header-search select {
+            padding: 8px 12px;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            background-color: #34495e;
+            color: #ecf0f1;
+            font-size: 0.9em;
+        }
+
+        .header-search select {
+            max-width: 100px;
+            flex-shrink: 0;
+        }
+
+        .header-search input {
+            width: auto;
+            max-width: 175px;
+            min-width: 100px;
+        }
+
+        .header-search button {
+            flex-shrink: 0;
+        }
+
+        .random-albums-btn {
+            flex-shrink: 0;
+        }
+
+        .header-search input::placeholder {
+            color: #95a5a6;
+        }
+
+        .header-search input:focus,
+        .header-search select:focus {
+            outline: none;
+            box-shadow: 0 0 8px rgba(52, 152, 219, 0.3);
+        }
+
+        .header-search button {
+            padding: 8px 16px;
+            background-color: #3498db;
+            color: white;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .header-search button:hover {
+            background-color: #2980b9;
+            border-color: #2980b9;
+        }
+
+        .autocomplete-container {
+            position: relative;
+            flex: none;
+            width: auto;
+        }
+
+        .autocomplete-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: #34495e;
+            border: 1px solid #3498db;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .autocomplete-item {
+            padding: 10px 12px;
+            color: #ecf0f1;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(52, 152, 219, 0.2);
+            font-size: 0.9em;
+        }
+
+        .autocomplete-item:hover,
+        .autocomplete-item.selected {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .random-albums-btn {
+            background-color: #9b59b6;
+            color: white;
+            border: 1px solid #9b59b6;
+            padding: 8px 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+
+        .random-albums-btn:hover {
+            background-color: #8e44ad;
+            border-color: #8e44ad;
+        }
+
+        .stats {
+            background-color: #34495e;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            color: #bdc3c7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: nowrap;
+        }
+
+        .stats #bandcamp-link {
+            flex: 0 0 auto;
+        }
+
+        .stats .genre-count-label {
+            text-align: center;
+            flex: 1;
+        }
+
+        .stats button,
+        .stats a {
+            padding: 8px 14px;
+            border-radius: 5px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            font-size: 0.85em;
+            white-space: nowrap;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+
+        .clear-btn {
+            background-color: #e74c3c;
+            color: white;
+            border-color: #e74c3c;
+        }
+
+        .clear-btn:hover {
+            background-color: #c0392b;
+            border-color: #c0392b;
+        }
+
+        .playback-controls .clear-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: 1px solid #e74c3c;
+        }
+
+        .playback-controls .clear-btn:hover {
+            background-color: #c0392b;
+            border-color: #c0392b;
+        }
+
+        #bandcamp-link {
+            background-color: #1b6e3c;
+            color: white;
+            border-color: #1b6e3c;
+            padding: 8px 14px;
+            border-radius: 5px;
+            flex-shrink: 0;
+        }
+
+        #bandcamp-link:hover {
+            background-color: #145a32;
+            border-color: #145a32;
+        }
+
+        @media (max-width: 768px) {
+            .header-search input {
+                max-width: 110px;
+                min-width: 80px;
+                padding: 6px 8px;
+                font-size: 0.85em;
+            }
+            .header-search select {
+                max-width: 90px;
+                padding: 6px 8px;
+                font-size: 0.85em;
+            }
+            .header-search button {
+                padding: 6px 10px;
+                font-size: 0.8em;
+            }
+        }
+
+        @media (max-width: 450px) {
+            /* Mobile search link visible, desktop hidden */
+            .mobile-search-link {
+                display: inline-block !important;
+            }
+
+            /* Make header nav work on mobile with 6 items */
+            .header-nav {
+                gap: 4px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .header-nav a {
+                padding: 6px 10px !important;
+                font-size: 12px !important;
+                margin: 2px 1px;
+            }
+
+            /* Hide search inputs on mobile, keep Random button */
+            #header-search-type,
+            .autocomplete-container,
+            .autocomplete-dropdown,
+            #header-autocomplete-dropdown,
+            .header-search button:not(.random-albums-btn) {
+                display: none !important;
+            }
+
+            /* Adjust header-search for mobile */
+            .header-search {
+                gap: 4px;
+                padding: 0 5px;
+            }
+        }
+
+        /* Hide mobile search link on desktop */
+        @media (min-width: 451px) {
+            .mobile-search-link {
+                display: none !important;
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
+</head>
+
+<body class="{{ app_theme }}">
+    <div class="container">
+        <!-- Animated SVG Logo -->
+        <div class="logo-container">
+            <img id="maestro-logo-genres" src="{{ url_for('static', filename='logo.svg') }}" alt="Maestro MPD Control">
+        </div>
+
+        <!-- Now Playing Bar -->
+        <div class="now-playing-bar" id="now-playing-bar" style="display: none;">
+            <img class="np-art" id="np-art" src="/static_placeholder_art" alt="Album Art" onerror="this.src='/static_placeholder_art'">
+            <div class="np-content">
+                <div class="label">♪ Now Playing</div>
+                <div class="info">
+                    <span class="artist" id="np-artist">-</span>
+                    <span class="separator">•</span>
+                    <span class="album" id="np-album">-</span>
+                    <span class="separator">•</span>
+                    <span class="track" id="np-track">-</span>
+                </div>
+            </div>
+        </div>
+
+        <h1>🎵 Browse Music by Genre</h1>
+
+        <!-- Phase 2: Fixed Header Navigation -->
+        <div class="fixed-header">
+            <div class="header-content">
+                <div class="header-nav">
+                    <a href="/">🏠 Main</a>
+                    <a href="/playlist">🎵 Queue</a>
+                    <a href="/add_music">🎲 Add Music</a>
+                    <a href="/recent">📀 Recent</a>
+                    <a href="/browse" class="active">🗂️ Browse</a>
+                    <a href="/radio">📻 Radio</a>
+                    <a href="/search" class="mobile-search-link">🔍 Search</a>
+                </div>
+                <div class="header-search">
+                    <select id="header-search-type">
+                        <option value="any">All Types</option>
+                        <option value="artist">Artists</option>
+                        <option value="album">Albums</option>
+                        <option value="title">Songs</option>
+                    </select>
+                    <div class="autocomplete-container">
+                        <input type="text" id="header-search-input" placeholder="Search..." autocomplete="off">
+                        <div id="header-autocomplete-dropdown" class="autocomplete-dropdown"></div>
+                    </div>
+                    <button onclick="performHeaderSearch()">Go</button>
+                    <button type="button" class="random-albums-btn" onclick="window.location.href='/random_albums'" title="Get 25 random albums">🎲 Random</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="playback-controls">
+            <h2>🎵 Playback Controls</h2>
+            <div style="margin-bottom: 10px;">
+                <button onclick="playbackAction('previous')" style="background-color: #9b59b6; color: white;">⏮️ Previous</button>
+                <button onclick="playbackAction('play')" style="background-color: #27ae60; color: white;">▶️ Play</button>
+                <button onclick="playbackAction('stop')" style="background-color: #f39c12; color: white;">⏹️ Stop</button>
+                <button onclick="playbackAction('pause')" style="background-color: #e74c3c; color: white;">⏸️ Pause</button>
+                <button onclick="playbackAction('next')" style="background-color: #3498db; color: white;">⏭️ Next</button>
+            </div>
+            <button onclick="clearPlaylist()" class="clear-btn">🗑️ Clear Playlist</button>
+        </div>
+
+        <div class="volume-mini-controls">
+            <span class="volume-mini-label">🔊 Volume:</span>
+            <span class="volume-mini-display" id="volume-percentage-display">{{ mpd_info.volume | default(0) }}%</span>
+            <button class="volume-mini-btn" onclick="adjustVolume(-2)">−2</button>
+            <button class="volume-mini-btn" onclick="adjustVolume(2)">+2</button>
+        </div>
+
+        <div id="loading" class="loading">
+            <div>🎼 Loading genres...</div>
+            <div style="margin-top: 10px; font-size: 0.9em;">Scanning your music database</div>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div class="stats" id="stats" style="display: none;">
+            <a href="/bandcamp" id="bandcamp-link" style="display: none;">🎵 Bandcamp</a>
+            <div class="genre-count-label" style="text-align: center;">
+                <span id="genre-count">0</span> genres found in your music library
+            </div>
+        </div>
+
+        <div class="letter-nav" id="letter-nav">
+            <h3>Jump to Letter</h3>
+            <div id="letter-buttons"></div>
+        </div>
+
+        <div id="genre-list" class="genre-list" style="display: none;"></div>
+    </div>
+
+    <!-- App Info + Settings (inline, always visible) -->
+    <div style="text-align: center; margin: 18px auto; padding-top: 8px; border-top: 1px solid #34495e; max-width: 1200px;">
+        <span id="version-info">Loading version info...</span>
+        &nbsp;•&nbsp;
+        <a href="/settings" style="color:#bdc3c7; text-decoration: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px;">Settings</a>
+        &nbsp;•&nbsp;
+        <a href="/charts" style="color:#bdc3c7; text-decoration: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px;">Charts</a>
+    </div>
+
+    <script>
+        (function(){
+            fetch('/api/version')
+                .then(r=>r.json())
+                .then(d=>{var el=document.getElementById('version-info'); if(el) el.textContent = d.app_name+' v'+d.version+' ('+d.build_date+')';})
+                .catch(()=>{var el=document.getElementById('version-info'); if(el) el.textContent='MPD Web Control';});
+        })();
+
+        // Header navigation and search
+        document.addEventListener('DOMContentLoaded', function() {
+            // Highlight current page in header nav
+            const currentPath = window.location.pathname;
+            const headerNavLinks = document.querySelectorAll('.header-nav a');
+            headerNavLinks.forEach(link => {
+                if (link.pathname === currentPath || (currentPath === '/browse' && link.pathname === '/browse')) {
+                    link.classList.add('active');
+                }
+            });
+
+            // Header search with autocomplete
+            let allAlbums = [];
+            let allArtists = [];
+            let allSongs = [];
+
+            fetch('/api/search/autocomplete')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        allAlbums = data.albums || [];
+                        allArtists = data.artists || [];
+                        allSongs = data.titles || [];
+                        console.log('Autocomplete data loaded:', {albums: allAlbums.length, artists: allArtists.length, songs: allSongs.length});
+                    }
+                })
+                .catch(err => console.error('Error fetching autocomplete data:', err));
+
+            const searchInput = document.getElementById('header-search-input');
+            const searchType = document.getElementById('header-search-type');
+            const autocompleteDropdown = document.getElementById('header-autocomplete-dropdown');
+
+            function showHeaderSuggestions(query) {
+                if (query.length === 0) {
+                    autocompleteDropdown.style.display = 'none';
+                    return;
+                }
+                const type = searchType.value;
+                const lowerQuery = query.toLowerCase();
+                let suggestions = [];
+
+                if (type === 'any') {
+                    if (allArtists.length > 0) {
+                        suggestions = suggestions.concat(allArtists.filter(a => a.toLowerCase().includes(lowerQuery)));
+                    }
+                    if (allAlbums.length > 0) {
+                        suggestions = suggestions.concat(allAlbums.filter(a => a.toLowerCase().includes(lowerQuery)));
+                    }
+                    if (allSongs.length > 0) {
+                        suggestions = suggestions.concat(allSongs.filter(s => s.toLowerCase().includes(lowerQuery)));
+                    }
+                    suggestions = [...new Set(suggestions)].slice(0, 5);
+                } else if (type === 'album' && allAlbums.length > 0) {
+                    suggestions = allAlbums.filter(a => a.toLowerCase().includes(lowerQuery)).slice(0, 5);
+                } else if (type === 'artist' && allArtists.length > 0) {
+                    suggestions = allArtists.filter(a => a.toLowerCase().includes(lowerQuery)).slice(0, 5);
+                } else if (type === 'title' && allSongs.length > 0) {
+                    suggestions = allSongs.filter(s => s.toLowerCase().includes(lowerQuery)).slice(0, 5);
+                }
+
+                if (suggestions.length > 0) {
+                    autocompleteDropdown.innerHTML = suggestions.map(s => 
+                        `<div class="autocomplete-item">${escapeHtml(s)}</div>`
+                    ).join('');
+                    autocompleteDropdown.style.display = 'block';
+                    
+                    autocompleteDropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+                        item.addEventListener('click', function() {
+                            searchInput.value = this.textContent;
+                            autocompleteDropdown.style.display = 'none';
+                            performHeaderSearch();
+                        });
+                    });
+                } else {
+                    autocompleteDropdown.style.display = 'none';
+                }
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    showHeaderSuggestions(this.value);
+                });
+            }
+
+            if (searchType) {
+                searchType.addEventListener('change', function() {
+                    showHeaderSuggestions(searchInput.value);
+                });
+            }
+
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            function performHeaderSearch() {
+                const query = searchInput ? searchInput.value.trim() : '';
+                if (query.length > 0) {
+                    const type = searchType ? searchType.value : 'any';
+                    window.location.href = `/search?query=${encodeURIComponent(query)}&search_tag=${type}`;
+                }
+            }
+
+            // Make it globally available
+            window.performHeaderSearch = performHeaderSearch;
+        });
+
+        // Load genres when page loads
+        document.addEventListener('DOMContentLoaded', function () {
+            // Check if Bandcamp is enabled and show link
+            fetch('/api/settings')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.bandcamp_enabled && data.bandcamp_username && data.bandcamp_identity_token) {
+                        const bandcampLink = document.getElementById('bandcamp-link');
+                        if (bandcampLink) {
+                            bandcampLink.style.display = 'inline-block';
+                        }
+                    }
+                })
+                .catch(err => console.error('Error loading settings:', err));
+
+            // SocketIO setup for now playing bar
+            const socket = io();
+            const nowPlayingBar = document.getElementById('now-playing-bar');
+            const npArtist = document.getElementById('np-artist');
+            const npAlbum = document.getElementById('np-album');
+            const npTrack = document.getElementById('np-track');
+            const npArt = document.getElementById('np-art');
+            const maestroLogo = document.getElementById('maestro-logo-genres');
+
+            // Track current art to avoid unnecessary reloads
+            let currentNpArtKey = '';
+
+            // Helper to update album art
+            function updateNowPlayingArt(artist, album, songFile) {
+                const artKey = `${artist}-${album}`;
+                if (artKey !== currentNpArtKey && npArt) {
+                    currentNpArtKey = artKey;
+                    let artUrl = `/album_art?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}&size=thumb&_t=${Date.now()}`;
+                    if (songFile) {
+                        artUrl += `&file=${encodeURIComponent(songFile)}`;
+                    }
+                    npArt.src = artUrl;
+                }
+            }
+
+            // Update now playing bar with MPD status
+            socket.on('mpd_status', function(data) {
+                // Update volume display
+                const volumeDisplay = document.getElementById('volume-percentage-display');
+                if (volumeDisplay) volumeDisplay.textContent = data.volume + '%';
+
+                if (data.state === 'play' || data.state === 'pause') {
+                    if (data.artist && data.artist !== 'N/A' && data.song_title && data.song_title !== 'N/A') {
+                        nowPlayingBar.style.display = 'flex';
+                        npArtist.textContent = data.artist;
+                        npAlbum.textContent = data.album || 'Unknown Album';
+                        npTrack.textContent = data.song_title;
+                        updateNowPlayingArt(data.artist, data.album || 'Unknown Album', data.song_file || data.file);
+                    } else {
+                        nowPlayingBar.style.display = 'none';
+                    }
+                    if (maestroLogo) {
+                        maestroLogo.src = data.state === 'play' ? "{{ url_for('static', filename='logo.svg') }}" : "{{ url_for('static', filename='logo-static.svg') }}";
+                    }
+                } else {
+                    nowPlayingBar.style.display = 'none';
+                    if (maestroLogo) maestroLogo.src = "{{ url_for('static', filename='logo-static.svg') }}";
+                }
+            });
+
+            // Fetch initial state to set logo correctly on page load
+            fetch('/api/version')
+                .then(() => fetch('/get_mpd_status'))
+                .then(r => r.json())
+                .then(data => {
+                    if (maestroLogo && data.state === 'play') {
+                        maestroLogo.src = "{{ url_for('static', filename='logo.svg') }}";
+                    } else if (maestroLogo) {
+                        maestroLogo.src = "{{ url_for('static', filename='logo-static.svg') }}";
+                    }
+                    if (data.state === 'play' || data.state === 'pause') {
+                        if (data.artist && data.artist !== 'N/A' && data.song_title && data.song_title !== 'N/A') {
+                            nowPlayingBar.style.display = 'flex';
+                            npArtist.textContent = data.artist;
+                            npAlbum.textContent = data.album || 'Unknown Album';
+                            npTrack.textContent = data.song_title;
+                            updateNowPlayingArt(data.artist, data.album || 'Unknown Album', data.song_file || data.file);
+                        }
+                    }
+                })
+                .catch(err => console.error('Error fetching initial state:', err));
+
+            loadGenres();
+        });
+
+        function loadGenres() {
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const genreList = document.getElementById('genre-list');
+            const stats = document.getElementById('stats');
+
+            // Show loading state
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            genreList.style.display = 'none';
+            stats.style.display = 'none';
+
+            fetch('/api/browse/genres')
+                .then(response => response.json())
+                .then(data => {
+                    loading.style.display = 'none';
+
+                    if (data.status === 'success') {
+                        displayGenres(data.genres);
+                        document.getElementById('genre-count').textContent = data.count;
+                        stats.style.display = 'block';
+                    } else {
+                        showError(data.message || 'Failed to load genres');
+                    }
+                })
+                .catch(err => {
+                    loading.style.display = 'none';
+                    showError('Network error loading genres: ' + err.message);
+                });
+        }
+
+        function displayGenres(genres) {
+            const genreList = document.getElementById('genre-list');
+            const letterNav = document.getElementById('letter-nav');
+
+            genreList.innerHTML = '';
+
+            if (genres.length === 0) {
+                genreList.innerHTML = '<div style="text-align: center; padding: 40px; color: #bdc3c7;">No genres found</div>';
+                genreList.style.display = 'block';
+                letterNav.style.display = 'none';
+                return;
+            }
+
+            // Create letter navigation
+            createLetterNavigation(genres);
+            letterNav.style.display = 'block';
+
+            // Store all genres globally for letter jumping
+            window.allGenres = genres;
+
+            genres.forEach(genre => {
+                const genreItem = document.createElement('div');
+                genreItem.className = 'genre-item';
+                genreItem.onclick = () => browseArtists(genre.name);
+                genreItem.setAttribute('data-genre-name', genre.name.toLowerCase());
+
+                genreItem.innerHTML = `
+                    <div class="genre-info">
+                        <div class="genre-name">${escapeHtml(genre.name)}</div>
+                    </div>
+                    <div class="genre-arrow">→</div>
+                `;
+
+                genreList.appendChild(genreItem);
+            });
+
+            genreList.style.display = 'block';
+        }
+
+        function createLetterNavigation(genres) {
+            const letterButtons = document.getElementById('letter-buttons');
+            letterButtons.innerHTML = '';
+
+            // Get all starting letters from genres
+            const letters = new Set();
+            genres.forEach(genre => {
+                const firstLetter = genre.name.charAt(0).toUpperCase();
+                if (firstLetter.match(/[A-Z0-9]/)) {
+                    letters.add(firstLetter);
+                }
+            });
+
+            // Create buttons for each letter
+            Array.from(letters).sort().forEach(letter => {
+                const btn = document.createElement('button');
+                btn.className = 'letter-btn';
+                btn.textContent = letter;
+                btn.onclick = () => jumpToLetter(letter);
+                letterButtons.appendChild(btn);
+            });
+        }
+
+        function jumpToLetter(letter) {
+            // Remove active class from all buttons
+            document.querySelectorAll('.letter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Add active class to clicked button
+            event.target.classList.add('active');
+
+            // Find first genre starting with this letter
+            const targetGenre = window.allGenres.find(genre =>
+                genre.name.charAt(0).toUpperCase() === letter
+            );
+
+            if (targetGenre) {
+                const genreElement = document.querySelector(
+                    `[data-genre-name="${targetGenre.name.toLowerCase()}"]`
+                );
+                if (genreElement) {
+                    genreElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // Highlight the genre briefly
+                    genreElement.style.backgroundColor = '#e74c3c';
+                    setTimeout(() => {
+                        genreElement.style.backgroundColor = '';
+                    }, 1000);
+                }
+            }
+        }
+
+        // Add keyboard navigation (desktop only)
+        document.addEventListener('keydown', function (event) {
+            // Only enable keyboard navigation on larger screens (desktop)
+            if (window.innerWidth > 600 &&
+                event.target.tagName !== 'INPUT' &&
+                event.target.tagName !== 'TEXTAREA') {
+                const key = event.key.toUpperCase();
+                if (key.match(/[A-Z0-9]/) && window.allGenres) {
+                    event.preventDefault(); // Prevent any default behavior
+                    jumpToLetter(key);
+                }
+            }
+        });
+
+        function browseArtists(genreName) {
+            window.location.href = `/browse/artists?genre=${encodeURIComponent(genreName)}`;
+        }
+
+        function showError(message) {
+            const error = document.getElementById('error');
+            error.textContent = message;
+            error.style.display = 'block';
+        }
+
+        function clearPlaylist() {
+            if (confirm('Are you sure you want to clear the entire playlist?')) {
+                fetch('/clear_playlist', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            showMessage('Playlist cleared', 'success');
+                        } else {
+                            showMessage(data.message || 'Failed to clear playlist', 'error');
+                        }
+                    })
+                    .catch(err => {
+                        showMessage('Error clearing playlist: ' + err.message, 'error');
+                    });
+            }
+        }
+
+        function showMessage(text, type) {
+            // Remove any existing messages
+            const existingMessages = document.querySelectorAll('.message');
+            existingMessages.forEach(msg => msg.remove());
+
+            // Create new message
+            const message = document.createElement('div');
+            message.className = `message ${type}`;
+            message.textContent = text;
+            document.body.appendChild(message);
+
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                message.style.opacity = '0';
+                setTimeout(() => {
+                    if (message.parentNode) {
+                        message.parentNode.removeChild(message);
+                    }
+                }, 300);
+            }, 5000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Playback control function
+        function playbackAction(action) {
+            fetch(`/${action}?ajax=1`, {
+                method: 'GET'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showMessage(data.message, 'success');
+                    } else {
+                        showMessage(data.message || `Failed to ${action}`, 'error');
+                    }
+                })
+                .catch(err => {
+                    showMessage(`Error: ${err.message}`, 'error');
+                });
+        }
+    </script>
+    <!-- Keyboard Shortcuts -->
+    <!-- Playback Controls -->
+    <script src="/static/playback-controls.js"></script>
+    <script src="/static/keyboard-shortcuts.js"></script>
+</body>
+
+</html>

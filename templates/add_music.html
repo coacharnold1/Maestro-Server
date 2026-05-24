@@ -1,0 +1,3752 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Music - MPD Control</title>
+    <script src="/static/version-loader.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 5px;
+            background-color: #1a1a1a;
+            color: #ecf0f1;
+            display: flex;
+            flex-direction: column;
+            /* Stack elements vertically to avoid side-by-side columns */
+            justify-content: flex-start;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background-color: #2c3e50;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 18px rgba(0, 0, 0, 0.4);
+            box-sizing: border-box;
+        }
+
+        h1,
+        h2 {
+            color: #ecf0f1;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 1.5em;
+        }
+
+        /* Accordion Styles */
+        .accordion-section {
+            margin-bottom: 15px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .accordion-header {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            padding: 12px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: none;
+            width: 100%;
+            text-align: left;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: background 0.3s ease;
+            border-radius: 10px;
+        }
+
+        .accordion-header:hover {
+            background: linear-gradient(135deg, #2980b9 0%, #1a5276 100%);
+        }
+
+        .accordion-header .accordion-icon {
+            font-size: 1.2em;
+            transition: transform 0.3s ease;
+        }
+
+        .accordion-header.collapsed .accordion-icon {
+            transform: rotate(-90deg);
+        }
+
+        .accordion-content {
+            background-color: #34495e;
+            padding: 15px 20px;
+            border-radius: 0 0 10px 10px;
+            transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
+            overflow: hidden;
+        }
+
+        .accordion-content.collapsed {
+            max-height: 0 !important;
+            padding-top: 0;
+            padding-bottom: 0;
+            opacity: 0;
+        }
+
+        .accordion-content:not(.collapsed) {
+            opacity: 1;
+        }
+
+        /* Different colors for different sections */
+        .accordion-header.playback {
+            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+        }
+        .accordion-header.playback:hover {
+            background: linear-gradient(135deg, #8e44ad 0%, #6c3483 100%);
+        }
+
+        .accordion-header.genre {
+            background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+        }
+        .accordion-header.genre:hover {
+            background: linear-gradient(135deg, #d35400 0%, #a04000 100%);
+        }
+
+        .accordion-header.manual {
+            background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);
+        }
+        .accordion-header.manual:hover {
+            background: linear-gradient(135deg, #16a085 0%, #0e6655 100%);
+        }
+
+        .accordion-header.autofill {
+            background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);
+            color: #2c3e50;
+        }
+        .accordion-header.autofill:hover {
+            background: linear-gradient(135deg, #f39c12 0%, #d68910 100%);
+        }
+
+        .accordion-header.artist {
+            background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);
+        }
+        .accordion-header.artist:hover {
+            background: linear-gradient(135deg, #16a085 0%, #138d79 100%);
+        }
+
+        /* Artist-Based Music Addition Styling */
+        .artist-input-wrapper {
+            position: relative;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        #artist-input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 0px;
+            border: 1px solid #34495e;
+            border-radius: 5px 5px 0 0;
+            background-color: #34495e;
+            color: #ecf0f1;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+
+        #artist-input:focus {
+            outline: none;
+            border-color: #1abc9c;
+            box-shadow: 0 0 8px rgba(26, 188, 156, 0.3);
+        }
+
+        .artist-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: #34495e;
+            border: 1px solid #1abc9c;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1001;
+            display: none;
+            box-sizing: border-box;
+        }
+
+        .artist-dropdown.show {
+            display: block;
+        }
+
+        .autocomplete-option {
+            padding: 12px 15px;
+            color: #ecf0f1;
+            cursor: pointer;
+            border-bottom: 1px solid #2c3e50;
+            transition: background-color 0.2s;
+        }
+
+        .autocomplete-option:hover {
+            background-color: #2c3e50;
+            color: #1abc9c;
+        }
+
+        .autocomplete-option:last-child {
+            border-bottom: none;
+        }
+
+        .selected-artists-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 15px 0;
+            min-height: 40px;
+            padding: 10px;
+            background-color: #2c3e50;
+            border-radius: 5px;
+            border: 1px solid #34495e;
+        }
+
+        .artist-chip {
+            background: linear-gradient(135deg, #8e44ad 0%, #6f42c1 100%);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95em;
+            box-shadow: 0 2px 6px rgba(142, 68, 173, 0.4);
+            animation: slideIn 0.2s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .artist-chip span {
+            word-break: break-word;
+            max-width: 250px;
+            font-weight: 500;
+        }
+
+        .chip-remove {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1.3em;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            transition: all 0.2s;
+            line-height: 1;
+        }
+
+        .chip-remove:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: scale(1.15);
+        }
+
+        .artist-add-button {
+            background-color: #1abc9c;
+            color: white;
+            width: 100%;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .artist-add-button:hover {
+            background-color: #16a085;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .artist-add-button:disabled {
+            background-color: #7f8c8d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Touch-friendly button sizing for mobile */
+        @media (hover: none) and (pointer: coarse) {
+            #artist-input {
+                font-size: 16px;
+                padding: 14px 12px;
+                height: 48px;
+            }
+
+            #artist-station-name {
+                font-size: 16px;
+                padding: 14px 12px !important;
+                height: 48px !important;
+            }
+
+            .artist-add-button {
+                padding: 16px 20px;
+                min-height: 50px;
+                font-size: 1.05em;
+            }
+
+            .chip-remove {
+                width: 24px;
+                height: 24px;
+                font-size: 1.4em;
+            }
+
+            .autocomplete-option {
+                padding: 16px 15px;
+                min-height: 48px;
+            }
+
+            /* Make accordion buttons more touch-friendly */
+            .accordion-header {
+                padding: 14px 20px;
+                min-height: 50px;
+            }
+        }
+
+        /* Improved input styling for artist station name */
+        #artist-station-name:focus {
+            outline: none;
+            border-color: #16a085;
+            background-color: #34495e;
+            box-shadow: 0 0 10px rgba(26, 188, 156, 0.4), inset 0 0 8px rgba(26, 188, 156, 0.1);
+        }
+
+        #artist-station-name:hover {
+            border-color: #16a085;
+            box-shadow: 0 3px 8px rgba(26, 188, 156, 0.3);
+        }
+
+        #artist-station-name::placeholder {
+            color: #95a5a6;
+            opacity: 0.8;
+        }
+
+        /* Better button hover/active states */
+        #save-artist-station-btn:hover {
+            background-color: #16a085;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        #save-artist-station-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Accordion section buttons - taller */
+        .accordion-content button {
+            padding: 12px 20px !important;
+            font-size: 1em !important;
+            min-height: 44px;
+        }
+
+        /* Logo styling */
+        .logo-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .logo-container img {
+            max-width: 600px;
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
+
+        /* Now Playing Bar */
+        .now-playing-bar {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            border: 1px solid #4a6279;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .now-playing-bar .np-art {
+            width: 50px;
+            height: 50px;
+            border-radius: 6px;
+            object-fit: cover;
+            flex-shrink: 0;
+            background-color: #2c3e50;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .now-playing-bar .np-content {
+            flex: 1;
+            text-align: center;
+            min-width: 0;
+        }
+
+        .now-playing-bar .label {
+            font-size: 0.8em;
+            color: #95a5a6;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+
+        .now-playing-bar .info {
+            font-size: 1.1em;
+            color: #ecf0f1;
+            font-weight: 500;
+        }
+
+        .now-playing-bar .artist {
+            color: #27ae60;
+        }
+
+        .now-playing-bar .separator {
+            color: #7f8c8d;
+            margin: 0 8px;
+        }
+
+        .now-playing-bar .track {
+            color: #3498db;
+        }
+
+        .now-playing-bar .album {
+            color: #e67e22;
+        }
+
+        @media (max-width: 600px) {
+            .now-playing-bar .np-art {
+                width: 40px;
+                height: 40px;
+            }
+            .now-playing-bar .info {
+                font-size: 0.9em;
+            }
+            
+            .now-playing-bar .separator {
+                margin: 0 4px;
+            }
+        }
+
+        h2 {
+            font-size: 1.1em;
+            margin-bottom: 8px;
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #34495e;
+        }
+
+        /* Navigation Links styling */
+        .nav-links {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px 0;
+            border-top: 1px solid #34495e;
+            border-bottom: 1px solid #34495e;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .nav-links a,
+        .nav-links button {
+            color: #3498db;
+            text-decoration: none;
+            margin: 0 8px;
+            padding: 8px 16px;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            transition: all 0.3s;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            display: inline-block;
+        }
+
+        .nav-links a:hover,
+        .nav-links button:hover {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .nav-links .current-page {
+            background-color: #e67e22 !important;
+            color: white !important;
+            border-color: #e67e22 !important;
+            font-weight: bold;
+        }
+
+        .nav-links .current-page:hover {
+            background-color: #d35400 !important;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+
+            .nav-links {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                align-items: center;
+                margin: 15px 0;
+                padding: 10px 0;
+            }
+
+            .nav-links a,
+            .nav-links button {
+                margin: 0;
+                width: 80%;
+                max-width: 200px;
+                text-align: center;
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+
+            .playback-controls button {
+                display: block;
+                width: 90%;
+                margin: 5px auto;
+                padding: 12px;
+            }
+
+            .footer-links {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                gap: 8px !important;
+                text-align: center !important;
+                padding: 15px 0 !important;
+                margin: 15px 0 !important;
+            }
+
+            .footer-links span {
+                margin-bottom: 8px !important;
+            }
+
+            .footer-links a {
+                padding: 8px 16px !important;
+                margin: 0 !important;
+            }
+
+            /* ===== ARTIST FEATURE MOBILE STYLES ===== */
+            #artist-input {
+                font-size: 1em;
+                padding: 12px 10px;
+                height: 44px;
+            }
+
+            .artist-dropdown {
+                max-height: 200px;
+            }
+
+            .autocomplete-option {
+                padding: 14px 12px;
+                font-size: 0.95em;
+            }
+
+            .artist-chip {
+                font-size: 0.9em;
+                padding: 6px 10px;
+            }
+
+            .artist-chip span {
+                max-width: 150px;
+            }
+
+            .chip-remove {
+                width: 20px;
+                height: 20px;
+                font-size: 1.1em;
+            }
+
+            .artist-add-button {
+                padding: 14px 16px;
+                font-size: 0.95em;
+                height: 44px;
+                border-radius: 6px;
+            }
+
+            .selected-artists-container {
+                min-height: 50px;
+                padding: 8px;
+                gap: 6px;
+            }
+
+            /* Save station section - ENSURE VISIBLE ON MOBILE */
+            #artist-station-name {
+                width: 100% !important;
+                min-width: 100% !important;
+                flex-basis: 100% !important;
+                padding: 12px 10px !important;
+                font-size: 1em !important;
+                height: 44px !important;
+                border: 2px solid #1abc9c !important;
+                background-color: #2c3e50 !important;
+                box-shadow: 0 2px 4px rgba(26, 188, 156, 0.2) !important;
+                margin-bottom: 10px !important;
+                display: block !important;
+            }
+
+            #save-artist-station-btn {
+                width: 100% !important;
+                padding: 12px 16px !important;
+                height: 44px !important;
+                display: block !important;
+                min-width: 100% !important;
+            }
+        }
+
+        .centered-text {
+            display: block;
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        .controls:first-of-type {
+            border-top: none;
+            padding-top: 0;
+        }
+
+        .controls button {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            border: none;
+            padding: 7px 12px;
+            margin: 2px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            min-width: 70px;
+            font-weight: bold;
+        }
+
+        .controls button:hover {
+            background-color: #bdc3c7;
+            transform: translateY(-1px);
+        }
+
+        .controls button:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .controls button:disabled {
+            background-color: #6c7a89;
+            color: #aeb6bf;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Form specific styles */
+        .form-group {
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #bdc3c7;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"] {
+            width: calc(100% - 20px);
+            /* Adjust for padding */
+            padding: 8px 10px;
+            border: 1px solid #34495e;
+            border-radius: 5px;
+            background-color: #34495e;
+            color: #ecf0f1;
+            font-size: 1em;
+        }
+
+        .form-group input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        .form-group input[type="text"]:focus,
+        .form-group input[type="number"]:focus {
+            outline: none;
+            border-color: #1abc9c;
+            box-shadow: 0 0 0 2px rgba(26, 188, 156, 0.5);
+        }
+
+        .action-buttons button {
+            background-color: #1abc9c;
+            /* Green for add actions */
+            color: #2c3e50;
+        }
+
+        .action-buttons button:hover {
+            background-color: #16a085;
+        }
+
+        .auto-fill-buttons button {
+            background-color: #f1c40f;
+            /* Yellow */
+            color: #2c3e50;
+        }
+
+        .auto-fill-buttons button:hover {
+            background-color: #f39c12;
+        }
+
+        /* New button style for 'View Playlist' on add_music page */
+        .playlist-link-btn button {
+            background-color: #3498db;
+            /* Blue */
+            color: #ecf0f1;
+        }
+
+        .playlist-link-btn button:hover {
+            background-color: #2980b9;
+        }
+
+        /* Clear Playlist button styling - match nav-links a elements */
+        .nav-links .clear-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: 1px solid #e74c3c;
+            border-radius: 5px;
+            padding: 8px 16px;
+            margin: 0 15px;
+            text-decoration: none;
+            transition: all 0.3s;
+            cursor: pointer;
+            font-size: inherit;
+            font-family: inherit;
+            display: inline-block;
+        }
+
+        .nav-links .clear-btn:hover {
+            background-color: #c0392b;
+            border-color: #c0392b;
+        }
+
+        .playback-controls button {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            border: none;
+            padding: 10px 15px;
+            margin: 4px;
+            border-radius: 6px;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            min-width: 80px;
+            font-size: 0.9em;
+        }
+
+        .playback-controls button:hover {
+            background-color: #bdc3c7;
+            transform: translateY(-1px);
+        }
+
+        .playback-controls button:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .playback-controls button:disabled {
+            background-color: #6c7a89;
+            color: #aeb6bf;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* ===== COMPACT VOLUME CONTROL (Easy to adjust) ===== */
+        .volume-mini-controls {
+            text-align: center;
+            margin-top: 12px;
+            margin-bottom: 20px;
+            padding: 8px 15px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 0.9em;
+            border: 1px solid;
+        }
+        .volume-mini-label {
+            color: #95a5a6;
+            font-weight: 500;
+            min-width: 45px;
+            text-align: right;
+        }
+        .volume-mini-display {
+            color: #1abc9c;
+            font-weight: bold;
+            min-width: 35px;
+            text-align: center;
+        }
+        .volume-mini-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            min-width: 40px;
+            transition: background-color 0.2s ease;
+        }
+        .volume-mini-btn:hover {
+            background-color: #2980b9;
+        }
+
+        /* Enhanced Styles for the message display area */
+        #message-area {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            min-width: 280px;
+            max-width: 400px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        #message-area.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        #message-area.info {
+            background: linear-gradient(135deg, rgba(46, 204, 113, 0.95) 0%, rgba(39, 174, 96, 0.95) 100%);
+            color: #ffffff;
+            border-left: 4px solid #27ae60;
+        }
+
+        #message-area.success {
+            background: linear-gradient(135deg, rgba(46, 204, 113, 0.95) 0%, rgba(39, 174, 96, 0.95) 100%);
+            color: #ffffff;
+            border-left: 4px solid #27ae60;
+        }
+
+        #message-area.error {
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.95) 0%, rgba(192, 57, 43, 0.95) 100%);
+            color: #ffffff;
+            border-left: 4px solid #c0392b;
+        }
+
+        #message-area.warning {
+            background: linear-gradient(135deg, rgba(241, 196, 15, 0.95) 0%, rgba(243, 156, 18, 0.95) 100%);
+            color: #2c3e50;
+            border-left: 4px solid #f39c12;
+            font-weight: 700;
+        }
+
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                margin: 5px;
+            }
+            .header-search input {
+                max-width: 110px;
+                min-width: 80px;
+                padding: 6px 8px;
+                font-size: 0.85em;
+            }
+            .header-search select {
+                max-width: 90px;
+                padding: 6px 8px;
+                font-size: 0.85em;
+            }
+            .header-search button {
+                padding: 6px 10px;
+                font-size: 0.8em;
+            }
+        }
+
+        @media (max-width: 450px) {
+            .container {
+                padding: 10px;
+            }
+
+            /* Mobile search link visible */
+            .mobile-search-link {
+                display: inline-block !important;
+            }
+
+            /* Make header nav work on mobile with 6 items */
+            .header-nav {
+                gap: 4px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .header-nav a {
+                padding: 6px 10px !important;
+                font-size: 12px !important;
+                margin: 2px 1px;
+            }
+
+            /* Hide search inputs on mobile, keep Random button */
+            #header-search-type,
+            .autocomplete-container,
+            .autocomplete-dropdown,
+            #header-autocomplete-dropdown,
+            .header-search button:not(.random-albums-btn) {
+                display: none !important;
+            }
+
+            /* Adjust header-search for mobile */
+            .header-search {
+                gap: 4px;
+                padding: 0 5px;
+            }
+
+            /* ===== ARTIST FEATURE ULTRA-MOBILE STYLES (< 450px) ===== */
+            #artist-input {
+                font-size: 16px;
+                padding: 14px 12px;
+            }
+
+            .artist-dropdown {
+                max-height: 180px;
+                z-index: 2001;
+            }
+
+            .artist-chip {
+                font-size: 0.85em;
+                padding: 5px 8px;
+            }
+
+            .artist-chip span {
+                max-width: 120px;
+            }
+
+            .artist-add-button {
+                padding: 16px 12px;
+                font-size: 0.9em;
+                min-height: 48px;
+            }
+
+            .selected-artists-container {
+                min-height: 55px;
+            }
+
+            /* Optimize modal for small screens */
+            .artist-feature-modal {
+                max-width: 90vw !important;
+                padding: 20px !important;
+                border-radius: 8px !important;
+            }
+
+            .artist-feature-modal h2 {
+                font-size: 1.3em !important;
+            }
+
+            .artist-feature-modal p {
+                font-size: 0.95em !important;
+            }
+
+            .artist-feature-modal button {
+                padding: 12px 16px !important;
+                font-size: 0.9em !important;
+                min-height: 44px !important;
+            }
+
+            /* CRITICAL: Ensure station input is visible and accessible on ultra-small screens */
+            #artist-station-name {
+                width: 100% !important;
+                min-width: 100% !important;
+                flex-basis: 100% !important;
+                padding: 14px 12px !important;
+                font-size: 0.95em !important;
+                height: 48px !important;
+                border: 2px solid #1abc9c !important;
+                background-color: #2c3e50 !important;
+                display: block !important;
+                margin-bottom: 8px !important;
+            }
+
+            #save-artist-station-btn {
+                width: 100% !important;
+                min-width: 100% !important;
+                padding: 14px 16px !important;
+                height: 48px !important;
+                display: block !important;
+            }
+        }
+
+        /* Hide mobile search link on desktop */
+        @media (min-width: 451px) {
+            .mobile-search-link {
+                display: none !important;
+            }
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"] {
+            width: calc(100% - 16px);
+            /* Adjust for smaller padding */
+        }
+
+        .controls {
+            padding: 8px;
+            margin: 8px 0;
+        }
+
+        /* Station item default styling */
+        .station-item {
+            background-color: #34495e;
+            border: 1px solid #34495e;
+        }
+
+        /* Minimal theme overrides to honor Settings theme across pages */
+        body.light {
+            background-color: #f5f5f7;
+            color: #1a1a1a;
+        }
+
+        body.light .container {
+            background-color: #ffffff;
+            color: #1a1a1a;
+        }
+
+        body.light .controls,
+        body.light .nav-links,
+        body.light .search-form,
+        body.light .status-box,
+        body.light #stations-list,
+        body.light #stations-container,
+        body.light #artist-stations-list,
+        body.light #artist-stations-container,
+        body.light .station-item,
+        body.light .volume-mini-controls {
+            background-color: #f0f3f6 !important;
+            border-color: #d0d7de;
+        }
+
+        /* Light theme: form fields and selects */
+        body.light .form-group input[type="text"],
+        body.light .form-group input[type="number"],
+        body.light select {
+            background-color: #ffffff !important;
+            color: #1a1a1a !important;
+            border-color: #d0d7de !important;
+        }
+
+        body.light #genre-select {
+            background-color: #ffffff !important;
+            color: #1a1a1a !important;
+            border-color: #d0d7de !important;
+        }
+
+        body.light .now-playing-bar {
+            background: linear-gradient(135deg, #f0f3f6 0%, #e8ecf0 100%);
+            border-color: #d0d7de;
+        }
+        body.light .now-playing-bar .label {
+            color: #6b7280;
+        }
+        body.light .now-playing-bar .info,
+        body.light .now-playing-bar .track {
+            color: #1a1a1a;
+        }
+        body.light .now-playing-bar .artist {
+            color: #059669;
+        }
+        body.light .now-playing-bar .album {
+            color: #d97706;
+        }
+        body.light .now-playing-bar .separator {
+            color: #d0d7de;
+        }
+
+        body.high-contrast {
+            background-color: #000000;
+            color: #ffff00;
+        }
+
+        body.high-contrast .container {
+            background-color: #000000;
+            color: #ffff00;
+            border: 2px solid #ffff00;
+        }
+
+        body.high-contrast .controls,
+        body.high-contrast .nav-links,
+        body.high-contrast .search-form,
+        body.high-contrast .status-box,
+        body.high-contrast #stations-list,
+        body.high-contrast #stations-container,
+        body.high-contrast #artist-stations-list,
+        body.high-contrast #artist-stations-container,
+        body.high-contrast .station-item,
+        body.high-contrast .volume-mini-controls {
+            background-color: #000000 !important;
+            border: 2px solid #ffff00;
+        }
+
+        /* High-contrast: form fields and selects */
+        body.high-contrast .form-group input[type="text"],
+        body.high-contrast .form-group input[type="number"],
+        body.high-contrast select,
+        body.high-contrast #genre-select {
+            background-color: #000000 !important;
+            color: #ffff00 !important;
+            border: 2px solid #ffff00 !important;
+        }
+
+        body.high-contrast .now-playing-bar {
+            background: linear-gradient(135deg, #000000 0%, #111111 100%);
+            border: 2px solid #ffff00;
+        }
+        body.high-contrast .now-playing-bar .label {
+            color: #ffff00;
+        }
+        body.high-contrast .now-playing-bar .info,
+        body.high-contrast .now-playing-bar .track,
+        body.high-contrast .now-playing-bar .artist,
+        body.high-contrast .now-playing-bar .album {
+            color: #ffff00;
+        }
+        body.high-contrast .now-playing-bar .separator {
+            color: #ffff00;
+        }
+
+        /* Desert theme */
+        body.desert {
+            background-color: #2c1810;
+            color: #f4e4bc;
+        }
+
+        body.desert .container {
+            background-color: #3d2f20;
+            color: #f4e4bc;
+            border-color: #8b4513;
+        }
+
+        body.desert .controls,
+        body.desert .nav-links,
+        body.desert .search-form,
+        body.desert .status-box,
+        body.desert #stations-list,
+        body.desert #stations-container,
+        body.desert #artist-stations-list,
+        body.desert #artist-stations-container,
+        body.desert .station-item,
+        body.desert .volume-mini-controls {
+            background-color: #4a3b2a !important;
+            border-color: #cd853f;
+        }
+
+        body.desert .form-group input[type="text"],
+        body.desert .form-group input[type="number"],
+        body.desert select,
+        body.desert #genre-select {
+            background-color: #4a3b2a !important;
+            color: #f4e4bc !important;
+            border-color: #cd853f !important;
+        }
+
+        body.desert .now-playing-bar {
+            background: linear-gradient(135deg, #4a3b2a 0%, #3d2f20 100%);
+            border-color: #cd853f;
+        }
+        body.desert .now-playing-bar .label {
+            color: #d2b48c;
+        }
+        body.desert .now-playing-bar .info,
+        body.desert .now-playing-bar .track {
+            color: #f4e4bc;
+        }
+        body.desert .now-playing-bar .artist {
+            color: #daa520;
+        }
+        body.desert .now-playing-bar .album {
+            color: #cd853f;
+        }
+        body.desert .now-playing-bar .separator {
+            color: #8b4513;
+        }
+
+        /* Terminal theme */
+        body.terminal {
+            background-color: #000000;
+            color: #00ff00;
+        }
+
+        body.terminal .container {
+            background-color: #0a0a0a;
+            color: #00ff00;
+            border-color: #00cc00;
+        }
+
+        body.terminal .controls,
+        body.terminal .nav-links,
+        body.terminal .search-form,
+        body.terminal .status-box,
+        body.terminal #stations-list,
+        body.terminal #stations-container,
+        body.terminal #artist-stations-list,
+        body.terminal #artist-stations-container,
+        body.terminal .station-item,
+        body.terminal .volume-mini-controls {
+            background-color: #1a1a1a;
+            border-color: #00cc00;
+        }
+
+        body.terminal .form-group input[type="text"],
+        body.terminal .form-group input[type="number"],
+        body.terminal select,
+        body.terminal #genre-select {
+            background-color: #0a0a0a !important;
+            color: #00ff00 !important;
+            border-color: #00cc00 !important;
+        }
+
+        body.terminal .now-playing-bar {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            border-color: #00cc00;
+        }
+        body.terminal .now-playing-bar .label {
+            color: #00aa00;
+        }
+        body.terminal .now-playing-bar .info,
+        body.terminal .now-playing-bar .track,
+        body.terminal .now-playing-bar .artist,
+        body.terminal .now-playing-bar .album {
+            color: #00ff00;
+        }
+        body.terminal .now-playing-bar .separator {
+            color: #009900;
+        }
+
+        /* Sunset theme */
+        body.sunset {
+            background-color: #1a0f1f;
+            color: #ffe4b5;
+        }
+
+        body.sunset .container {
+            background-color: #2d1b2e;
+            color: #ffe4b5;
+            border-color: #ff6b35;
+        }
+
+        body.sunset .controls,
+        body.sunset .nav-links,
+        body.sunset .search-form,
+        body.sunset .status-box,
+        body.sunset #stations-list,
+        body.sunset #stations-container,
+        body.sunset #artist-stations-list,
+        body.sunset #artist-stations-container,
+        body.sunset .station-item,
+        body.sunset .volume-mini-controls {
+            background-color: #3d2534;
+            border-color: #ff6b35;
+        }
+
+        body.sunset .form-group input[type="text"],
+        body.sunset .form-group input[type="number"],
+        body.sunset select,
+        body.sunset #genre-select {
+            background-color: #2d1b2e !important;
+            color: #ffe4b5 !important;
+            border-color: #ff6b35 !important;
+        }
+
+        body.sunset .now-playing-bar {
+            background: linear-gradient(135deg, #3d2534 0%, #2d1b2e 100%);
+            border-color: #ff6b35;
+        }
+        body.sunset .now-playing-bar .label {
+            color: #ffb380;
+        }
+        body.sunset .now-playing-bar .info,
+        body.sunset .now-playing-bar .track {
+            color: #ffe4b5;
+        }
+        body.sunset .now-playing-bar .artist {
+            color: #ffb347;
+        }
+        body.sunset .now-playing-bar .album {
+            color: #ff6b35;
+        }
+        body.sunset .now-playing-bar .separator {
+            color: #ff8c42;
+        }
+
+        /* Forest theme */
+        body.forest {
+            background-color: #0d1b0d;
+            color: #c9e4c5;
+        }
+
+        body.forest .container {
+            background-color: #1a2e1a;
+            color: #c9e4c5;
+            border-color: #4a7c4e;
+        }
+
+        body.forest .controls,
+        body.forest .nav-links,
+        body.forest .search-form,
+        body.forest .status-box,
+        body.forest #stations-list,
+        body.forest #stations-container,
+        body.forest #artist-stations-list,
+        body.forest #artist-stations-container,
+        body.forest .station-item,
+        body.forest .volume-mini-controls {
+            background-color: #233d23;
+            border-color: #4a7c4e;
+        }
+
+        body.forest .form-group input[type="text"],
+        body.forest .form-group input[type="number"],
+        body.forest select,
+        body.forest #genre-select {
+            background-color: #1a2e1a !important;
+            color: #c9e4c5 !important;
+            border-color: #4a7c4e !important;
+        }
+
+        body.forest .now-playing-bar {
+            background: linear-gradient(135deg, #233d23 0%, #1a2e1a 100%);
+            border-color: #4a7c4e;
+        }
+        body.forest .now-playing-bar .label {
+            color: #7cb342;
+        }
+        body.forest .now-playing-bar .info,
+        body.forest .now-playing-bar .track {
+            color: #c9e4c5;
+        }
+        body.forest .now-playing-bar .artist {
+            color: #7cb342;
+        }
+        body.forest .now-playing-bar .album {
+            color: #4a7c4e;
+        }
+        body.forest .now-playing-bar .separator {
+            color: #558b2f;
+        }
+
+        /* Midnight theme */
+        body.midnight {
+            background-color: #0f0a1e;
+            color: #e0d4f7;
+        }
+
+        body.midnight .container {
+            background-color: #1e1435;
+            color: #e0d4f7;
+            border-color: #6a4c93;
+        }
+
+        body.midnight .controls,
+        body.midnight .nav-links,
+        body.midnight .search-form,
+        body.midnight .status-box,
+        body.midnight #stations-list,
+        body.midnight #stations-container,
+        body.midnight #artist-stations-list,
+        body.midnight #artist-stations-container,
+        body.midnight .station-item,
+        body.midnight .volume-mini-controls {
+            background-color: #2a1f4a;
+            border-color: #6a4c93;
+        }
+
+        body.midnight .form-group input[type="text"],
+        body.midnight .form-group input[type="number"],
+        body.midnight select,
+        body.midnight #genre-select {
+            background-color: #1e1435 !important;
+            color: #e0d4f7 !important;
+            border-color: #6a4c93 !important;
+        }
+
+        body.midnight .now-playing-bar {
+            background: linear-gradient(135deg, #2a1f4a 0%, #1e1435 100%);
+            border-color: #6a4c93;
+        }
+        body.midnight .now-playing-bar .label {
+            color: #b19cd9;
+        }
+        body.midnight .now-playing-bar .info,
+        body.midnight .now-playing-bar .track {
+            color: #e0d4f7;
+        }
+        body.midnight .now-playing-bar .artist {
+            color: #bb86fc;
+        }
+        body.midnight .now-playing-bar .album {
+            color: #6a4c93;
+        }
+        body.midnight .now-playing-bar .separator {
+            color: #8367a7;
+        }
+
+        /* ==================== PHASE 2: FIXED HEADER NAVIGATION ==================== */
+
+        /* Theme-specific header colors */
+        body .fixed-header {
+            background-color: #2c3e50;
+            border-bottom-color: #34495e;
+        }
+        body .header-nav a, body .header-nav button {
+            color: #3498db;
+            border-color: #3498db;
+        }
+        body .header-search input, body .header-search select {
+            background-color: #34495e;
+            color: #ecf0f1;
+            border-color: #3498db;
+        }
+
+        body.light .fixed-header {
+            background-color: #e8e8e8;
+            border-bottom-color: #cccccc;
+        }
+        body.light .header-nav a, body.light .header-nav button {
+            color: #0066cc;
+            border-color: #0066cc;
+        }
+        body.light .header-search input, body.light .header-search select {
+            background-color: #ffffff;
+            color: #333333;
+            border-color: #0066cc;
+        }
+        body.light .header-search input::placeholder {
+            color: #999999;
+        }
+
+        body.high-contrast .fixed-header {
+            background-color: #000000;
+            border-bottom: 2px solid #ffff00;
+        }
+        body.high-contrast .header-nav a, body.high-contrast .header-nav button {
+            color: #ffff00;
+            border-color: #ffff00;
+        }
+        body.high-contrast .header-search input, body.high-contrast .header-search select {
+            background-color: #000000;
+            color: #ffff00;
+            border-color: #ffff00;
+        }
+        body.high-contrast .header-search input::placeholder {
+            color: #ffff00;
+            opacity: 0.5;
+        }
+        body.high-contrast .autocomplete-dropdown {
+            background-color: #000000;
+            border-color: #ffff00;
+        }
+        body.high-contrast .autocomplete-item {
+            color: #ffff00;
+        }
+        body.high-contrast .autocomplete-item:hover, body.high-contrast .autocomplete-item.selected {
+            background-color: #ffff00;
+            color: #000000;
+        }
+
+        body.desert .fixed-header {
+            background-color: #3d2f20;
+            border-bottom-color: #8b4513;
+        }
+        body.desert .header-nav a, body.desert .header-nav button {
+            color: #cd853f;
+            border-color: #cd853f;
+        }
+        body.desert .header-search input, body.desert .header-search select {
+            background-color: #4a3b2a;
+            color: #f4e4bc;
+            border-color: #cd853f;
+        }
+        body.desert .header-search input::placeholder {
+            color: #b8956f;
+        }
+
+        body.terminal .fixed-header {
+            background-color: #0a0a0a;
+            border-bottom: 2px solid #00cc00;
+        }
+        body.terminal .header-nav a, body.terminal .header-nav button {
+            color: #00ff00;
+            border-color: #00cc00;
+        }
+        body.terminal .header-search input, body.terminal .header-search select {
+            background-color: #1a1a1a;
+            color: #00ff00;
+            border-color: #00cc00;
+        }
+        body.terminal .header-search input::placeholder {
+            color: #00cc00;
+            opacity: 0.6;
+        }
+
+        body.sunset .fixed-header {
+            background-color: #2d1b2e;
+            border-bottom-color: #ff6b35;
+        }
+        body.sunset .header-nav a, body.sunset .header-nav button {
+            color: #ff8c42;
+            border-color: #ff8c42;
+        }
+        body.sunset .header-search input, body.sunset .header-search select {
+            background-color: #3d2534;
+            color: #ffe4b5;
+            border-color: #ff8c42;
+        }
+        body.sunset .header-search input::placeholder {
+            color: #c9a47a;
+        }
+
+        body.forest .fixed-header {
+            background-color: #1a2e1a;
+            border-bottom-color: #4a7c4e;
+        }
+        body.forest .header-nav a, body.forest .header-nav button {
+            color: #66bb6a;
+            border-color: #66bb6a;
+        }
+        body.forest .header-search input, body.forest .header-search select {
+            background-color: #233d23;
+            color: #c9e4c5;
+            border-color: #66bb6a;
+        }
+        body.forest .header-search input::placeholder {
+            color: #7fa97f;
+        }
+
+        body.midnight .fixed-header {
+            background-color: #1e1435;
+            border-bottom-color: #6a4c93;
+        }
+        body.midnight .header-nav a, body.midnight .header-nav button {
+            color: #9575cd;
+            border-color: #9575cd;
+        }
+        body.midnight .header-search input, body.midnight .header-search select {
+            background-color: #2a1f4a;
+            color: #e0d4f7;
+            border-color: #9575cd;
+        }
+        body.midnight .header-search input::placeholder {
+            color: #8b6fc4;
+        }
+
+        /* Main header styles */
+        .fixed-header {
+            background-color: #2c3e50;
+            border-bottom: 2px solid #34495e;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            padding: 0;
+            margin: 0 0 20px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .header-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px 20px;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .header-nav a,
+        .header-nav button {
+            color: #3498db;
+            text-decoration: none;
+            padding: 8px 14px;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            background: none;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .header-nav a:hover,
+        .header-nav button:hover {
+            color: white;
+            background-color: #3498db;
+        }
+
+        .header-nav a.active {
+            color: #1a1a1a;
+            background-color: #f39c12 !important;
+            border-color: #f39c12 !important;
+            font-weight: bold;
+        }
+
+        .header-search {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: nowrap;
+            justify-content: center;
+        }
+
+        .header-search input,
+        .header-search select {
+            padding: 8px 12px;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            background-color: #34495e;
+            color: #ecf0f1;
+            font-size: 0.9em;
+        }
+
+        .header-search select {
+            max-width: 100px;
+            flex-shrink: 0;
+        }
+
+        .header-search input {
+            width: auto;
+            max-width: 175px;
+            min-width: 100px;
+        }
+
+        .header-search button {
+            flex-shrink: 0;
+        }
+
+        .random-albums-btn {
+            flex-shrink: 0;
+        }
+
+        .header-search input::placeholder {
+            color: #95a5a6;
+        }
+
+        .header-search input:focus,
+        .header-search select:focus {
+            outline: none;
+            box-shadow: 0 0 8px rgba(52, 152, 219, 0.3);
+        }
+
+        .header-search button {
+            padding: 8px 16px;
+            background-color: #3498db;
+            color: white;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .header-search button:hover {
+            background-color: #2980b9;
+            border-color: #2980b9;
+        }
+
+        .autocomplete-container {
+            position: relative;
+            flex: none;
+            width: auto;
+        }
+
+        .autocomplete-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: #34495e;
+            border: 1px solid #3498db;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .autocomplete-item {
+            padding: 10px 12px;
+            color: #ecf0f1;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(52, 152, 219, 0.2);
+            font-size: 0.9em;
+        }
+
+        .autocomplete-item:hover,
+        .autocomplete-item.selected {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .random-albums-btn {
+            background-color: #9b59b6;
+            color: white;
+            border: 1px solid #9b59b6;
+            padding: 8px 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+
+        .random-albums-btn:hover {
+            background-color: #8e44ad;
+            border-color: #8e44ad;
+        }
+
+        /* Mobile search bar - stack and reduce width */
+        @media (max-width: 600px) {
+            .header-search {
+                flex-wrap: wrap;
+                gap: 6px;
+                justify-content: space-between;
+            }
+
+            .header-search input,
+            .autocomplete-container input {
+                width: 100%;
+                max-width: none;
+                min-width: auto;
+            }
+
+            .autocomplete-container {
+                width: 100%;
+                order: 3;
+                flex-basis: 100%;
+            }
+
+            .header-search select {
+                flex: 0 0 45%;
+                max-width: none;
+            }
+
+            .header-search button {
+                flex: 0 0 45%;
+                white-space: normal;
+                padding: 8px 6px;
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="{{ app_theme }}">
+    <div class="container">
+        <!-- Animated SVG Logo -->
+        <div class="logo-container">
+            <img id="maestro-logo-add-music" src="{{ url_for('static', filename='logo.svg') }}" alt="Maestro MPD Control">
+        </div>
+
+        <!-- Now Playing Bar -->
+        <div class="now-playing-bar" id="now-playing-bar" style="display: none;">
+            <img class="np-art" id="np-art" src="/static_placeholder_art" alt="Album Art" onerror="this.src='/static_placeholder_art'">
+            <div class="np-content">
+                <div class="label">♪ Now Playing</div>
+                <div class="info">
+                    <span class="artist" id="np-artist">-</span>
+                    <span class="separator">•</span>
+                    <span class="album" id="np-album">-</span>
+                    <span class="separator">•</span>
+                    <span class="track" id="np-track">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phase 2: Fixed Header Navigation -->
+        <div class="fixed-header">
+            <div class="header-content">
+                <div class="header-nav">
+                    <a href="/">🏠 Main</a>
+                    <a href="/playlist">🎵 Queue</a>
+                    <a href="/add_music" id="nav-add" class="active">🎲 Add Music</a>
+                    <a href="/recent">📀 Recent</a>
+                    <a href="/browse">🗂️ Browse</a>
+                    <a href="/radio">📻 Radio</a>
+                    <a href="/search" class="mobile-search-link">🔍 Search</a>
+                </div>
+                <div class="header-search">
+                    <select id="header-search-type">
+                        <option value="any">All Types</option>
+                        <option value="artist">Artists</option>
+                        <option value="album">Albums</option>
+                        <option value="title">Songs</option>
+                    </select>
+                    <div class="autocomplete-container">
+                        <input type="text" id="header-search-input" placeholder="Search..." autocomplete="off">
+                        <div id="header-autocomplete-dropdown" class="autocomplete-dropdown"></div>
+                    </div>
+                    <button onclick="performHeaderSearch()">Go</button>
+                    <button type="button" class="random-albums-btn" onclick="window.location.href='/random_albums'" title="Get 25 random albums">🎲 Random</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="message-area"></div>
+
+        <!-- Playback Controls (always visible) -->
+        <div class="controls playback-controls" style="margin-bottom: 15px;">
+            <h2>🎵 Playback Controls</h2>
+            <button onclick="playbackAction('previous')" style="background-color: #9b59b6; color: white;">⏮️ Previous</button>
+            <button onclick="playbackAction('play')" style="background-color: #27ae60; color: white;">▶️ Play</button>
+            <button onclick="playbackAction('stop')" style="background-color: #f39c12; color: white;">⏹️ Stop</button>
+            <button onclick="playbackAction('pause')" style="background-color: #e74c3c; color: white;">⏸️ Pause</button>
+            <button onclick="playbackAction('next')" style="background-color: #3498db; color: white;">⏭️ Next</button>
+        </div>
+
+        <div class="volume-mini-controls">
+            <span class="volume-mini-label">🔊 Volume:</span>
+            <span class="volume-mini-display" id="volume-percentage-display">{{ mpd_info.volume | default(0) }}%</span>
+            <button class="volume-mini-btn" onclick="adjustVolume(-2)">-2</button>
+            <button class="volume-mini-btn" onclick="adjustVolume(2)">+2</button>
+        </div>
+
+        <!-- NEW SECTION: Accordion: Artist-Based Music Addition -->
+        <div class="accordion-section" id="section-artist">
+            <button class="accordion-header artist" onclick="toggleAccordion('artist')">
+                <span>🎤 Artist Based Music Addition</span>
+                <span class="accordion-icon">▼</span>
+            </button>
+            <div class="accordion-content" id="content-artist">
+                <p style="text-align: center; margin-bottom: 15px; color: #bdc3c7; font-size: 0.9em;">
+                    <strong>How to use:</strong> Type an artist name → click a suggestion → artist becomes a chip. Add more artists by repeating. Select the number of songs, then click the button to create a random playlist from your selections.
+                </p>
+                
+                <div class="form-group">
+                    <label for="artist-input">Artist Name:</label>
+                    <div class="artist-input-wrapper">
+                        <input type="text" id="artist-input" placeholder="Type artist name..." autocomplete="off">
+                        <div id="artist-autocomplete" class="artist-dropdown"></div>
+                    </div>
+                </div>
+
+                <p style="text-align: center; margin-bottom: 10px; color: #95a5a6; font-size: 0.85em;">Selected Artists:</p>
+                <!-- Selected Artists as Chips/Tags -->
+                <div id="selected-artists" class="selected-artists-container">
+                    <!-- Artist chips will be added here dynamically -->
+                </div>
+
+                <div id="artist-controls-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-items: flex-end;">
+                    <div class="form-group" style="margin-bottom: 0; min-width: 0;">
+                        <label for="artist-song-count">Number of Songs:</label>
+                        <input type="number" id="artist-song-count" min="1" max="500" value="25" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff; box-sizing: border-box;">
+                    </div>
+
+                    <button id="add-artist-songs-btn" class="artist-add-button" style="margin-bottom: 0; height: 38px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🎲 Create Playlist from Selected Artists</button>
+                </div>
+
+                <style>
+                    @media (max-width: 768px) {
+                        #artist-controls-grid {
+                            grid-template-columns: 1fr !important;
+                        }
+                    }
+                </style>
+
+                <!-- Save/Load Artist Stations Section (Redesigned to match Genre Stations) -->
+                <div style="margin-top: 20px; padding-top: 20px; border-bottom: 1px solid #4a6279;">
+                    <h3 style="color: #8e44ad; margin-bottom: 15px; text-align: center;">🎤 Artist Stations</h3>
+                    <p style="text-align: center; margin-bottom: 15px; color: #bdc3c7; font-size: 0.9em;">
+                        Save your current artist selections as reusable presets
+                    </p>
+
+                    <div class="form-group">
+                        <label for="artist-station-name-input">Station Name:</label>
+                        <input type="text" id="artist-station-name-input" placeholder="e.g., Rock Legends, Jazz Masters, etc."
+                            style="width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #34495e; box-sizing: border-box;">
+                    </div>
+
+                    <div class="form-group" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button id="save-artist-station-btn" style="flex: 1; background-color: #8e44ad; color: white;">💾 Save Current Artists as Station</button>
+                        <button id="manage-artist-stations-btn" style="flex: 1; background-color: #95a5a6; color: #2c3e50;">⚙️ Manage Stations</button>
+                    </div>
+
+                    <div class="form-group" style="text-align: center;">
+                        <label for="artist-stations-select" style="display: block; text-align: center; margin-bottom: 8px;">Load Saved Station:</label>
+                        <div style="display: inline-flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap;">
+                            <select id="artist-stations-select"
+                                style="width: 300px; padding: 8px; border-radius: 5px; border: 1px solid #34495e; background: #34495e; color: #ecf0f1;">
+                                <option value="">-- Select a station --</option>
+                            </select>
+                            <button id="load-artist-station-btn" style="padding: 8px 16px; background-color: #3498db; color: white;">🎤 Load</button>
+                        </div>
+                    </div>
+
+                    <div id="artist-stations-list" style="margin-top: 15px; max-height: 200px; overflow-y: auto; display: none;">
+                        <h4 style="color: #bdc3c7;">Manage Stations:</h4>
+                        <div id="artist-stations-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Accordion: Genre-Based Music (Stations + Random by Genre) -->
+        <div class="accordion-section" id="section-genre">
+            <button class="accordion-header genre" onclick="toggleAccordion('genre')">
+                <span>🎛️ Genre Based Music Addition</span>
+                <span class="accordion-icon">▼</span>
+            </button>
+            <div class="accordion-content" id="content-genre">
+                {# Genre Stations Sub-Section #}
+                <div style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #4a6279;">
+                    <h3 style="color: #f1c40f; margin-bottom: 15px; text-align: center;">📡 Genre Stations</h3>
+                    <p style="text-align: center; margin-bottom: 15px; color: #bdc3c7; font-size: 0.9em;">
+                        Save your current genre selections as reusable presets
+                    </p>
+
+                    <div class="form-group">
+                        <label for="station-name-input">Station Name:</label>
+                        <input type="text" id="station-name-input" placeholder="e.g., Rock Classics, Chill Mix, etc."
+                            style="width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #34495e; box-sizing: border-box;">
+                    </div>
+
+                    <div class="form-group" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button id="save-station-btn" style="flex: 1; background-color: #f1c40f; color: #2c3e50;">💾 Save Current Genres as Station</button>
+                        <button id="manage-stations-btn" style="flex: 1; background-color: #95a5a6; color: #2c3e50;">⚙️ Manage Stations</button>
+                    </div>
+
+                    <div class="form-group" style="text-align: center;">
+                        <label for="stations-select" style="display: block; text-align: center; margin-bottom: 8px;">Load Saved Station:</label>
+                        <div style="display: inline-flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap;">
+                            <select id="stations-select"
+                                style="width: 300px; padding: 8px; border-radius: 5px; border: 1px solid #34495e; background: #34495e; color: #ecf0f1;">
+                                <option value="">-- Select a station --</option>
+                            </select>
+                            <button id="load-station-btn" style="padding: 8px 16px; background-color: #3498db; color: white;">📡 Load</button>
+                        </div>
+                    </div>
+
+                    <div id="stations-list" style="margin-top: 15px; max-height: 200px; overflow-y: auto; display: none;">
+                        <h4 style="color: #bdc3c7;">Manage Stations:</h4>
+                        <div id="stations-container"></div>
+                    </div>
+                </div>
+
+                {# Genre Selection + Add Random Sub-Section #}
+                <div>
+                    <h3 style="color: #e67e22; margin-bottom: 15px; text-align: center;">🎲 Add Random Songs by Genre</h3>
+                    <div class="form-group">
+                        <label for="genre-select">Select Genres:</label>
+                        <select multiple id="genre-select"
+                            style="width: 100%; height: 150px; background: #2c3e50; color: #ecf0f1; border: 1px solid #3498db; border-radius: 5px; padding: 5px;">
+                            <option value="">Loading genres...</option>
+                        </select>
+                        <small style="color: #bdc3c7; margin-top: 5px; display: block;">Hold Ctrl (Cmd on Mac) to select multiple genres</small>
+                    </div>
+                    <p style="color: #bdc3c7; font-size: 0.9em; margin: 10px 0;">
+                        Track count will use Auto-Fill settings below (Min-Max range)
+                    </p>
+                    <button id="add-random-by-genre-btn" style="background-color: #e67e22; color: white; width: 100%;">🎲 Add Random Songs from Selected Genres</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Accordion: Manual Track Addition -->
+        <div class="accordion-section" id="section-manual">
+            <button class="accordion-header manual" onclick="toggleAccordion('manual')">
+                <span>🎲 Random Track Addition</span>
+                <span class="accordion-icon">▼</span>
+            </button>
+            <div class="accordion-content" id="content-manual">
+                <div class="form-group">
+                    <label for="artist-input-random">Artist:</label>
+                    <input type="text" id="artist-input-random" value="{{ current_artist }}" placeholder="e.g., Motorhead">
+                </div>
+                <div class="form-group">
+                    <label for="num-tracks-input">Number of Tracks to Add:</label>
+                    <input type="number" id="num-tracks-input" value="25" min="1" max="50">
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="clear-playlist-checkbox"> Clear current playlist before adding
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="filter-by-genre-checkbox"> Filter by current genre - <span style="color: #3498db; font-style: italic; font-weight: bold;">{{ current_genre if current_genre != 'N/A' else 'N/A' }}</span>
+                    </label>
+                </div>
+                <button id="add-random-btn" style="background-color: #1abc9c; color: white; width: 100%;">➕ Add Random Tracks</button>
+            </div>
+        </div>
+
+        <!-- Accordion: Auto-Fill Settings -->
+        <div class="accordion-section" id="section-autofill">
+            <button class="accordion-header autofill" onclick="toggleAccordion('autofill')">
+                <span>🔄 Auto-Fill Playlist</span>
+                <span class="accordion-icon">▼</span>
+            </button>
+            <div class="accordion-content" id="content-autofill">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-size: 1.1em;">
+                        <input type="checkbox" id="auto-fill-toggle" style="width: 18px; height: 18px; margin-right: 10px;"> Enable Auto-Fill
+                    </label>
+                </div>
+                <p style="margin-bottom: 15px;">Current Status: <span id="auto-fill-status-display" style="font-weight: bold;">Loading...</span></p>
+
+                <h4 style="color: #bdc3c7; margin-bottom: 10px; border-bottom: 1px solid #4a6279; padding-bottom: 8px;">Settings:</h4>
+                <div class="form-group">
+                    <label for="min-queue-length-input">Min Queue Length:</label>
+                    <input type="number" id="min-queue-length-input" value="5" min="1" max="25">
+                </div>
+                <div class="form-group">
+                    <label for="num-tracks-min-input">Tracks to Add (Min):</label>
+                    <input type="number" id="num-tracks-min-input" value="3" min="1" max="25">
+                </div>
+                <div class="form-group">
+                    <label for="num-tracks-max-input">Tracks to Add (Max):</label>
+                    <input type="number" id="num-tracks-max-input" value="7" min="1" max="25">
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="auto-fill-genre-filter-checkbox"> Filter Auto-Fill by current playing genre<br>
+                        <span style="margin-left: 20px; color: #3498db;">{{ current_genre if current_genre }}</span>
+                    </label>
+                </div>
+                <button id="save-auto-fill-settings-btn" style="background-color: #f1c40f; color: #2c3e50; width: 100%;">💾 Save Auto-Fill Settings</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- App Info + Settings (inline, always visible) -->
+    <div style="text-align: center; margin: 18px auto; padding-top: 8px; border-top: 1px solid #34495e; max-width: 1000px;"
+        class="footer-links">
+        <span id="version-info">Loading version info...</span>
+        <a href="/settings"
+            style="color:#bdc3c7; text-decoration: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px;">Settings</a>
+        <a href="/charts"
+            style="color:#bdc3c7; text-decoration: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px;">Charts</a>
+    </div>
+
+    <script>
+        (function () {
+            fetch('/api/version')
+                .then(r => r.json())
+                .then(d => { var el = document.getElementById('version-info'); if (el) el.textContent = d.app_name + ' v' + d.version + ' (' + d.build_date + ')'; })
+                .catch(() => { var el = document.getElementById('version-info'); if (el) el.textContent = 'MPD Web Control'; });
+        })();
+    </script>
+
+    <script>
+        // Accordion toggle functionality with localStorage persistence
+        function toggleAccordion(sectionId) {
+            const header = document.querySelector(`#section-${sectionId} .accordion-header`);
+            const content = document.getElementById(`content-${sectionId}`);
+            
+            if (content.classList.contains('collapsed')) {
+                // Expand
+                content.classList.remove('collapsed');
+                header.classList.remove('collapsed');
+                content.style.maxHeight = content.scrollHeight + 'px';
+                localStorage.setItem(`accordion-${sectionId}`, 'expanded');
+            } else {
+                // Collapse
+                content.style.maxHeight = content.scrollHeight + 'px';
+                requestAnimationFrame(() => {
+                    content.classList.add('collapsed');
+                    header.classList.add('collapsed');
+                });
+                localStorage.setItem(`accordion-${sectionId}`, 'collapsed');
+            }
+        }
+
+        // Initialize accordion states from localStorage
+        (function initAccordions() {
+            const sections = ['artist', 'genre', 'manual', 'autofill'];
+            sections.forEach(sectionId => {
+                const state = localStorage.getItem(`accordion-${sectionId}`);
+                const header = document.querySelector(`#section-${sectionId} .accordion-header`);
+                const content = document.getElementById(`content-${sectionId}`);
+                
+                if (state === 'expanded') {
+                    // Only expand if explicitly set to expanded
+                    content.style.maxHeight = 'none';
+                } else {
+                    // Default to collapsed
+                    content.classList.add('collapsed');
+                    header.classList.add('collapsed');
+                    content.style.maxHeight = '0';
+                }
+            });
+        })();
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const socket = io();
+
+            // Now Playing Bar Elements
+            const nowPlayingBar = document.getElementById('now-playing-bar');
+            const npArtist = document.getElementById('np-artist');
+            const npAlbum = document.getElementById('np-album');
+            const npTrack = document.getElementById('np-track');
+            const npArt = document.getElementById('np-art');
+            const maestroLogo = document.getElementById('maestro-logo-add-music');
+
+            // Track current art to avoid unnecessary reloads
+            let currentNpArtKey = '';
+
+            // Helper to update album art
+            function updateNowPlayingArt(artist, album, songFile) {
+                const artKey = `${artist}-${album}`;
+                if (artKey !== currentNpArtKey && npArt) {
+                    currentNpArtKey = artKey;
+                    let artUrl = `/album_art?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}&size=thumb&_t=${Date.now()}`;
+                    if (songFile) {
+                        artUrl += `&file=${encodeURIComponent(songFile)}`;
+                    }
+                    npArt.src = artUrl;
+                }
+            }
+
+            // Update now playing bar with MPD status
+            socket.on('mpd_status', function(data) {
+                // Update volume display
+                const volumeDisplay = document.getElementById('volume-percentage-display');
+                if (volumeDisplay) volumeDisplay.textContent = data.volume + '%';
+
+                if (data.state === 'play' || data.state === 'pause') {
+                    // Show now playing bar and update content
+                    if (data.artist && data.artist !== 'N/A' && data.song_title && data.song_title !== 'N/A') {
+                        nowPlayingBar.style.display = 'flex';
+                        npArtist.textContent = data.artist;
+                        npAlbum.textContent = data.album || 'Unknown Album';
+                        npTrack.textContent = data.song_title;
+                        updateNowPlayingArt(data.artist, data.album || 'Unknown Album', data.song_file || data.file);
+                    } else {
+                        nowPlayingBar.style.display = 'none';
+                    }
+                    
+                    // Update logo - animate only when playing
+                    if (maestroLogo) {
+                        if (data.state === 'play') {
+                            maestroLogo.src = "{{ url_for('static', filename='logo.svg') }}";
+                        } else {
+                            maestroLogo.src = "{{ url_for('static', filename='logo-static.svg') }}";
+                        }
+                    }
+                } else {
+                    // Hide now playing bar when stopped
+                    nowPlayingBar.style.display = 'none';
+                    // Use static logo when not playing
+                    if (maestroLogo) {
+                        maestroLogo.src = "{{ url_for('static', filename='logo-static.svg') }}";
+                    }
+                }
+            });
+
+            // Fetch initial state to set logo correctly on page load
+            fetch('/api/version')
+                .then(() => fetch('/get_mpd_status'))
+                .then(r => r.json())
+                .then(data => {
+                    if (maestroLogo && data.state === 'play') {
+                        maestroLogo.src = "{{ url_for('static', filename='logo.svg') }}";
+                    } else if (maestroLogo) {
+                        maestroLogo.src = "{{ url_for('static', filename='logo-static.svg') }}";
+                    }
+                    if (data.state === 'play' || data.state === 'pause') {
+                        if (data.artist && data.artist !== 'N/A' && data.song_title && data.song_title !== 'N/A') {
+                            nowPlayingBar.style.display = 'flex';
+                            npArtist.textContent = data.artist;
+                            npAlbum.textContent = data.album || 'Unknown Album';
+                            npTrack.textContent = data.song_title;
+                            updateNowPlayingArt(data.artist, data.album || 'Unknown Album', data.song_file || data.file);
+                        }
+                    }
+                })
+                .catch(err => console.error('Error fetching initial state:', err));
+
+            // Manual Add elements
+            const artistInput = document.getElementById('artist-input-random');
+            const numTracksInput = document.getElementById('num-tracks-input');
+            const clearPlaylistCheckbox = document.getElementById('clear-playlist-checkbox');
+            const filterByGenreCheckbox = document.getElementById('filter-by-genre-checkbox');
+            const addRandomBtn = document.getElementById('add-random-btn');
+
+            // Genre-based random elements
+            const genreSelect = document.getElementById('genre-select');
+            const addRandomByGenreBtn = document.getElementById('add-random-by-genre-btn');
+
+            // Auto-Fill elements
+            const autoFillToggle = document.getElementById('auto-fill-toggle');
+            const autoFillStatusDisplay = document.getElementById('auto-fill-status-display');
+            const minQueueLengthInput = document.getElementById('min-queue-length-input');
+            const numTracksMinInput = document.getElementById('num-tracks-min-input');
+            const numTracksMaxInput = document.getElementById('num-tracks-max-input');
+            const autoFillGenreFilterCheckbox = document.getElementById('auto-fill-genre-filter-checkbox');
+            const saveAutoFillSettingsBtn = document.getElementById('save-auto-fill-settings-btn');
+
+            // Genre Stations elements
+            const stationNameInput = document.getElementById('station-name-input');
+            const saveStationBtn = document.getElementById('save-station-btn');
+            const manageStationsBtn = document.getElementById('manage-stations-btn');
+            const stationsSelect = document.getElementById('stations-select');
+            const loadStationBtn = document.getElementById('load-station-btn');
+            const stationsList = document.getElementById('stations-list');
+            const stationsContainer = document.getElementById('stations-container');
+
+            const messageArea = document.getElementById('message-area');
+
+            let messageTimeout;
+            function displayMessage(type, text) {
+                clearTimeout(messageTimeout);
+                messageArea.textContent = text;
+                messageArea.className = `show ${type}`;
+                messageArea.style.opacity = 1;
+
+                messageTimeout = setTimeout(() => {
+                    messageArea.style.opacity = 0;
+                    setTimeout(() => {
+                        messageArea.textContent = '';
+                        messageArea.className = '';
+                    }, 500);
+                }, 5000);
+            }
+
+            // --- Socket.IO Listeners ---
+            socket.on('server_message', function (data) {
+                console.log('Server Message (Add Music Page):', data);
+                displayMessage(data.type, data.text);
+            });
+
+            socket.on('auto_fill_status', function (data) {
+                console.log('Received Auto-Fill Status:', data);
+                autoFillToggle.checked = data.active;
+                minQueueLengthInput.value = data.min_queue_length;
+                numTracksMinInput.value = data.num_tracks_min;
+                numTracksMaxInput.value = data.num_tracks_max;
+                autoFillGenreFilterCheckbox.checked = data.genre_filter_enabled;
+                updateAutoFillStatusDisplay(data);
+            });
+
+            // --- Helper for Auto-Fill Status Display ---
+            function updateAutoFillStatusDisplay(data) {
+                const isActive = data.active || data;  // Handle both old format (boolean) and new format (object)
+                const minLength = data.min_queue_length || arguments[1];  // Handle both formats
+
+                if (typeof data === 'object' && data.genre_station_mode) {
+                    // Radio station mode is active
+                    autoFillStatusDisplay.innerHTML = `🎵 <strong>Genre Station Mode</strong><br>
+                        Station: <span style="color: #3498db;">${data.genre_station_name}</span><br>
+                        Genres: <span style="color: #9b59b6;">${data.genre_station_genres.length} selected</span><br>
+                        Auto-fill: ${isActive ? `<span style="color: #2ecc71;">Enabled</span>, monitoring for < ${minLength} tracks` : '<span style="color: #e74c3c;">Disabled</span>'}`;
+                    autoFillStatusDisplay.style.color = '#ffffff';
+                } else if (isActive) {
+                    autoFillStatusDisplay.textContent = `Enabled, monitoring for < ${minLength} tracks.`;
+                    autoFillStatusDisplay.style.color = '#2ecc71'; // Green
+                } else {
+                    autoFillStatusDisplay.textContent = 'Disabled.';
+                    autoFillStatusDisplay.style.color = '#e74c3c'; // Red
+                }
+            }
+
+            // --- Manual Add Event Listener ---
+            addRandomBtn.addEventListener('click', function () {
+                const artistName = artistInput ? artistInput.value.trim() : '';
+                const numTracks = parseInt(numTracksInput.value);
+                const clearPlaylist = clearPlaylistCheckbox.checked;
+                const filterByGenre = filterByGenreCheckbox.checked;
+
+                if (!artistName) {
+                    displayMessage('error', 'Please enter an artist name.');
+                    return;
+                }
+                if (isNaN(numTracks) || numTracks < 1 || numTracks > 50) {
+                    displayMessage('error', 'Number of tracks must be between 1 and 50.');
+                    return;
+                }
+
+                displayMessage('info', 'Requesting random tracks... This may take a moment.');
+
+                const formData = new FormData();
+                formData.append('artist_name', artistName);
+                formData.append('num_tracks', numTracks);
+                // Only append checkbox fields if checked (mimics HTML form behavior)
+                if (clearPlaylist) formData.append('clear_playlist', 'on');
+                if (filterByGenre) formData.append('filter_by_genre', 'on');
+
+                fetch('/add_random_tracks', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            console.error('Failed to add random tracks:', response.statusText);
+                            displayMessage('error', 'Failed to add random tracks.');
+                        }
+                        // Server will send a SocketIO message with success/failure
+                    })
+                    .catch(error => {
+                        console.error('Error sending add random tracks request:', error);
+                        displayMessage('error', `Error: ${error.message}`);
+                    });
+            });
+
+            // --- Auto-Fill Event Listeners ---
+            autoFillToggle.addEventListener('change', function () {
+                const newState = this.checked;
+                fetch('/toggle_auto_fill', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ active: newState })
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            console.error('Failed to toggle auto-fill:', response.statusText);
+                            displayMessage('error', 'Failed to toggle auto-fill.');
+                        }
+                        // Status will be updated via auto_fill_status SocketIO event
+                    })
+                    .catch(error => {
+                        console.error('Error sending toggle auto-fill request:', error);
+                        displayMessage('error', `Error: ${error.message}`);
+                    });
+            });
+
+            saveAutoFillSettingsBtn.addEventListener('click', function () {
+                const minQueueLength = parseInt(minQueueLengthInput.value);
+                const numTracksMin = parseInt(numTracksMinInput.value);
+                const numTracksMax = parseInt(numTracksMaxInput.value);
+                const genreFilterEnabled = autoFillGenreFilterCheckbox.checked;
+
+                if (isNaN(minQueueLength) || minQueueLength < 1 || minQueueLength > 25) {
+                    displayMessage('error', 'Min Queue Length must be between 1 and 25.');
+                    return;
+                }
+                if (isNaN(numTracksMin) || numTracksMin < 1 || numTracksMin > 25) {
+                    displayMessage('error', 'Tracks to Add (Min) must be between 1 and 25.');
+                    return;
+                }
+                if (isNaN(numTracksMax) || numTracksMax < 1 || numTracksMax > 25 || numTracksMax < numTracksMin) {
+                    displayMessage('error', 'Tracks to Add (Max) must be between 1 and 25, and greater than or equal to Min.');
+                    return;
+                }
+
+                displayMessage('info', 'Saving auto-fill settings...');
+
+                fetch('/set_auto_fill_settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        min_queue_length: minQueueLength,
+                        num_tracks_min: numTracksMin,
+                        num_tracks_max: numTracksMax,
+                        genre_filter_enabled: genreFilterEnabled
+                    })
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            console.error('Failed to save auto-fill settings:', response.statusText);
+                            displayMessage('error', 'Failed to save auto-fill settings.');
+                        }
+                        // Status will be updated via auto_fill_status SocketIO event
+                    })
+                    .catch(error => {
+                        console.error('Error sending save auto-fill settings request:', error);
+                        displayMessage('error', `Error: ${error.message}`);
+                    });
+            });
+
+            // Initial fetch of auto-fill status when page loads
+            fetch('/get_auto_fill_status')
+                .then(response => response.json())
+                .then(data => {
+                    autoFillToggle.checked = data.active;
+                    minQueueLengthInput.value = data.min_queue_length;
+                    numTracksMinInput.value = data.num_tracks_min;
+                    numTracksMaxInput.value = data.num_tracks_max;
+                    autoFillGenreFilterCheckbox.checked = data.genre_filter_enabled;
+                    updateAutoFillStatusDisplay(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching initial auto-fill status:', error);
+                    displayMessage('error', 'Could not load auto-fill settings.');
+                });
+
+            // --- Genre-based Random Tracks Event Listeners ---
+            addRandomByGenreBtn.addEventListener('click', function () {
+                const selectedGenres = Array.from(genreSelect.selectedOptions).map(option => option.value);
+
+                if (selectedGenres.length === 0) {
+                    displayMessage('error', 'Please select at least one genre.');
+                    return;
+                }
+
+                displayMessage('info', `Adding random tracks from selected genres using Auto-Fill settings...`);
+
+                const formData = new FormData();
+                formData.append('genres', JSON.stringify(selectedGenres));
+
+                fetch('/add_random_by_genre', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            console.error('Failed to add random tracks by genre:', response.statusText);
+                            displayMessage('error', 'Failed to add random tracks by genre.');
+                        }
+                        // Server will send a SocketIO message with success/failure
+                    })
+                    .catch(error => {
+                        console.error('Error sending add random tracks by genre request:', error);
+                        displayMessage('error', `Error: ${error.message}`);
+                    });
+            });
+
+            // Load genres when page loads
+            fetch('/api/genres')
+                .then(response => response.json())
+                .then(genres => {
+                    genreSelect.innerHTML = '';
+                    genres.forEach(genre => {
+                        const option = document.createElement('option');
+                        option.value = genre;
+                        option.textContent = genre;
+                        genreSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading genres:', error);
+                    displayMessage('error', 'Failed to load genres.');
+                });
+
+            // Playback control function (copied from working playlist.html)
+            function playbackAction(action) {
+                fetch(`/${action}?ajax=1`, {
+                    method: 'GET'
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            displayMessage('info', data.message);
+                        } else {
+                            displayMessage('error', data.message || `Failed to ${action}`);
+                        }
+                    })
+                    .catch(err => {
+                        displayMessage('error', `Error: ${err.message}`);
+                    });
+            }
+
+            // Clear playlist function
+            function clearPlaylist() {
+                if (confirm('Are you sure you want to clear the entire playlist?')) {
+                    fetch('/clear_playlist', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'error') {
+                                displayMessage('error', data.message);
+                            } else {
+                                displayMessage('info', 'Playlist cleared successfully');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error clearing playlist:', error);
+                            displayMessage('error', `Error clearing playlist: ${error.message}`);
+                        });
+                }
+            }
+
+            // --- Genre Station Functions ---
+
+            function loadStations() {
+                fetch('/api/genre_stations')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            updateStationsDropdown(data.stations);
+                        } else {
+                            displayMessage('error', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading stations:', error);
+                        displayMessage('error', 'Error loading stations');
+                    });
+            }
+
+            function updateStationsDropdown(stations) {
+                stationsSelect.innerHTML = '<option value="">-- Select a station --</option>';
+                Object.keys(stations).forEach(stationName => {
+                    const option = document.createElement('option');
+                    option.value = stationName;
+                    option.textContent = stationName;
+                    stationsSelect.appendChild(option);
+                });
+            }
+
+            function saveStation() {
+                const stationName = stationNameInput.value.trim();
+                if (!stationName) {
+                    displayMessage('error', 'Please enter a station name');
+                    return;
+                }
+
+                const selectedGenres = Array.from(genreSelect.selectedOptions).map(option => option.value);
+                if (selectedGenres.length === 0) {
+                    displayMessage('error', 'Please select at least one genre');
+                    return;
+                }
+
+                fetch('/api/genre_stations', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: stationName,
+                        genres: selectedGenres
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            displayMessage('success', `Station "${stationName}" saved successfully`);
+                            stationNameInput.value = '';
+                            loadStations(); // Refresh the dropdown
+                        } else {
+                            displayMessage('error', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error saving station:', error);
+                        displayMessage('error', 'Error saving station');
+                    });
+            }
+
+            function loadStation() {
+                const stationName = stationsSelect.value;
+                if (!stationName) {
+                    displayMessage('error', 'Please select a station');
+                    return;
+                }
+
+                fetch(`/api/genre_stations/${encodeURIComponent(stationName)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Clear current selections
+                            Array.from(genreSelect.options).forEach(option => option.selected = false);
+
+                            // Select the station's genres
+                            data.station.genres.forEach(genre => {
+                                const option = Array.from(genreSelect.options).find(opt => opt.value === genre);
+                                if (option) {
+                                    option.selected = true;
+                                }
+                            });
+
+                            displayMessage('success', `🎵 Loading station "${stationName}" - Adding tracks and starting playback...`);
+
+                            // Automatically add tracks from the loaded genres and start playing
+                            addTracksAndPlay(data.station.genres, stationName);
+
+                        } else {
+                            displayMessage('error', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading station:', error);
+                        displayMessage('error', 'Error loading station');
+                    });
+            }
+
+            function addTracksAndPlay(genres, stationName) {
+                // First clear the playlist, then add tracks from the station genres
+                fetch('/clear_playlist', {
+                    method: 'POST'
+                })
+                    .then(response => response.json())
+                    .then(clearData => {
+                        if (clearData.status === 'success' || clearData.status === 'info') {
+                            // Playlist cleared, now add tracks from genres
+                            const formData = new FormData();
+                            formData.append('genres', JSON.stringify(genres));
+                            formData.append('clear_playlist', 'false'); // Already cleared above
+
+                            return fetch('/add_random_by_genre', {
+                                method: 'POST',
+                                body: formData
+                            });
+                        } else {
+                            throw new Error('Failed to clear playlist');
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Tracks added successfully, now start playback
+                            setTimeout(() => {
+                                fetch('/play', { method: 'POST' })
+                                    .then(response => response.json())
+                                    .then(playData => {
+                                        if (playData.status === 'success') {
+                                            // Set genre station mode for auto-fill
+                                            fetch('/api/genre_station_mode', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                    station_name: stationName,
+                                                    genres: genres
+                                                })
+                                            })
+                                                .then(response => response.json())
+                                                .then(modeData => {
+                                                    console.log('Radio station mode set:', modeData);
+
+                                                    // Auto-enable auto-fill when genre station is loaded
+                                                    if (!autoFillToggle.checked) {
+                                                        fetch('/toggle_auto_fill', {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({ active: true })
+                                                        })
+                                                            .then(response => response.json())
+                                                            .then(autoFillData => {
+                                                                console.log('Auto-fill enabled for genre station:', autoFillData);
+                                                                autoFillToggle.checked = true;
+                                                            })
+                                                            .catch(error => {
+                                                                console.error('Error enabling auto-fill:', error);
+                                                            });
+                                                    }
+
+                                                    // Trigger auto-fill status update to reflect genre station mode
+                                                    fetch('/get_auto_fill_status')
+                                                        .then(response => response.json())
+                                                        .then(statusData => {
+                                                            updateAutoFillStatusDisplay(statusData);
+                                                        })
+                                                        .catch(error => console.log('Error updating auto-fill status display:', error));
+                                                })
+                                                .catch(error => {
+                                                    console.error('Error setting genre station mode:', error);
+                                                });
+
+                                            displayMessage('success', `🎵 Radio station "${stationName}" is now playing!`);
+                                        } else {
+                                            displayMessage('warning', `Tracks added but playback failed: ${playData.message}`);
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error('Error starting playback:', error);
+                                        displayMessage('warning', 'Tracks added but failed to start playback');
+                                    });
+                            }, 1500); // Increased delay to ensure tracks are fully added
+                        } else {
+                            displayMessage('error', `Failed to add tracks: ${data.message}`);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading station tracks:', error);
+                        displayMessage('error', `Error loading station: ${error.message}`);
+                    });
+            }
+
+            function toggleManageStations() {
+                if (stationsList.style.display === 'none' || stationsList.style.display === '') {
+                    loadManageStations();
+                    stationsList.style.display = 'block';
+                    manageStationsBtn.textContent = '⬆️ Hide Management';
+                } else {
+                    stationsList.style.display = 'none';
+                    manageStationsBtn.textContent = '⚙️ Manage Stations';
+                }
+            }
+
+            function loadManageStations() {
+                fetch('/api/genre_stations')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            updateManageStations(data.stations);
+                        }
+                    });
+            }
+
+            function updateManageStations(stations) {
+                stationsContainer.innerHTML = '';
+                Object.entries(stations).forEach(([name, station]) => {
+                    const stationDiv = document.createElement('div');
+                    stationDiv.className = 'station-item';
+                    stationDiv.style.cssText = 'padding: 10px; margin: 5px 0; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;';
+                    stationDiv.innerHTML = `
+                        <div>
+                            <strong>${name}</strong><br>
+                            <small>Genres: ${station.genres.join(', ')}</small>
+                        </div>
+                        <button onclick="deleteStation('${name}')" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
+                            🗑️ Delete
+                        </button>
+                    `;
+                    stationsContainer.appendChild(stationDiv);
+                });
+            }
+
+            function deleteStation(stationName) {
+                if (!confirm(`Are you sure you want to delete station "${stationName}"?`)) {
+                    return;
+                }
+
+                fetch(`/api/genre_stations/${encodeURIComponent(stationName)}`, {
+                    method: 'DELETE'
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            displayMessage('success', `Station "${stationName}" deleted`);
+                            loadStations(); // Refresh dropdown
+                            loadManageStations(); // Refresh management view
+                        } else {
+                            displayMessage('error', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error deleting station:', error);
+                        displayMessage('error', 'Error deleting station');
+                    });
+            }
+
+            // --- Mood Playlist Generator ---
+            const moodButtons = document.querySelectorAll('.mood-btn');
+            const moodPlaylistSizeInput = document.getElementById('mood-playlist-size');
+            const moodSizeDisplay = document.getElementById('mood-size-display');
+            const moodHighConfidenceCheckbox = document.getElementById('mood-high-confidence');
+            const generateMoodPlaylistBtn = document.getElementById('generate-mood-playlist-btn');
+            const moodPlaylistResults = document.getElementById('mood-playlist-results');
+            const moodPlaylistList = document.getElementById('mood-playlist-list');
+            const moodPlayBtn = document.getElementById('mood-play-btn');
+            const moodAddToQueueBtn = document.getElementById('mood-add-to-queue-btn');
+            const moodReplaceBtn = document.getElementById('mood-replace-btn');
+
+            let currentMoodPlaylist = [];
+            let selectedMood = null;
+
+            // Only setup mood playlist generator if the elements exist on this page
+            if (moodPlaylistSizeInput && moodSizeDisplay && moodHighConfidenceCheckbox && generateMoodPlaylistBtn) {
+                // Update size display when slider moves
+                moodPlaylistSizeInput.addEventListener('input', function () {
+                    moodSizeDisplay.textContent = this.value;
+                });
+
+                // Mood button selection
+                moodButtons.forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        // Remove selection from all buttons
+                        moodButtons.forEach(b => b.style.opacity = '0.6');
+                        // Highlight selected button
+                        this.style.opacity = '1';
+                        selectedMood = this.dataset.mood;
+                    });
+                });
+
+                // Generate mood playlist
+                generateMoodPlaylistBtn.addEventListener('click', function () {
+                    if (!selectedMood) {
+                        displayMessage('error', 'Please select a mood first');
+                        return;
+                    }
+
+                    const playlistSize = parseInt(moodPlaylistSizeInput.value);
+                    const highConfidenceOnly = moodHighConfidenceCheckbox.checked;
+
+                    displayMessage('info', `Generating ${selectedMood} playlist with ${playlistSize} tracks...`);
+                    generateMoodPlaylistBtn.disabled = true;
+
+                    const params = new URLSearchParams({
+                        size: playlistSize,
+                        high_confidence: highConfidenceOnly ? 'true' : 'false'
+                    });
+
+                    fetch(`/api/playlist/mood/${selectedMood}?${params}`, {
+                        method: 'GET'
+                    })
+                        .then(response => {
+                            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.status === 'success') {
+                                const playlist = data.data || data.playlist || data;
+                                currentMoodPlaylist = playlist.tracks || [];
+                                displayMoodPlaylist(playlist);
+                                displayMessage('success', `Generated ${currentMoodPlaylist.length} ${selectedMood} tracks`);
+                            } else {
+                                displayMessage('error', data.message || 'Failed to generate playlist');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error generating mood playlist:', error);
+                            displayMessage('error', `Error: ${error.message}`);
+                        })
+                        .finally(() => {
+                            generateMoodPlaylistBtn.disabled = false;
+                        });
+                });
+
+                function displayMoodPlaylist(playlist) {
+                    moodPlaylistList.innerHTML = '';
+                    const tracks = playlist.tracks || [];
+
+                    if (tracks.length === 0) {
+                        moodPlaylistList.innerHTML = '<p style="color: #bdc3c7; text-align: center;">No tracks found for this mood</p>';
+                        moodPlaylistResults.style.display = 'block';
+                        return;
+                    }
+
+                    tracks.forEach((track, index) => {
+                        const trackDiv = document.createElement('div');
+                        trackDiv.style.cssText = 'padding: 8px; margin: 4px 0; background-color: #2c3e50; border-radius: 5px; border-left: 3px solid #16a085;';
+                        const mood = track.primary_mood || 'unknown';
+                        const confidence = track.confidence ? (track.confidence * 100).toFixed(0) : '?';
+                        const score = track.mood_score ? (track.mood_score * 100).toFixed(0) : '?';
+                        trackDiv.innerHTML = `
+                        <div style="font-weight: bold; color: #ecf0f1;">${index + 1}. ${track.title}</div>
+                        <div style="font-size: 0.9em; color: #bdc3c7;">
+                            ${track.artist || 'Unknown Artist'} | 
+                            🎭 ${mood} (Match: ${score}%, Confidence: ${confidence}%)
+                        </div>
+                    `;
+                        moodPlaylistList.appendChild(trackDiv);
+                    });
+
+                    moodPlaylistResults.style.display = 'block';
+                }
+
+                // Mood playlist actions
+                if (moodPlayBtn) {
+                    moodPlayBtn.addEventListener('click', function () {
+                        if (currentMoodPlaylist.length === 0) {
+                            displayMessage('error', 'No playlist to play');
+                            return;
+                        }
+
+                        const formData = new FormData();
+                        formData.append('tracks', JSON.stringify(currentMoodPlaylist));
+                        formData.append('clear_first', 'true');
+
+                        fetch('/add_tracks_list', {
+                            method: 'POST',
+                            body: formData
+                        })
+                            .then(response => {
+                                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                                return response.json();
+                            })
+                            .then(data => {
+                                if (data.status === 'success') {
+                                    // Play first track
+                                    playbackAction('play');
+                                    displayMessage('success', 'Playlist loaded and playing');
+                                } else {
+                                    displayMessage('error', data.message || 'Failed to load playlist');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error playing mood playlist:', error);
+                                displayMessage('error', `Error: ${error.message}`);
+                            });
+                    });
+                }
+
+                if (moodAddToQueueBtn) {
+                    moodAddToQueueBtn.addEventListener('click', function () {
+                        if (currentMoodPlaylist.length === 0) {
+                            displayMessage('error', 'No playlist to add');
+                            return;
+                        }
+
+                        const formData = new FormData();
+                        formData.append('tracks', JSON.stringify(currentMoodPlaylist));
+                        formData.append('clear_first', 'false');
+
+                        fetch('/add_tracks_list', {
+                            method: 'POST',
+                            body: formData
+                        })
+                            .then(response => {
+                                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                                return response.json();
+                            })
+                            .then(data => {
+                                if (data.status === 'success') {
+                                    displayMessage('success', `Added ${currentMoodPlaylist.length} tracks to queue`);
+                                } else {
+                                    displayMessage('error', data.message || 'Failed to add tracks');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error adding mood playlist:', error);
+                                displayMessage('error', `Error: ${error.message}`);
+                            });
+                    });
+                }
+
+                if (moodReplaceBtn) {
+                    moodReplaceBtn.addEventListener('click', function () {
+                        if (currentMoodPlaylist.length === 0) {
+                            displayMessage('error', 'No playlist to replace with');
+                            return;
+                        }
+
+                        if (!confirm(`Replace current playlist with ${currentMoodPlaylist.length} ${selectedMood} tracks?`)) {
+                            return;
+                        }
+
+                        const formData = new FormData();
+                        formData.append('tracks', JSON.stringify(currentMoodPlaylist));
+                        formData.append('clear_first', 'true');
+
+                        fetch('/add_tracks_list', {
+                            method: 'POST',
+                            body: formData
+                        })
+                            .then(response => {
+                                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                                return response.json();
+                            })
+                            .then(data => {
+                                if (data.status === 'success') {
+                                    displayMessage('success', `Replaced playlist with ${currentMoodPlaylist.length} ${selectedMood} tracks`);
+                                } else {
+                                    displayMessage('error', data.message || 'Failed to replace playlist');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error replacing mood playlist:', error);
+                                displayMessage('error', `Error: ${error.message}`);
+                            });
+                    });
+                }
+            }
+
+            // --- Genre Station Event Listeners ---
+
+            saveStationBtn.addEventListener('click', saveStation);
+            loadStationBtn.addEventListener('click', loadStation);
+            manageStationsBtn.addEventListener('click', toggleManageStations);
+
+            // Load stations on page load
+            loadStations();
+
+            // Make functions globally available
+            window.playbackAction = playbackAction;
+            window.clearPlaylist = clearPlaylist;
+            window.deleteStation = deleteStation;
+            window.displayMessage = displayMessage;  // ← Make displayMessage globally accessible for artist feature
+        });
+    </script>
+
+    <!-- Phase 2 Header Search JavaScript -->
+    <script>
+        let headerAutocompleteData = { artists: [], albums: [], titles: [] };
+        let headerSelectedIndex = -1;
+
+        // Load autocomplete data for header search on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-highlight current page in navigation
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.header-nav a');
+            
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                const href = link.getAttribute('href');
+                // Match root path specially
+                if ((currentPath === '/' && href === '/') || 
+                    (currentPath !== '/' && href !== '/' && currentPath.startsWith(href))) {
+                    link.classList.add('active');
+                }
+            });
+
+            // Load autocomplete data
+            fetch('/api/search/autocomplete')
+                .then(response => response.json())
+                .then(data => {
+                    headerAutocompleteData = {
+                        artists: data.artists || [],
+                        albums: data.albums || [],
+                        titles: data.titles || []
+                    };
+                    console.log(`Header autocomplete data loaded: ${data.artists.length} artists, ${data.albums.length} albums, ${data.titles.length} titles`);
+                })
+                .catch(err => console.error('Error loading header autocomplete data:', err));
+
+            // Wire up header search events
+            const headerInput = document.getElementById('header-search-input');
+            const headerSearchType = document.getElementById('header-search-type');
+            
+            if (headerInput) {
+                headerInput.addEventListener('input', showHeaderSuggestions);
+                headerInput.addEventListener('keydown', handleHeaderKeyDown);
+                headerInput.addEventListener('blur', function() {
+                    // Delay closing dropdown to allow clicks on suggestions
+                    setTimeout(() => {
+                        const dropdown = document.getElementById('header-autocomplete-dropdown');
+                        if (dropdown) dropdown.style.display = 'none';
+                    }, 200);
+                });
+            }
+            
+            if (headerSearchType) {
+                headerSearchType.addEventListener('change', showHeaderSuggestions);
+            }
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                const dropdown = document.getElementById('header-autocomplete-dropdown');
+                const container = document.getElementById('header-search-input');
+                if (dropdown && !dropdown.contains(e.target) && e.target !== container) {
+                    dropdown.style.display = 'none';
+                }
+            });
+        });
+
+        // Filter and display suggestions for header
+        function showHeaderSuggestions() {
+            const headerSearchType = document.getElementById('header-search-type');
+            const headerInput = document.getElementById('header-search-input');
+            const dropdown = document.getElementById('header-autocomplete-dropdown');
+            
+            if (!headerInput || !dropdown) return;
+
+            const searchType = headerSearchType ? headerSearchType.value : 'any';
+            const inputValue = headerInput.value.trim().toLowerCase();
+            
+            if (inputValue.length < 2) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            let suggestions = [];
+            
+            if (searchType === 'any') {
+                suggestions = [
+                    ...headerAutocompleteData.artists.filter(a => a.toLowerCase().includes(inputValue)),
+                    ...headerAutocompleteData.albums.filter(a => a.toLowerCase().includes(inputValue)),
+                    ...headerAutocompleteData.titles.filter(t => t.toLowerCase().includes(inputValue))
+                ].slice(0, 15);
+            } else if (searchType === 'artist') {
+                suggestions = headerAutocompleteData.artists.filter(a => 
+                    a.toLowerCase().includes(inputValue)
+                ).slice(0, 15);
+            } else if (searchType === 'album') {
+                suggestions = headerAutocompleteData.albums.filter(a => 
+                    a.toLowerCase().includes(inputValue)
+                ).slice(0, 15);
+            } else if (searchType === 'title') {
+                suggestions = headerAutocompleteData.titles.filter(t => 
+                    t.toLowerCase().includes(inputValue)
+                ).slice(0, 15);
+            }
+
+            if (suggestions.length === 0) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            // Build dropdown HTML
+            dropdown.innerHTML = suggestions.map((item, index) => 
+                `<div class="autocomplete-item" data-index="${index}">${escapeHeaderHtml(item)}</div>`
+            ).join('');
+
+            dropdown.style.display = 'block';
+            headerSelectedIndex = -1;
+
+            // Add click handlers
+            dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    headerInput.value = this.textContent;
+                    dropdown.style.display = 'none';
+                    performHeaderSearch();
+                });
+            });
+        }
+
+        // Handle keyboard navigation in header autocomplete
+        function handleHeaderKeyDown(e) {
+            const dropdown = document.getElementById('header-autocomplete-dropdown');
+            if (!dropdown || dropdown.style.display === 'none') {
+                // If Enter was pressed and dropdown is closed, perform search
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    performHeaderSearch();
+                }
+                return;
+            }
+
+            const items = dropdown.querySelectorAll('.autocomplete-item');
+            if (items.length === 0) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                headerSelectedIndex = Math.min(headerSelectedIndex + 1, items.length - 1);
+                updateHeaderSelection(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                headerSelectedIndex = Math.max(headerSelectedIndex - 1, -1);
+                updateHeaderSelection(items);
+            } else if (e.key === 'Enter' && headerSelectedIndex >= 0) {
+                e.preventDefault();
+                document.getElementById('header-search-input').value = items[headerSelectedIndex].textContent;
+                dropdown.style.display = 'none';
+                performHeaderSearch();
+            } else if (e.key === 'Escape') {
+                dropdown.style.display = 'none';
+                headerSelectedIndex = -1;
+            }
+        }
+
+        function updateHeaderSelection(items) {
+            items.forEach((item, index) => {
+                if (index === headerSelectedIndex) {
+                    item.classList.add('selected');
+                    item.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
+
+        function escapeHeaderHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Perform header search
+        function performHeaderSearch() {
+            const query = document.getElementById('header-search-input').value.trim();
+            const searchType = document.getElementById('header-search-type').value;
+            if (query) {
+                window.location.href = `/search?query=${encodeURIComponent(query)}&type=${searchType}`;
+            }
+        }
+
+        // --- Artist-Based Music Addition Feature ---
+        let selectedArtists = [];
+        let cachedArtists = [];
+        let artistsLoaded = false;
+        let artistAutocompleteTimeout;
+
+        function initArtistFeature() {
+            const artistInput = document.getElementById('artist-input');
+            const artistDropdown = document.getElementById('artist-autocomplete');
+            const selectedArtistsDiv = document.getElementById('selected-artists');
+            const addArtistSongsBtn = document.getElementById('add-artist-songs-btn');
+
+            console.log('[Artist Feature] DOM elements found:', {
+                artistInput: !!artistInput,
+                artistDropdown: !!artistDropdown,
+                selectedArtistsDiv: !!selectedArtistsDiv,
+                addArtistSongsBtn: !!addArtistSongsBtn
+            });
+
+            if (!artistInput || !artistDropdown || !selectedArtistsDiv || !addArtistSongsBtn) {
+                console.error('[Artist Feature] ERROR: One or more required elements not found!');
+                return;
+            }
+
+            // Load all artists once on first interaction
+            function loadArtistsData() {
+                if (artistsLoaded || cachedArtists.length > 0) {
+                    console.log('[Artist Autocomplete] Already loaded, returning');
+                    return;
+                }
+                
+                console.log('[Artist Autocomplete] Starting fetch from /api/autocomplete/artists');
+                
+                fetch('/api/autocomplete/artists')
+                    .then(response => {
+                        console.log('[Artist Autocomplete] Fetch response:', response.status, response.ok);
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('[Artist Autocomplete] Received data:', data);
+                        cachedArtists = data.artists || [];
+                        artistsLoaded = true;
+                        console.log('[Artist Autocomplete] Loaded', cachedArtists.length, 'artists');
+                    })
+                    .catch(error => {
+                        console.error('[Artist Autocomplete] Error loading artists:', error);
+                        displayMessage('error', 'Failed to load artists data: ' + error.message);
+                    });
+            }
+
+            // Filter and display artist autocomplete suggestions
+            function showArtistSuggestions(query) {
+                if (!query.trim()) {
+                    artistDropdown.classList.remove('show');
+                    artistDropdown.innerHTML = '';
+                    return;
+                }
+
+                const lowerQuery = query.toLowerCase();
+                const filtered = cachedArtists
+                    .filter(artist => 
+                        artist.toLowerCase().includes(lowerQuery) &&
+                        !selectedArtists.includes(artist)
+                    )
+                    .slice(0, 15);
+
+                artistDropdown.innerHTML = '';
+                
+                if (filtered.length > 0) {
+                    filtered.forEach(artist => {
+                        const option = document.createElement('div');
+                        option.className = 'autocomplete-option';
+                        option.textContent = artist;
+                        option.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            console.log('[Artist Feature] Clicked artist option:', artist);
+                            addArtistChip(artist);
+                            // Close dropdown after selection
+                            artistDropdown.classList.remove('show');
+                            artistDropdown.innerHTML = '';
+                            console.log('[Artist Feature] Dropdown closed');
+                        });
+                        artistDropdown.appendChild(option);
+                    });
+                    artistDropdown.classList.add('show');
+                } else {
+                    artistDropdown.classList.remove('show');
+                }
+            }
+
+            // Add artist as a chip/tag
+            function addArtistChip(artist) {
+                if (!selectedArtists.includes(artist)) {
+                    selectedArtists.push(artist);
+                    renderSelectedArtists();
+                    artistInput.value = '';
+                    artistDropdown.classList.remove('show');
+                    artistDropdown.innerHTML = '';
+                    artistInput.focus();
+                }
+            }
+
+            // Render selected artists as chips
+            function renderSelectedArtists() {
+                // Re-query the element to ensure we have the right reference
+                const container = document.getElementById('selected-artists');
+                if (!container) {
+                    console.error('[Artist Feature] ERROR: selected-artists container not found!');
+                    return;
+                }
+
+                console.log('[Artist Feature] renderSelectedArtists - rendering', selectedArtists.length, 'artists into', container);
+                container.innerHTML = '';
+                if (selectedArtists.length === 0) {
+                    container.innerHTML = '<span style="color: #95a5a6; font-style: italic; font-size: 0.9em; padding: 5px 0;">No artists selected yet</span>';
+                    console.log('[Artist Feature] Rendered placeholder');
+                    return;
+                }
+                
+                selectedArtists.forEach(artist => {
+                    const chip = document.createElement('div');
+                    chip.className = 'artist-chip';
+                    
+                    const artistSpan = document.createElement('span');
+                    artistSpan.textContent = artist; // Safe HTML escaping via textContent
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'chip-remove';
+                    removeBtn.textContent = '×';
+                    removeBtn.title = 'Remove';
+                    removeBtn.onclick = () => window.removeArtistChip(artist);
+                    
+                    chip.appendChild(artistSpan);
+                    chip.appendChild(removeBtn);
+                    container.appendChild(chip);
+                });
+                console.log('[Artist Feature] Rendered', selectedArtists.length, 'chips');
+            }
+
+            // Remove artist chip
+            window.removeArtistChip = function(artist) {
+                selectedArtists = selectedArtists.filter(a => a !== artist);
+                renderSelectedArtists();
+            };
+
+            // --- Artist Stations Management (matching genre stations pattern) ---
+            const artistStationNameInput = document.getElementById('artist-station-name-input');
+            const saveArtistStationBtn = document.getElementById('save-artist-station-btn');
+            const managementArtistBtn = document.getElementById('manage-artist-stations-btn');
+            const artistStationsSelect = document.getElementById('artist-stations-select');
+            const loadArtistStationBtn = document.getElementById('load-artist-station-btn');
+            const artistStationsListDiv = document.getElementById('artist-stations-list');
+            const artistStationsContainer = document.getElementById('artist-stations-container');
+            
+            let artistStations = {};
+
+            function loadArtistStationsFromAPI() {
+                return fetch('/api/artist_stations')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            artistStations = data.stations;
+                            updateArtistStationsDropdown();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('[Artist Stations] Error loading stations:', error);
+                        displayMessage('error', 'Failed to load artist stations');
+                    });
+            }
+
+            function updateArtistStationsDropdown() {
+                artistStationsSelect.innerHTML = '<option value="">-- Select a station --</option>';
+                Object.keys(artistStations).forEach(stationName => {
+                    const option = document.createElement('option');
+                    option.value = stationName;
+                    option.textContent = stationName;
+                    artistStationsSelect.appendChild(option);
+                });
+            }
+
+            function toggleManageArtistStations() {
+                const isHidden = artistStationsListDiv.style.display === 'none' || artistStationsListDiv.style.display === '';
+                if (isHidden) {
+                    // Load from API first, then display
+                    loadArtistStationsFromAPI().then(() => {
+                        updateManageArtistStations();
+                        artistStationsListDiv.style.display = 'block';
+                        managementArtistBtn.textContent = '⬆️ Hide Management';
+                    });
+                } else {
+                    artistStationsListDiv.style.display = 'none';
+                    managementArtistBtn.textContent = '⚙️ Manage Stations';
+                }
+            }
+
+            function updateManageArtistStations() {
+                artistStationsContainer.innerHTML = '';
+                Object.entries(artistStations).forEach(([name, station]) => {
+                    const stationDiv = document.createElement('div');
+                    stationDiv.className = 'station-item';
+                    stationDiv.style.cssText = 'padding: 10px; margin: 5px 0; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;';
+                    stationDiv.innerHTML = `
+                        <div>
+                            <strong>${name}</strong><br>
+                            <small>Artists: ${station.artists.join(', ')}</small>
+                        </div>
+                        <button onclick="deleteArtistStation('${name}')" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
+                            🗑️ Delete
+                        </button>
+                    `;
+                    artistStationsContainer.appendChild(stationDiv);
+                });
+                
+                if (Object.keys(artistStations).length === 0) {
+                    artistStationsContainer.innerHTML = '<p style="text-align: center; color: #95a5a6; font-style: italic; margin: 10px 0;">No saved artist stations yet</p>';
+                }
+            }
+
+            function saveArtistStation() {
+                const stationName = artistStationNameInput.value.trim();
+                if (!stationName) {
+                    displayMessage('error', 'Please enter a station name');
+                    return;
+                }
+                if (selectedArtists.length === 0) {
+                    displayMessage('error', 'Please select at least one artist to save');
+                    return;
+                }
+                
+                fetch('/api/artist_stations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: stationName,
+                        artists: selectedArtists
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            artistStationNameInput.value = '';
+                            loadArtistStationsFromAPI();
+                            displayMessage('success', `Station "${stationName}" saved successfully`);
+                        } else {
+                            displayMessage('error', data.message || 'Failed to save station');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('[Artist Stations] Error saving station:', error);
+                        displayMessage('error', 'Failed to save station');
+                    });
+            }
+
+            function loadArtistStation() {
+                const stationName = artistStationsSelect.value;
+                if (!stationName) {
+                    displayMessage('error', 'Please select a station');
+                    return;
+                }
+
+                if (artistStations[stationName] && artistStations[stationName].artists) {
+                    selectedArtists = [...artistStations[stationName].artists];
+                    renderSelectedArtists();
+                    displayMessage('success', `🎤 Loaded station "${stationName}" with ${selectedArtists.length} artist${selectedArtists.length !== 1 ? 's' : ''}`);
+                } else {
+                    displayMessage('error', 'Station not found');
+                }
+            }
+
+            function deleteArtistStation(stationName) {
+                if (!confirm(`Are you sure you want to delete station "${stationName}"?`)) {
+                    return;
+                }
+                
+                fetch(`/api/artist_stations/${encodeURIComponent(stationName)}`, {
+                    method: 'DELETE'
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            loadArtistStationsFromAPI();
+                            displayMessage('success', `Station "${stationName}" deleted`);
+                        } else {
+                            displayMessage('error', data.message || 'Failed to delete station');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('[Artist Stations] Error deleting station:', error);
+                        displayMessage('error', 'Failed to delete station');
+                    });
+            }
+
+            // Make globally available for onclick handlers
+            window.deleteArtistStation = deleteArtistStation;
+
+            // Event listeners for artist stations
+            if (saveArtistStationBtn) saveArtistStationBtn.addEventListener('click', saveArtistStation);
+            if (loadArtistStationBtn) loadArtistStationBtn.addEventListener('click', loadArtistStation);
+            if (managementArtistBtn) managementArtistBtn.addEventListener('click', toggleManageArtistStations);
+
+            // Initialize stations display
+            loadArtistStationsFromAPI();
+
+            // Event listeners
+            artistInput.addEventListener('focus', function() {
+                if (!artistsLoaded && cachedArtists.length === 0) {
+                    displayMessage('info', 'Loading artists...');
+                    loadArtistsData();
+                }
+            });
+
+            artistInput.addEventListener('input', function() {
+                clearTimeout(artistAutocompleteTimeout);
+                
+                if (!artistsLoaded && cachedArtists.length === 0) {
+                    loadArtistsData();
+                }
+
+                artistAutocompleteTimeout = setTimeout(() => {
+                    showArtistSuggestions(this.value);
+                }, 150);
+            });
+
+            document.addEventListener('click', function(e) {
+                if (e.target !== artistInput && !artistDropdown.contains(e.target)) {
+                    artistDropdown.classList.remove('show');
+                }
+            });
+
+            // Helper function to show queue options modal
+            function showQueueOptionsModal(onClear, onAdd) {
+                // Create overlay
+                const overlay = document.createElement('div');
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.7);
+                    z-index: 2000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 20px;
+                `;
+
+                // Create modal
+                const modal = document.createElement('div');
+                modal.className = 'artist-feature-modal';
+                const isMobile = window.innerWidth < 500;
+                modal.style.cssText = `
+                    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+                    border: 2px solid #e74c3c;
+                    border-radius: 10px;
+                    padding: 30px;
+                    max-width: ${isMobile ? '95vw' : '450px'};
+                    width: 100%;
+                    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+                    text-align: center;
+                    color: #ecf0f1;
+                    animation: slideIn 0.3s ease-out;
+                `;
+
+                const title = document.createElement('h2');
+                title.textContent = '🎵 Queue Options';
+                title.style.cssText = 'margin: 0 0 15px 0; color: #e74c3c; font-size: 1.5em;';
+
+                const message = document.createElement('p');
+                message.textContent = 'How would you like to add the playlist?';
+                message.style.cssText = 'margin: 0 0 25px 0; color: #bdc3c7; font-size: 1.1em;';
+
+                const buttonContainer = document.createElement('div');
+                buttonContainer.style.cssText = isMobile ? 
+                    'display: flex; flex-direction: column; gap: 10px; justify-content: center;' :
+                    'display: flex; gap: 12px; justify-content: center;';
+
+                const clearBtn = document.createElement('button');
+                clearBtn.innerHTML = '🗑️ Clear & Start Fresh';
+                clearBtn.style.cssText = `
+                    flex: 1;
+                    padding: ${isMobile ? '14px 16px' : '12px 20px'};
+                    background-color: #e74c3c;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: ${isMobile ? '0.95em' : '1em'};
+                    font-weight: 600;
+                    transition: all 0.2s;
+                    min-height: ${isMobile ? '48px' : '44px'};
+                `;
+                clearBtn.onmouseover = () => clearBtn.style.backgroundColor = '#c0392b';
+                clearBtn.onmouseout = () => clearBtn.style.backgroundColor = '#e74c3c';
+                clearBtn.onclick = () => {
+                    overlay.remove();
+                    onClear();
+                };
+
+                const addBtn = document.createElement('button');
+                addBtn.innerHTML = '➕ Add to Current';
+                addBtn.style.cssText = `
+                    flex: 1;
+                    padding: ${isMobile ? '14px 16px' : '12px 20px'};
+                    background-color: #27ae60;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: ${isMobile ? '0.95em' : '1em'};
+                    font-weight: 600;
+                    transition: all 0.2s;
+                    min-height: ${isMobile ? '48px' : '44px'};
+                `;
+                addBtn.onmouseover = () => addBtn.style.backgroundColor = '#229954';
+                addBtn.onmouseout = () => addBtn.style.backgroundColor = '#27ae60';
+                addBtn.onclick = () => {
+                    overlay.remove();
+                    onAdd();
+                };
+
+                buttonContainer.appendChild(clearBtn);
+                buttonContainer.appendChild(addBtn);
+
+                modal.appendChild(title);
+                modal.appendChild(message);
+                modal.appendChild(buttonContainer);
+                overlay.appendChild(modal);
+
+                // Close on overlay click
+                overlay.onclick = (e) => {
+                    if (e.target === overlay) {
+                        overlay.remove();
+                    }
+                };
+
+                document.body.appendChild(overlay);
+            }
+
+            // Helper function to create the playlist via API (MUST be defined before event listener)
+            function createArtistPlaylist(artists, clearQueue) {
+                console.log('[Artist Feature] Creating playlist from', artists.length, 'artists, clear_queue:', clearQueue);
+                
+                const songCountInput = document.getElementById('artist-song-count');
+                const songCount = parseInt(songCountInput.value) || 25;
+                
+                const originalText = addArtistSongsBtn.textContent;
+                addArtistSongsBtn.disabled = true;
+                
+                // Show loading state with spinner
+                addArtistSongsBtn.innerHTML = '<span style="animation: spin 1s linear infinite;">⊙</span> Creating...';
+                displayMessage('info', `🎵 Creating ${songCount}-song playlist from ${artists.length} artist(s)...`);
+
+                fetch('/api/add-from-artists', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        artists: artists,
+                        clear_queue: clearQueue,
+                        song_count: songCount
+                    })
+                })
+                    .then(response => {
+                        console.log('[Artist Feature] API Response, status:', response.status);
+                        if (!response.ok) {
+                            return response.text().then(text => {
+                                console.error('[Artist Feature] API Error:', text);
+                                throw new Error(text || `HTTP ${response.status}`);
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('[Artist Feature] API Response Data:', data);
+                        if (data.status === 'success') {
+                            const count = data.songs_added || 0;
+                            const mode = clearQueue ? 'replaced' : 'added to';
+                            displayMessage('success', `✓ ${mode.charAt(0).toUpperCase() + mode.slice(1)} queue with ${count} random tracks from ${artists.length} artist(s)`);
+                            selectedArtists = [];
+                            renderSelectedArtists();
+                            artistInput.value = '';
+                            // Start playing
+                            setTimeout(() => playMusic(), 300);
+                        } else {
+                            displayMessage('error', data.message || 'Failed to create playlist');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('[Artist Feature] Error creating playlist:', error);
+                        displayMessage('error', `Failed to create playlist: ${error.message}`);
+                    })
+                    .finally(() => {
+                        addArtistSongsBtn.disabled = false;
+                        addArtistSongsBtn.textContent = originalText;
+                        addArtistSongsBtn.innerHTML = originalText;
+                    });
+            }
+
+            // Set up button listener (now after createArtistPlaylist is defined)
+            console.log('[Artist Feature] Setting up addArtistSongsBtn click listener');
+            addArtistSongsBtn.addEventListener('click', function() {
+                try {
+                    console.log('[Artist Feature] CLICK HANDLER FIRED');
+                    
+                    if (selectedArtists.length === 0) {
+                        displayMessage('error', 'Please select at least one artist');
+                        return;
+                    }
+
+                    // Show modal with queue options
+                    showQueueOptionsModal(
+                        // Clear queue callback
+                        function() {
+                            createArtistPlaylist(selectedArtists, true);
+                        },
+                        // Add to queue callback
+                        function() {
+                            createArtistPlaylist(selectedArtists, false);
+                        }
+                    );
+
+                } catch (error) {
+                    console.error('[Artist Feature] CATCH BLOCK - Error in click handler:', error);
+                    displayMessage('error', 'Error: ' + error.message);
+                    addArtistSongsBtn.disabled = false;
+                    addArtistSongsBtn.textContent = '🎲 Create Playlist from Selected Artists';
+                }
+            });
+
+            // Initialize display
+            console.log('[Artist Feature] Calling renderSelectedArtists() for initialization');
+            renderSelectedArtists();
+            console.log('[Artist Feature] Initialization complete');
+        }
+
+        // Run initialization when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initArtistFeature);
+        } else {
+            initArtistFeature();
+        }
+    </script>
+
+    <!-- Keyboard Shortcuts -->
+    <!-- Playback Controls -->
+    <script src="/static/playback-controls.js"></script>
+    <script src="/static/keyboard-shortcuts.js"></script>
+</body>
+
+</html>

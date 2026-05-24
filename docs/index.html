@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Maestro MPD Server - The Ultimate Self-Hosted Music Server with a beautiful Web Interface">
+    <title>Maestro MPD Server - Professional Music Server Solution</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1>🎵 Maestro MPD Server</h1>
+                <p class="tagline">The Ultimate Self-Hosted Music Server with Professional Web Interface</p>
+                <p class="description">Transform your music collection into a powerful streaming server with beautiful
+                    web UI, Bandcamp streaming, internet radio, multi-room audio (Squeezebox/LMS), automatic CD ripping, Last.fm integration, and comprehensive system management.</p>
+
+                <div class="badges">
+                    <span class="badge">Version 2.9.0</span>
+                    <span class="badge">MIT License</span>
+                    <span class="badge">MPD 0.23+</span>
+                    <span class="badge">Python 3.8+</span>
+                </div>
+
+                <div class="cta-buttons">
+                    <a href="https://github.com/coacharnold1/Maestro-Server" class="btn btn-primary">View on GitHub</a>
+                    <a href="#quick-start" class="btn btn-secondary">Get Started</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Video Section -->
+    <section class="video-section">
+        <div class="container">
+            <h2>📹 Video Walkthrough</h2>
+            <p class="section-subtitle">Complete visual tour of Maestro Server - see all features in action!</p>
+            <div class="video-wrapper">
+                <a href="https://www.youtube.com/watch?v=2s1NCt-DBh4" target="_blank">
+                    <img src="https://i.ytimg.com/an_webp/2s1NCt-DBh4/mqdefault_6s.webp?du=3000&sqp=CObzjMwG&rs=AOn4CLDspUzuDKCe0TTJjn88nPfAD1OiiQ" alt="Maestro Video Walkthrough"
+                        
+                        class="video-thumbnail">
+                    <div class="play-button">▶</div>
+                </a>
+            </div>
+            <p class="video-caption">Silent walkthrough demonstrating the web interface, admin panel, and all major
+                features</p>
+        </div>
+    </section>
+
+    <!-- Hero Screenshot -->
+    <!-- TODO: UPDATE - Take new screenshot showing v2.9.0 interface -->
+    <!-- Include: album art (clickable for collage), updated UI, toast notifications -->
+    <!-- Use Sunset or Desert theme for warm, inviting look -->
+    <section class="hero-screenshot">
+        <div class="container">
+            <img src="screenshots/hero-player.png" alt="Maestro Player Interface" class="main-screenshot">
+        </div>
+    </section>
+
+    <!-- Why Maestro Section -->
+    <section class="why-maestro">
+        <div class="container">
+            <h2>🎯 Why Maestro?</h2>
+            <p class="intro-text">Maestro is not just another MPD web interface - it's a complete music server ecosystem
+                designed for audiophiles, self-hosters, and music enthusiasts who demand:</p>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">✨</div>
+                    <h3>Professional-grade features</h3>
+                    <p>Bandcamp streaming, internet radio (22 countries), CD ripping, Last.fm scrobbling, search autocomplete</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3>Beautiful UI</h3>
+                    <p>8 gorgeous themes, album art collage view, mobile-responsive, modern design with instant search</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔧</div>
+                    <h3>Full system control</h3>
+                    <p>NFS/SMB mounts, audio configuration, OS updates, real-time monitoring</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🚀</div>
+                    <h3>Zero-hassle setup</h3>
+                    <p>One-command installation, automatic MPD detection, smart defaults</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎵</div>
+                    <h3>Audiophile-ready</h3>
+                    <p>Bit-perfect playback up to DSD512/384kHz, all formats supported, hardware device selection</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">�</div>
+                    <h3>Multi-room audio</h3>
+                    <p>Stream to Squeezebox/LMS players throughout your home for whole-house audio</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">�📀</div>
+                    <h3>Automatic CD ripping</h3>
+                    <p>Insert disc → automatic rip → organized library</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Screenshots Section -->
+    <section class="screenshots">
+        <div class="container">
+            <h2>📸 Screenshots</h2>
+
+            <div class="screenshot-category">
+                <h3>Theme Variety</h3>
+                <!-- TODO: UPDATE THIS SCREENSHOT - Show all 21 themes instead of 8 -->
+                <!-- Create new themes.png with grid of all 21 themes -->
+                <div class="screenshot-grid">
+                    <div class="screenshot-item">
+                        <a href="screenshots/themes.png" target="_blank"><img src="screenshots/themes.png"
+                                alt="Multiple Themes"></a>
+                        <p>Choose from 8 beautiful themes to match your style</p>
+                    </div>
+                    <div class="screenshot-item">
+                        <a href="screenshots/Screenshot_Desert-Theme.png" target="_blank"><img
+                                src="screenshots/Screenshot_Desert-Theme.png" alt="Desert Theme"></a>
+                        <p>Desert theme with warm, earthy colors</p>
+                    </div>
+                    <div class="screenshot-item">
+                        <a href="screenshots/Screenshot_High-Contrast-Theme.png" target="_blank"><img
+                                src="screenshots/Screenshot_High-Contrast-Theme.png" alt="High Contrast Theme"></a>
+                        <p>High contrast theme for improved accessibility</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NEW v2.9.0 FEATURES -->
+            <div class="screenshot-category">
+                <h3>🆕 New Features (v2.9.0)</h3>
+                <div class="screenshot-grid">
+                    <div class="screenshot-item">
+                        <a href="screenshots/internet-radio.png" target="_blank"><img src="screenshots/internet-radio.png"
+                                alt="Internet Radio"></a>
+                        <p>Stream from 22 countries with Radio Browser API and station logos</p>
+                    </div>
+
+                    <div class="screenshot-item">
+                        <a href="screenshots/search-autocomplete.png" target="_blank"><img src="screenshots/search-autocomplete.png"
+                                alt="Search Autocomplete"></a>
+                        <p>Instant search suggestions as you type with keyboard navigation</p>
+                    </div>
+
+                    <div class="screenshot-item">
+                        <a href="screenshots/album-collage-view.png" target="_blank"><img src="screenshots/album-collage-view.png"
+                                alt="Album Collage View"></a>
+                        <p>Interactive 3x3 grid showing artist's albums and "Like" Artists from local collection via LastFM - click any to play</p>
+                    </div>
+
+                    <div class="screenshot-item">
+                        <a href="screenshots/bandcamp-streaming.png" target="_blank"><img src="screenshots/bandcamp-streaming.png"
+                                alt="Bandcamp Streaming"></a>
+                        <p>Stream your Bandcamp purchases directly in Maestro</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-category">
+                <h3>Library Browsing</h3>
+                <div class="screenshot-grid">
+                    <div class="screenshot-item">
+                        <a href="screenshots/browse-albums.png" target="_blank"><img src="screenshots/browse-albums.png"
+                                alt="Browse Albums"></a>
+                        <p>Grid view of your album collection with cover art</p>
+                    </div>
+                    <div class="screenshot-item">
+                        <a href="screenshots/Screenshot_Browse.png" target="_blank"><img
+                                src="screenshots/Screenshot_Browse.png" alt="Browse Interface"></a>
+                        <p>Intuitive browsing with multiple view options</p>
+                    </div>
+                    <div class="screenshot-item">
+                        <a href="screenshots/Screenshot_Recently-Added.png" target="_blank"><img
+                                src="screenshots/Screenshot_Recently-Added.png" alt="Recently Added"></a>
+                        <p>Keep track of newly added albums</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-category">
+                <h3>Playback Features</h3>
+                <div class="screenshot-grid">
+                    <div class="screenshot-item">
+                        <a href="screenshots/Screenshot_Playlist.png" target="_blank"><img
+                                src="screenshots/Screenshot_Playlist.png" alt="Playlist"></a>
+                        <p>Manage your current playlist</p>
+                    </div>
+                    <!-- TODO: UPDATE THIS SCREENSHOT - Show new autocomplete feature -->
+                    <!-- Take new screenshot with autocomplete dropdown visible -->
+                    <div class="screenshot-item">
+                        <a href="screenshots/Screenshot_Search.png" target="_blank"><img
+                                src="screenshots/Screenshot_Search.png" alt="Search"></a>
+                        <p>Powerful search with instant autocomplete suggestions</p>
+                    </div>
+                    <div class="screenshot-item">
+                        <a href="screenshots/Screenshot_LAST-FM-Charts.png" target="_blank"><img
+                                src="screenshots/Screenshot_LAST-FM-Charts.png" alt="Last.fm Charts"></a>
+                        <p>View your Last.fm listening statistics</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-category">
+                <h3>Admin Dashboard</h3>
+                <div class="screenshot-grid">
+                    <div class="screenshot-item">
+                        <a href="screenshots/admin-dashboard.png" target="_blank"><img
+                                src="screenshots/admin-dashboard.png" alt="Admin Dashboard"></a>
+                        <p>System monitoring and library management</p>
+                    </div>
+                    <div class="screenshot-item">
+                        <a href="screenshots/System-Admin.png" target="_blank"><img src="screenshots/System-Admin.png"
+                                alt="System Administration"></a>
+                        <p>System updates and service management</p>
+                    </div>
+                    <div class="screenshot-item">
+                        <a href="screenshots/Audio-tweaks-admin.png" target="_blank"><img
+                                src="screenshots/Audio-tweaks-admin.png" alt="Audio Configuration"></a>
+                        <p>Advanced audio configuration</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-category">
+                <h3>CD Ripping & Automation</h3>
+                <div class="screenshot-grid">
+                    <div class="screenshot-item">
+                        <a href="screenshots/cd-ripper.png" target="_blank"><img src="screenshots/cd-ripper.png"
+                                alt="CD Ripper"></a>
+                        <p>Automatic CD ripping with MusicBrainz metadata lookup and album art</p>
+                    </div>
+                    <div class="screenshot-item">
+                        <a href="screenshots/cd-ripper-settings.png" target="_blank"><img
+                                src="screenshots/cd-ripper-settings.png" alt="CD Ripper Settings"></a>
+                        <p>Configure format, quality, output location, and automatic ripping</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-category">
+                <h3>Mobile Responsive</h3>
+                <div class="mobile-grid">
+                    <a href="screenshots/mobile1.png" target="_blank"><img src="screenshots/mobile1.png"
+                            alt="Mobile View 1"></a>
+                    <a href="screenshots/mobile2.png" target="_blank"><img src="screenshots/mobile2.png"
+                            alt="Mobile View 2"></a>
+                    <a href="screenshots/mobile3-main.png" target="_blank"><img src="screenshots/mobile3-main.png"
+                            alt="Mobile Main"></a>
+                    <a href="screenshots/mobile4.png" target="_blank"><img src="screenshots/mobile4.png"
+                            alt="Mobile View 4"></a>
+                </div>
+                <p class="center">Fully responsive design that works beautifully on mobile devices</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Start Section -->
+    <section id="quick-start" class="quick-start">
+        <div class="container">
+            <h2>🚀 Quick Start</h2>
+            <h3>One-Command Installation & Update</h3>
+            
+            <p><strong>Install:</strong></p>
+            <div class="code-block">
+                <code>git clone https://github.com/coacharnold1/Maestro-Server.git
+cd Maestro-Server
+./install-maestro.sh</code>
+            </div>
+
+            <p><strong>Update:</strong></p>
+            <div class="code-block">
+                <code>cd ~/Maestro-Server
+./update-maestro.sh</code>
+            </div>
+
+            <p class="install-description"><strong>Installation:</strong> The installer will automatically:</p>
+            <ul class="check-list">
+                <li>✅ Detect existing MPD or install new</li>
+                <li>✅ Configure music directories</li>
+                <li>✅ Set up Web UI (port 5003) and Admin API (port 5004)</li>
+                <li>✅ Create systemd services</li>
+                <li>✅ Configure permissions and audio settings</li>
+            </ul>
+
+            <div class="post-install">
+                <h3>Post-Installation</h3>
+                <p>Access your new music server:</p>
+                <ul>
+                    <li>🌐 <strong>Web Player:</strong> <code>http://YOUR_IP:5003</code></li>
+                    <li>⚙️ <strong>Admin Panel:</strong> <code>http://YOUR_IP:5004</code></li>
+                    <li>🎵 <strong>MPD Port:</strong> <code>YOUR_IP:6600</code></li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-detailed">
+        <div class="container">
+            <h2>✨ Key Features</h2>
+
+            <div class="feature-section">
+                <h3>🎧 Modern Web Interface (Port 5003)</h3>
+                <div class="feature-columns">
+                    <div class="feature-column">
+                        <h4>Music Playback & Control</h4>
+                        <ul>
+                            <li>Full MPD control (play, pause, stop, next, previous)</li>
+                            <li>Volume control with visual feedback</li>
+                            <li>Real-time playback progress</li>
+                            <li>Shuffle and repeat modes</li>
+                            <li>HTTP audio streaming</li>
+                        </ul>
+                    </div>
+                    <div class="feature-column">
+                        <h4>Library Browsing</h4>
+                        <ul>
+                            <li>Album browsing with interactive art collage</li>
+                            <li>Artist browsing with smart letter jump navigation</li>
+                            <li>Genre filtering</li>
+                            <li>Recent albums page</li>
+                            <li>Smart search with instant autocomplete</li>
+                            <li>Random album discovery</li>
+                            <li>Client-side filtering with keyboard navigation</li>
+                        </ul>
+                    </div>
+                    <div class="feature-column">
+                        <h4>Advanced Features</h4>
+                        <ul>
+                            <li>Internet radio - 22 countries, station logos</li>
+                            <li>Bandcamp streaming integration</li>
+                            <li>Multi-room audio - Squeezebox/LMS support</li>
+                            <li>Playback charts - track your listening stats</li>
+                            <li>8 beautiful themes (Dark, Light, High Contrast, Desert, Terminal, Sunset, Forest, Midnight)</li>
+                            <li>Mobile-responsive design</li>
+                            <li>Auto-fill playlists from 30 similar artists</li>
+                        </ul>
+                    </div>
+                            <li>Last.fm integration with scrobbling</li>
+                            <li>Smart toast notifications</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feature-section">
+                <h3>⚙️ Powerful Admin Interface (Port 5004)</h3>
+                <div class="feature-columns">
+                    <div class="feature-column">
+                        <h4>System Monitoring</h4>
+                        <ul>
+                            <li>Real-time stats: CPU, RAM, disk usage</li>
+                            <li>Live graphs updating every 2 seconds</li>
+                            <li>Disk space monitoring</li>
+                            <li>Network traffic monitoring</li>
+                        </ul>
+                    </div>
+                    <div class="feature-column">
+                        <h4>Library Management</h4>
+                        <ul>
+                            <li>NFS/SMB mount management</li>
+                            <li>Mount/unmount operations</li>
+                            <li>Smart library updates</li>
+                            <li>File browser</li>
+                        </ul>
+                    </div>
+                    <div class="feature-column">
+                        <h4>Audio Configuration</h4>
+                        <ul>
+                            <li>Audio device selection</li>
+                            <li>Bit-perfect playback configuration</li>
+                            <li>Buffer size optimization</li>
+                            <li>DSD playback mode</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Use Cases Section -->
+    <section class="use-cases">
+        <div class="container">
+            <h2>🎯 Perfect For</h2>
+            <div class="use-case-grid">
+                <div class="use-case">
+                    <div class="icon">🏠</div>
+                    <h3>Home Music Servers</h3>
+                    <p>Central music hub for whole house audio</p>
+                </div>
+                <div class="use-case">
+                    <div class="icon">🎧</div>
+                    <h3>Audiophiles</h3>
+                    <p>Bit-perfect playback with DSD support</p>
+                </div>
+                <div class="use-case">
+                    <div class="icon">💿</div>
+                    <h3>CD Collectors</h3>
+                    <p>Automatic ripping with metadata lookup</p>
+                </div>
+                <div class="use-case">
+                    <div class="icon">🖥️</div>
+                    <h3>Raspberry Pi</h3>
+                    <p>Lightweight, efficient music server</p>
+                </div>
+                <div class="use-case">
+                    <div class="icon">🌐</div>
+                    <h3>Remote Access</h3>
+                    <p>Stream your collection from anywhere</p>
+                </div>
+                <div class="use-case">
+                    <div class="icon">📚</div>
+                    <h3>Large Libraries</h3>
+                    <p>Handles 100,000+ tracks with ease</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Related Projects Section -->
+    <section class="related-projects">
+        <div class="container">
+            <h2>🔌 Related Projects</h2>
+            <p class="section-subtitle">Expand your Maestro setup with these companion projects</p>
+            
+            <div class="project-card">
+                <div class="project-header">
+                    <h3>🖼️ MPD Framebuffer Display</h3>
+                    <a href="https://github.com/coacharnold1/mpd-framebuffer-display" class="btn btn-small" target="_blank">View Project →</a>
+                </div>
+                <p class="project-description">Display real-time album artwork on framebuffer devices like TFT screens, monitors, or displays connected to your Maestro server.</p>
+                
+                <div class="project-features">
+                    <span class="feature-tag">🔄 Real-time Updates</span>
+                    <span class="feature-tag">🌐 HTTP API</span>
+                    <span class="feature-tag">📺 Raspberry Pi Ready</span>
+                    <span class="feature-tag">🎨 Album Art Display</span>
+                </div>
+                
+                <div class="project-use-cases">
+                    <h4>Perfect For:</h4>
+                    <ul>
+                        <li>Mini music players with visual display</li>
+                        <li>Kiosk mode music stations</li>
+                        <li>Desktop album art visualizer</li>
+                        <li>Multi-room audio with visual feedback</li>
+                    </ul>
+                </div>
+                
+                <div class="project-quick-start">
+                    <h4>Quick Install:</h4>
+                    <pre><code>git clone https://github.com/coacharnold1/mpd-framebuffer-display
+cd mpd-framebuffer-display
+sudo ./install.sh</code></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- System Requirements -->
+    <section class="requirements">
+        <div class="container">
+            <h2>🛠️ System Requirements</h2>
+            <div class="req-grid">
+                <div class="req-card">
+                    <h3>Minimum Requirements</h3>
+                    <ul>
+                        <li><strong>OS:</strong> Ubuntu 20.04+, Debian 11+, Arch Linux</li>
+                        <li><strong>RAM:</strong> 1GB (2GB+ recommended)</li>
+                        <li><strong>Storage:</strong> 1GB + your music library</li>
+                        <li><strong>Network:</strong> Ethernet or WiFi</li>
+                        <li><strong>Audio:</strong> Any ALSA-compatible device</li>
+                    </ul>
+                </div>
+                <div class="req-card">
+                    <h3>Recommended Hardware</h3>
+                    <ul>
+                        <li><strong>Raspberry Pi 4</strong> (4GB RAM) - Perfect balance</li>
+                        <li><strong>Intel NUC</strong> - More power for large libraries</li>
+                        <li><strong>Dedicated Linux server</strong> - Ultimate performance</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Maestro MPD Server</h3>
+                    <p>The ultimate self-hosted music server solution</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Links</h3>
+                    <ul>
+                        <li><a href="https://github.com/coacharnold1/Maestro-Server">GitHub Repository</a></li>
+                        <li><a href="https://github.com/coacharnold1/Maestro-Server/issues">Bug Reports</a></li>
+                        <li><a href="https://github.com/coacharnold1/Maestro-Server/blob/main/LICENSE">License</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Built With</h3>
+                    <ul>
+                        <li><a href="https://www.musicpd.org/">Music Player Daemon</a></li>
+                        <li><a href="https://flask.palletsprojects.com/">Flask</a></li>
+                        <li><a href="https://github.com/Mic92/python-mpd2">python-mpd2</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>Made with ❤️ for the music community | MIT License</p>
+            </div>
+        </div>
+    </footer>
+</body>
+
+</html>

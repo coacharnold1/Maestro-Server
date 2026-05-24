@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Administration - Maestro Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #ecf0f1;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 2em;
+            color: #3498db;
+        }
+
+        .back-btn {
+            background: rgba(52, 152, 219, 0.2);
+            color: #3498db;
+            border: 1px solid #3498db;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: #3498db;
+            color: white;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #27ae60;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-label {
+            color: #95a5a6;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+
+        .info-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #27ae60;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60, #2ecc71);
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(90deg, #f39c12, #f1c40f);
+        }
+
+        .progress-fill.danger {
+            background: linear-gradient(90deg, #e74c3c, #c0392b);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12, #f1c40f);
+        }
+
+        .btn-warning:hover {
+            box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            white-space: pre-line;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .message.success {
+            background: rgba(39, 174, 96, 0.2);
+            border: 1px solid #27ae60;
+            color: #27ae60;
+        }
+
+        .message.error {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+        }
+
+        .message.warning {
+            background: rgba(243, 156, 18, 0.2);
+            border: 1px solid #f39c12;
+            color: #f39c12;
+        }
+
+        .message.active {
+            display: block;
+        }
+
+        .action-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>⚙️ System Administration</h1>
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
+                <a href="/" class="back-btn">← Back to Dashboard</a>
+                <a href="javascript:window.location.href='http://' + window.location.hostname + ':5003'"
+                    class="back-btn"
+                    style="background: rgba(52, 152, 219, 0.2); border-color: #3498db; color: #3498db;">🎵 Maestro Control</a>
+            </div>
+        </header>
+
+        <div id="message" class="message"></div>
+
+        <div class="section">
+            <h2 class="section-title">System Information</h2>
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="info-label">IP Address</div>
+                    <div class="info-value" id="ip-address">Loading...</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">Hostname</div>
+                    <div class="info-value" id="hostname">Loading...</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">Uptime</div>
+                    <div class="info-value" id="uptime">Loading...</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">CPU Usage</div>
+                    <div class="info-value" id="cpu-usage">Loading...</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="cpu-progress"></div>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">Memory Usage</div>
+                    <div class="info-value" id="memory-usage">Loading...</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="memory-progress"></div>
+                    </div>
+                    <div style="margin-top: 8px; color: #7f8c8d; font-size: 0.85em;">
+                        <span id="memory-used">0 GB</span> / <span id="memory-total">0 GB</span>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">Disk Usage</div>
+                    <div class="info-value" id="disk-usage">Loading...</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="disk-progress"></div>
+                    </div>
+                    <div style="margin-top: 8px; color: #7f8c8d; font-size: 0.85em;">
+                        <span id="disk-used">0 GB</span> / <span id="disk-total">0 GB</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="nfs-section" style="display: none;">
+            <h2 class="section-title">NFS Mount Health</h2>
+            <p style="color: #95a5a6; margin-bottom: 15px;">Status of NFS network storage mounts.</p>
+            
+            <div class="info-grid" style="margin-bottom: 20px;">
+                <div class="info-card">
+                    <div class="info-label">NFS Servers</div>
+                    <div class="info-value" id="nfs-servers">-</div>
+                    <div style="margin-top: 8px; font-size: 0.85em;" id="nfs-server-status"></div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">Total Mounts</div>
+                    <div class="info-value" id="nfs-total">-</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">Healthy Mounts</div>
+                    <div class="info-value" id="nfs-healthy" style="color: #2ecc71;">-</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">Monitoring</div>
+                    <div class="info-value" id="nfs-monitoring" style="font-size: 1.2em;">-</div>
+                    <div style="margin-top: 8px; font-size: 0.85em; color: #7f8c8d;">
+                        Checks every 10 minutes
+                    </div>
+                </div>
+            </div>
+            
+            <div id="nfs-mounts-list" style="display: none;">
+                <h3 style="color: #3498db; margin-bottom: 15px; font-size: 1.1em;">Mount Points</h3>
+                <div id="nfs-mounts-container"></div>
+            </div>
+            
+            <div id="nfs-errors" style="display: none; background: rgba(192, 57, 43, 0.2); border-left: 4px solid #e74c3c; padding: 15px; margin-top: 20px; border-radius: 4px;">
+                <h3 style="color: #e74c3c; margin-bottom: 10px;">⚠️ Recent Warnings/Errors</h3>
+                <div id="nfs-errors-list" style="font-family: monospace; font-size: 0.85em; color: #ecf0f1;"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Squeezebox/LMS Integration</h2>
+            <p style="color: #95a5a6; margin-bottom: 15px;">Configure Logitech Media Server to stream Maestro audio to Squeezebox players.</p>
+            
+            <div style="display: grid; gap: 15px; max-width: 600px;">
+                <div>
+                    <label style="display: block; margin-bottom: 5px; color: #3498db;">Enable LMS Integration</label>
+                    <label style="display: inline-flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="lms-enabled" style="width: 20px; height: 20px; cursor: pointer;">
+                        <span style="margin-left: 10px; color: #ecf0f1;">Enable Squeezebox streaming</span>
+                    </label>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px; color: #3498db;">LMS Server IP Address</label>
+                    <input type="text" id="lms-host" placeholder="Your LMS Server IP" 
+                           style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #ecf0f1; font-size: 1em;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px; color: #3498db;">LMS Server Port</label>
+                    <input type="number" id="lms-port" placeholder="9000" value="9000"
+                           style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #ecf0f1; font-size: 1em;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px; color: #3498db;">Squeezebox Sync Delay</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="range" id="lms-sync-delay" min="0" max="2000" step="50" value="500"
+                               style="flex: 1; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.2); cursor: pointer;">
+                        <span id="lms-sync-delay-display" style="min-width: 60px; text-align: right; color: #ecf0f1; font-weight: bold;">500ms</span>
+                    </div>
+                    <div style="font-size: 0.85em; color: #95a5a6; margin-top: 4px;">
+                        Delay before Squeezebox playback starts (compensates for network latency and buffering)
+                    </div>
+                </div>
+                <div style="background: rgba(52, 152, 219, 0.1); border-left: 4px solid #3498db; padding: 12px; border-radius: 4px;">
+                    <div style="color: #ecf0f1; font-size: 0.95em;">
+                        ℹ️ Enter the IP address and port of your Logitech Media Server. Default port is 9000. The sync delay helps synchronize playback between MPD and Squeezebox players (0-2000ms).
+                    </div>
+                </div>
+                <div class="action-group">
+                    <button class="btn" onclick="saveLMSSettings()">💾 Save LMS Settings</button>
+                    <button class="btn" onclick="testLMSConnection()">🔌 Test Connection</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Maestro Updates</h2>
+            <p style="color: #95a5a6; margin-bottom: 15px;">Check for updates to Maestro MPD Server.</p>
+            
+            <div id="maestro-update-info" style="display: none; background: rgba(52, 152, 219, 0.1); border-left: 4px solid #3498db; padding: 15px; margin-bottom: 15px; border-radius: 4px;">
+                <div style="margin-bottom: 10px;">
+                    <strong style="color: #3498db;">Repository:</strong> <span id="repo-path" style="color: #ecf0f1;"></span>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <strong style="color: #3498db;">Current Version:</strong> <span id="current-version" style="color: #ecf0f1;"></span>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <strong style="color: #3498db;">Latest Version:</strong> <span id="latest-version" style="color: #ecf0f1;"></span>
+                </div>
+                <div id="update-available-msg" style="display: none; margin-top: 15px; padding: 12px; background: rgba(46, 204, 113, 0.2); border-left: 4px solid #2ecc71; border-radius: 4px;">
+                    <strong style="color: #2ecc71;">✨ Updates Available!</strong>
+                    <div style="color: #ecf0f1; margin-top: 8px; font-size: 0.95em;">
+                        <span id="commits-behind"></span> new commit(s) available.
+                    </div>
+                    <div style="margin-top: 12px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 4px; font-family: monospace; font-size: 0.9em;">
+                        <div style="color: #3498db;">To update, SSH into the server and run:</div>
+                        <div style="color: #2ecc71; margin-top: 5px;">$ cd <span id="update-repo-path"></span></div>
+                        <div style="color: #2ecc71;">$ ./update-maestro.sh</div>
+                    </div>
+                </div>
+                <div id="up-to-date-msg" style="display: none; margin-top: 15px; padding: 12px; background: rgba(46, 204, 113, 0.2); border-left: 4px solid #2ecc71; border-radius: 4px;">
+                    <strong style="color: #2ecc71;">✅ Up to Date!</strong>
+                    <div style="color: #ecf0f1; margin-top: 5px; font-size: 0.95em;">
+                        You're running the latest version of Maestro.
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn" onclick="checkMaestroUpdates()">🔍 Check for Maestro Updates</button>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">System Updates</h2>
+            <p style="color: #95a5a6; margin-bottom: 15px;">Update the operating system packages. This may take several
+                minutes.</p>
+            <div style="background: #c0392b; border-left: 4px solid #e74c3c; padding: 12px; margin-bottom: 20px; border-radius: 4px;">
+                <strong style="color: #fff;">⚠️ Warning:</strong>
+                <span style="color: #ecf0f1; font-size: 0.95em;">
+                    Network updates may interrupt your connection. For critical updates, use a detached session or have console access available. 
+                    The update will continue running even if you lose connection, but you won't see the result.
+                </span>
+                <div style="margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 3px; font-family: monospace; font-size: 0.9em;">
+                    <div style="color: #3498db;">Via SSH with screen:</div>
+                    <div style="color: #ecf0f1; margin-left: 10px;">$ screen -S update</div>
+                    <div style="color: #95a5a6; margin-left: 10px; font-size: 0.85em;">(detach: Ctrl+A then D, reattach: screen -r update)</div>
+                    <div style="color: #3498db; margin-top: 8px;">Or with tmux:</div>
+                    <div style="color: #ecf0f1; margin-left: 10px;">$ tmux new -s update</div>
+                    <div style="color: #95a5a6; margin-left: 10px; font-size: 0.85em;">(detach: Ctrl+B then D, reattach: tmux attach -t update)</div>
+                </div>
+            </div>
+            <button class="btn btn-warning" onclick="updateSystem()">📦 Update OS Packages</button>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">System Control</h2>
+            <p style="color: #95a5a6; margin-bottom: 20px;">Restart or shutdown the system. Use with caution!</p>
+            <div class="action-group">
+                <button class="btn btn-danger" onclick="rebootSystem()">🔄 Reboot System</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
+        }
+
+        function showMessage(text, type) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = `message ${type} active`;
+            setTimeout(() => msg.classList.remove('active'), 8000);
+        }
+
+        function updateSystemInfo() {
+            fetch('/api/system/info')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const info = data.info;
+
+                        // Update text values
+                        document.getElementById('ip-address').textContent = info.ip_address;
+                        document.getElementById('hostname').textContent = info.hostname;
+                        document.getElementById('cpu-usage').textContent = info.cpu_percent + '%';
+                        document.getElementById('memory-usage').textContent = info.memory.percent + '%';
+                        document.getElementById('disk-usage').textContent = info.disk.percent + '%';
+                        document.getElementById('uptime').textContent = info.uptime_hours + ' hrs';
+
+                        // Update memory details
+                        document.getElementById('memory-used').textContent = formatBytes(info.memory.used);
+                        document.getElementById('memory-total').textContent = formatBytes(info.memory.total);
+
+                        // Update disk details
+                        document.getElementById('disk-used').textContent = formatBytes(info.disk.used);
+                        document.getElementById('disk-total').textContent = formatBytes(info.disk.total);
+
+                        // Update progress bars
+                        updateProgressBar('cpu-progress', info.cpu_percent);
+                        updateProgressBar('memory-progress', info.memory.percent);
+                        updateProgressBar('disk-progress', info.disk.percent);
+                    }
+                })
+                .catch(error => console.error('Error fetching system info:', error));
+        }
+
+        function updateProgressBar(elementId, percent) {
+            const element = document.getElementById(elementId);
+            element.style.width = percent + '%';
+
+            // Change color based on usage
+            element.className = 'progress-fill';
+            if (percent > 80) {
+                element.classList.add('danger');
+            } else if (percent > 60) {
+                element.classList.add('warning');
+            }
+        }
+
+        function checkMaestroUpdates() {
+            showMessage('🔍 Checking for Maestro updates...', 'warning');
+            
+            fetch('/api/maestro/update-check')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Show update info section
+                        document.getElementById('maestro-update-info').style.display = 'block';
+                        
+                        // Populate info
+                        document.getElementById('repo-path').textContent = data.repo_path;
+                        document.getElementById('current-version').textContent = `${data.current_branch}@${data.current_commit}`;
+                        document.getElementById('latest-version').textContent = `${data.current_branch}@${data.latest_commit}`;
+                        
+                        // Show appropriate message
+                        if (data.updates_available) {
+                            document.getElementById('update-available-msg').style.display = 'block';
+                            document.getElementById('up-to-date-msg').style.display = 'none';
+                            document.getElementById('commits-behind').textContent = data.commits_behind;
+                            document.getElementById('update-repo-path').textContent = data.repo_path;
+                            
+                            showMessage(`✨ Maestro Updates Available!\n\n${data.commits_behind} new commit(s) ready to install.\n\nSee instructions below to update.`, 'success');
+                        } else {
+                            document.getElementById('update-available-msg').style.display = 'none';
+                            document.getElementById('up-to-date-msg').style.display = 'block';
+                            
+                            showMessage('✅ Maestro is Up to Date!\n\nYou\'re running the latest version.', 'success');
+                        }
+                    } else {
+                        showMessage(`❌ Update Check Failed!\n\n${data.message}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    showMessage(`❌ Network Error!\n\n${error.message}`, 'error');
+                });
+        }
+
+        function updateSystem() {
+            if (!confirm('Update the operating system?\n\n⚠️ WARNING: If network components are updated, you may lose connection.\n\nFor critical updates via SSH, use a detached session:\n• screen -S update  (detach: Ctrl+A D, reattach: screen -r update)\n• tmux new -s update  (detach: Ctrl+B D, reattach: tmux attach -t update)\n\nOr have console access available.\n\nThis may take several minutes. Continue?')) {
+                return;
+            }
+
+            showMessage('⏳ Starting system update... This may take a while. Please wait...', 'warning');
+
+            const startTime = Date.now();
+
+            fetch('/api/system/update', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    const duration = Math.round((Date.now() - startTime) / 1000);
+
+                    if (data.status === 'success') {
+                        const packageCount = data.packages_upgraded || 0;
+                        let message = `✅ System Update Completed!\n\n`;
+                        message += `⏱️  Duration: ${duration} seconds\n`;
+                        message += `📦 Packages upgraded: ${packageCount}\n\n`;
+
+                        if (packageCount === 0) {
+                            message += `✨ System is already up to date!`;
+                        } else {
+                            message += `🔄 ${packageCount} package(s) were updated successfully`;
+                        }
+
+                        // Show last few lines of output if available
+                        if (data.output) {
+                            const outputLines = data.output.trim().split('\n');
+                            const lastLines = outputLines.slice(-5).join('\n');
+                            if (lastLines) {
+                                message += `\n\n📋 Update summary:\n${lastLines}`;
+                            }
+                        }
+
+                        showMessage(message, 'success');
+                    } else {
+                        showMessage(`❌ Update Failed!\n\nError: ${data.message}\n\nDuration: ${duration} seconds`, 'error');
+                    }
+                })
+                .catch(error => {
+                    const duration = Math.round((Date.now() - startTime) / 1000);
+                    showMessage(`❌ Network Error!\n\n${error.message}\n\nDuration: ${duration} seconds`, 'error');
+                });
+        }
+
+        function rebootSystem() {
+            if (!confirm('⚠️ REBOOT SYSTEM? This will restart the server immediately!')) {
+                return;
+            }
+
+            if (!confirm('Are you absolutely sure? All connections will be lost!')) {
+                return;
+            }
+
+            showMessage('⚠️ System Reboot Initiated!\n\n🔄 Server will restart in 1 minute\n⏰ Current time: ' + new Date().toLocaleTimeString() + '\n\n⚠️ All connections will be lost!', 'warning');
+
+            fetch('/api/system/reboot', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showMessage('✅ Reboot Command Sent!\n\n🔄 Server restarting in 1 minute\n⏰ Initiated: ' + new Date().toLocaleTimeString() + '\n\n📡 Wait 2-3 minutes before reconnecting', 'warning');
+
+                        // Countdown timer
+                        let seconds = 60;
+                        const countdownInterval = setInterval(() => {
+                            seconds--;
+                            if (seconds <= 0) {
+                                clearInterval(countdownInterval);
+                                showMessage('🔄 Server should be rebooting now...\n\n⏳ Wait 2-3 minutes before reconnecting', 'warning');
+                            } else {
+                                document.getElementById('message').textContent =
+                                    `⚠️ System Reboot in Progress!\n\n⏱️  Rebooting in ${seconds} seconds\n\n📡 Wait 2-3 minutes after reboot before reconnecting`;
+                            }
+                        }, 1000);
+                    } else {
+                        showMessage('❌ Reboot Failed!\n\nError: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => showMessage('❌ Network Error!\n\n' + error.message, 'error'));
+        }
+
+        // Load system info on page load
+        updateSystemInfo();
+        loadLMSSettings();
+        updateNFSHealth();
+        
+        // Setup slider listener for sync delay
+        document.getElementById('lms-sync-delay').addEventListener('input', function() {
+            document.getElementById('lms-sync-delay-display').textContent = this.value + 'ms';
+        });
+
+        // Refresh every 5 seconds
+        setInterval(updateSystemInfo, 5000);
+        
+        // Refresh NFS health every 30 seconds
+        setInterval(updateNFSHealth, 30000);
+
+        function updateNFSHealth() {
+            fetch('/api/system/nfs-health')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success' && data.nfs) {
+                        const nfs = data.nfs;
+                        
+                        // Only show section if NFS mounts exist
+                        if (nfs.total_mounts > 0) {
+                            document.getElementById('nfs-section').style.display = 'block';
+                            
+                            // Update summary cards
+                            const serverCount = Object.keys(nfs.servers || {}).length;
+                            document.getElementById('nfs-servers').textContent = serverCount;
+                            document.getElementById('nfs-total').textContent = nfs.total_mounts;
+                            document.getElementById('nfs-healthy').textContent = nfs.healthy_mounts;
+                            document.getElementById('nfs-healthy').style.color = 
+                                nfs.healthy_mounts === nfs.total_mounts ? '#2ecc71' : '#e67e22';
+                            
+                            // Server status
+                            const serverStatusDiv = document.getElementById('nfs-server-status');
+                            let serverStatusHTML = '';
+                            for (const [server, reachable] of Object.entries(nfs.servers || {})) {
+                                const icon = reachable ? '✓' : '✗';
+                                const color = reachable ? '#2ecc71' : '#e74c3c';
+                                serverStatusHTML += `<div style="color: ${color};">${icon} ${server}</div>`;
+                            }
+                            serverStatusDiv.innerHTML = serverStatusHTML || '<div style="color: #95a5a6;">No servers</div>';
+                            
+                            // Monitoring status
+                            document.getElementById('nfs-monitoring').textContent = nfs.log_available ? '✓ Active' : '○ Inactive';
+                            document.getElementById('nfs-monitoring').style.color = nfs.log_available ? '#2ecc71' : '#95a5a6';
+                            
+                            // Mount points list
+                            if (nfs.mounts && nfs.mounts.length > 0) {
+                                document.getElementById('nfs-mounts-list').style.display = 'block';
+                                const container = document.getElementById('nfs-mounts-container');
+                                let mountsHTML = '';
+                                
+                                nfs.mounts.forEach(mount => {
+                                    const statusColor = mount.accessible ? '#2ecc71' : '#e74c3c';
+                                    const statusIcon = mount.accessible ? '✓' : '✗';
+                                    const statusText = mount.status;
+                                    
+                                    mountsHTML += `
+                                        <div style="background: rgba(255,255,255,0.03); border-radius: 8px; padding: 15px; margin-bottom: 10px; border-left: 4px solid ${statusColor};">
+                                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                <div>
+                                                    <div style="color: #ecf0f1; font-weight: bold; margin-bottom: 5px;">${mount.mount_point}</div>
+                                                    <div style="color: #7f8c8d; font-size: 0.9em;">${mount.source}</div>
+                                                </div>
+                                                <div style="text-align: right;">
+                                                    <div style="color: ${statusColor}; font-weight: bold; font-size: 1.2em;">${statusIcon}</div>
+                                                    <div style="color: ${statusColor}; font-size: 0.85em;">${statusText}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                });
+                                
+                                container.innerHTML = mountsHTML;
+                            }
+                            
+                            // Recent errors
+                            if (nfs.recent_errors && nfs.recent_errors.length > 0) {
+                                document.getElementById('nfs-errors').style.display = 'block';
+                                const errorsList = document.getElementById('nfs-errors-list');
+                                errorsList.innerHTML = nfs.recent_errors.map(error => 
+                                    `<div style="margin-bottom: 5px;">${error}</div>`
+                                ).join('');
+                            } else {
+                                document.getElementById('nfs-errors').style.display = 'none';
+                            }
+                        } else {
+                            document.getElementById('nfs-section').style.display = 'none';
+                        }
+                    }
+                })
+                .catch(error => console.error('Error fetching NFS health:', error));
+        }
+
+        function loadLMSSettings() {
+            fetch('/api/lms/settings')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        document.getElementById('lms-enabled').checked = data.lms_enabled || false;
+                        document.getElementById('lms-host').value = data.lms_host || '';
+                        document.getElementById('lms-port').value = data.lms_port || 9000;
+                        const delay = data.lms_sync_delay_ms || 500;
+                        document.getElementById('lms-sync-delay').value = delay;
+                        document.getElementById('lms-sync-delay-display').textContent = delay + 'ms';
+                    }
+                })
+                .catch(error => console.error('Error loading LMS settings:', error));
+        }
+
+        function saveLMSSettings() {
+            const enabled = document.getElementById('lms-enabled').checked;
+            const host = document.getElementById('lms-host').value.trim();
+            const port = parseInt(document.getElementById('lms-port').value) || 9000;
+            const syncDelay = parseInt(document.getElementById('lms-sync-delay').value) || 500;
+
+            if (enabled && !host) {
+                showMessage('❌ Error: LMS Server IP address is required when LMS is enabled.', 'error');
+                return;
+            }
+
+            const data = {
+                lms_enabled: enabled,
+                lms_host: host,
+                lms_port: port,
+                lms_sync_delay_ms: syncDelay
+            };
+
+            fetch('/api/lms/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showMessage('✅ LMS Settings Saved!\n\nLogitech Media Server settings have been updated successfully.\n\nYou can now control Squeezebox players from the main Maestro interface.', 'success');
+                    } else {
+                        showMessage(`❌ Save Failed!\n\n${data.message}`, 'error');
+                    }
+                })
+                .catch(error => showMessage(`❌ Network Error!\n\n${error.message}`, 'error'));
+        }
+
+        function testLMSConnection() {
+            const host = document.getElementById('lms-host').value.trim();
+            const port = parseInt(document.getElementById('lms-port').value) || 9000;
+
+            if (!host) {
+                showMessage('❌ Error: Please enter an LMS Server IP address.', 'error');
+                return;
+            }
+
+            showMessage('⏳ Testing connection to LMS server...', 'warning');
+
+            fetch('/api/lms/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lms_host: host, lms_port: port })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        let message = `✅ Connection Successful!\n\n`;
+                        message += `🖥️  LMS Server: ${host}:${port}\n`;
+                        if (data.version) {
+                            message += `📦 Version: ${data.version}\n`;
+                        }
+                        if (data.players !== undefined) {
+                            message += `🎵 Players Found: ${data.players}\n`;
+                        }
+                        showMessage(message, 'success');
+                    } else {
+                        showMessage(`❌ Connection Failed!\n\n${data.message}\n\nPlease check:\n• LMS server is running\n• IP address and port are correct\n• No firewall blocking port ${port}`, 'error');
+                    }
+                })
+                .catch(error => showMessage(`❌ Network Error!\n\n${error.message}`, 'error'));
+        }
+    </script>
+</body>
+
+</html>

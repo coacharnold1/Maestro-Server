@@ -1,0 +1,495 @@
+#!/bin/bash
+
+#==============================================================================
+# Maestro MPD Control - Update Script
+# Pulls latest changes from git and updates the installation
+#==============================================================================
+
+set -e  # Exit on error
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+INSTALL_DIR="$HOME/maestro"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Print banner
+echo -e "${BLUE}"
+echo "╔════════════════════════════════════════════════════════════╗"
+echo "║                                                            ║"
+echo "║          MAESTRO MPD CONTROL - UPDATE SCRIPT              ║"
+echo "║                                                            ║"
+echo "╚════════════════════════════════════════════════════════════╝"
+echo -e "${NC}"
+echo ""
+
+# Check if maestro is installed
+if [ ! -d "$INSTALL_DIR" ]; then
+    echo -e "${RED}Error: Maestro is not installed in $INSTALL_DIR${NC}"
+    echo "Please run install-maestro.sh first."
+    exit 1
+fi
+
+echo -e "${GREEN}[1/6] Checking for updates...${NC}"
+cd "$REPO_DIR"
+
+# Stash any local changes in the repo
+if ! git diff-index --quiet HEAD --; then
+    echo -e "${YELLOW}Stashing local changes in repository...${NC}"
+    git stash
+fi
+
+# Explicit fetch first to ensure remote refs are up to date
+echo -e "${GREEN}Fetching remote changes from GitHub...${NC}"
+if ! git fetch origin main; then
+    echo -e "${RED}Failed to fetch from git${NC}"
+    exit 1
+fi
+
+# Check how many commits we're behind
+BEHIND=$(git rev-list --count HEAD..origin/main)
+if [ "$BEHIND" -gt 0 ]; then
+    echo -e "${GREEN}Found $BEHIND new commits. Pulling...${NC}"
+    if ! git pull --ff-only origin main; then
+        echo -e "${RED}Failed to merge changes from GitHub${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✓ Successfully pulled $BEHIND new commits${NC}"
+    
+    # Show what was updated
+    echo ""
+    echo -e "${YELLOW}Recent changes:${NC}"
+    git log --oneline -n $BEHIND | while read line; do
+        echo "  • $line"
+    done
+else
+    echo -e "${GREEN}✓ Already up to date${NC}"
+fi
+
+# Always show current version being deployed
+echo ""
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${GREEN}Current Version Being Deployed:${NC}"
+CURRENT_COMMIT=$(git rev-parse --short HEAD)
+CURRENT_MSG=$(git log --oneline -1)
+echo -e "  ${BLUE}$CURRENT_MSG${NC}"
+echo ""
+echo -e "${GREEN}Files Modified in This Commit:${NC}"
+git show --name-only --pretty="" HEAD | grep -v '^$' | while read file; do
+    echo -e "  ${YELLOW}• $file${NC}"
+done
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+echo -e "${GREEN}[2/6] Backing up current configuration...${NC}"
+# Backup current settings
+if [ -f "$INSTALL_DIR/settings.json" ]; then
+    cp "$INSTALL_DIR/settings.json" "$INSTALL_DIR/settings.json.backup"
+    echo -e "${GREEN}✓ Backed up settings.json${NC}"
+fi
+
+if [ -f "$INSTALL_DIR/web/settings.json" ]; then
+    cp "$INSTALL_DIR/web/settings.json" "$INSTALL_DIR/web/settings.json.backup"
+    echo -e "${GREEN}✓ Backed up web/settings.json${NC}"
+fi
+
+if [ -f "$HOME/.abcde.conf" ]; then
+    cp "$HOME/.abcde.conf" "$HOME/.abcde.conf.backup"
+    echo -e "${GREEN}✓ Backed up abcde.conf${NC}"
+fi
+
+# Migrate settings - add missing fields
+echo -e "${YELLOW}Migrating settings configuration...${NC}"
+for settings_path in "$INSTALL_DIR/settings.json" "$INSTALL_DIR/web/settings.json"; do
+    if [ -f "$settings_path" ]; then
+        # Use Python to safely add missing fields to JSON
+        python3 <<EOF
+import json
+modified = False
+with open('$settings_path', 'r') as f:
+    settings = json.load(f)
+
+# Add missing recent_albums_dir field
+if 'recent_albums_dir' not in settings:
+    settings['recent_albums_dir'] = 'ripped'
+    modified = True
+
+# Add missing Bandcamp fields
+if 'bandcamp_enabled' not in settings:
+    settings['bandcamp_enabled'] = False
+    modified = True
+if 'bandcamp_username' not in settings:
+    settings['bandcamp_username'] = ''
+    modified = True
+if 'bandcamp_identity_token' not in settings:
+    settings['bandcamp_identity_token'] = ''
+    modified = True
+
+# Add missing LMS sync delay field (2000ms is better default for Squeezebox sync)
+if 'lms_sync_delay_ms' not in settings:
+    settings['lms_sync_delay_ms'] = 2000
+    modified = True
+elif settings.get('lms_sync_delay_ms', 500) == 500:
+    # Update old default (500ms) to new default (2000ms) for better sync
+    settings['lms_sync_delay_ms'] = 2000
+    modified = True
+
+if modified:
+    with open('$settings_path', 'w') as f:
+        json.dump(settings, f, indent=2)
+    print('✓ Updated missing fields in settings.json')
+EOF
+    fi
+done
+
+# Sync settings between locations
+if [ -f "$INSTALL_DIR/web/settings.json" ] && [ -f "$INSTALL_DIR/settings.json" ]; then
+    # Use the web version as source of truth (it's what the service uses)
+    cp "$INSTALL_DIR/web/settings.json" "$INSTALL_DIR/settings.json"
+    echo -e "${GREEN}✓ Synchronized settings between locations${NC}"
+elif [ -f "$INSTALL_DIR/settings.json" ] && [ ! -f "$INSTALL_DIR/web/settings.json" ]; then
+    # Copy from root to web if web is missing
+    cp "$INSTALL_DIR/settings.json" "$INSTALL_DIR/web/settings.json"
+    echo -e "${GREEN}✓ Copied settings to web directory${NC}"
+fi
+
+# Check and install FFmpeg if missing (required for MP3 export)
+echo -e "${YELLOW}Checking for FFmpeg (required for MP3 export)...${NC}"
+if ! command -v ffmpeg &> /dev/null; then
+    echo -e "${YELLOW}FFmpeg not found, installing...${NC}"
+    sudo apt update
+    sudo apt install -y ffmpeg
+    if command -v ffmpeg &> /dev/null; then
+        echo -e "${GREEN}✓ FFmpeg installed successfully${NC}"
+    else
+        echo -e "${YELLOW}⚠ Warning: FFmpeg installation failed (MP3 export will not work)${NC}"
+    fi
+else
+    echo -e "${GREEN}✓ FFmpeg is installed${NC}"
+fi
+
+# Update sudoers permissions (critical for backup/restore)
+echo -e "${YELLOW}Updating sudo permissions for admin functions...${NC}"
+SUDOERS_FILE="/etc/sudoers.d/maestro"
+sudo tee "$SUDOERS_FILE" > /dev/null <<EOF
+# Maestro MPD Control - Sudo permissions
+# Allow user to run system management commands without password
+
+$USER ALL=(ALL) NOPASSWD: /usr/bin/apt update
+$USER ALL=(ALL) NOPASSWD: /usr/bin/apt upgrade
+$USER ALL=(ALL) NOPASSWD: /usr/bin/apt upgrade -y
+$USER ALL=(ALL) NOPASSWD: /usr/bin/pacman
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart mpd
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop mpd
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl start mpd
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl reboot
+$USER ALL=(ALL) NOPASSWD: /sbin/shutdown
+$USER ALL=(ALL) NOPASSWD: /sbin/reboot
+$USER ALL=(ALL) NOPASSWD: /bin/mount
+$USER ALL=(ALL) NOPASSWD: /bin/umount
+$USER ALL=(ALL) NOPASSWD: /usr/bin/mount
+$USER ALL=(ALL) NOPASSWD: /usr/bin/umount
+$USER ALL=(ALL) NOPASSWD: /usr/bin/aplay
+$USER ALL=(ALL) NOPASSWD: /usr/bin/journalctl
+$USER ALL=(ALL) NOPASSWD: /usr/bin/tee /etc/mpd.conf
+$USER ALL=(ALL) NOPASSWD: /usr/bin/dpkg --configure -a
+# MPD Database Backup/Restore commands
+$USER ALL=(ALL) NOPASSWD: /usr/bin/cp /var/lib/mpd/database /var/lib/mpd/database.backup.*
+$USER ALL=(ALL) NOPASSWD: /usr/bin/cp /var/lib/mpd/database.backup.* /var/lib/mpd/database
+$USER ALL=(ALL) NOPASSWD: /usr/bin/find /var/lib/mpd/ -name database.backup.* -type f
+$USER ALL=(ALL) NOPASSWD: /usr/bin/du -h /var/lib/mpd/database*
+$USER ALL=(ALL) NOPASSWD: /usr/bin/stat -c %y /var/lib/mpd/database*
+$USER ALL=(ALL) NOPASSWD: /usr/bin/test -f /var/lib/mpd/database*
+# CD Ripping commands
+$USER ALL=(ALL) NOPASSWD: /usr/bin/cdparanoia
+$USER ALL=(ALL) NOPASSWD: /usr/bin/cd-discid
+$USER ALL=(ALL) NOPASSWD: /usr/bin/abcde
+$USER ALL=(ALL) NOPASSWD: /usr/bin/eject
+# File management commands for imported music
+$USER ALL=(ALL) NOPASSWD: /usr/bin/mv /media/music/*
+$USER ALL=(ALL) NOPASSWD: /usr/bin/rm /media/music/*
+$USER ALL=(ALL) NOPASSWD: /usr/bin/rm -rf /media/music/*
+EOF
+sudo chmod 440 "$SUDOERS_FILE"
+echo -e "${GREEN}✓ Updated sudo permissions${NC}"
+
+# Configure MPD to wait for NFS mounts (fixes database loss issue)
+echo -e "${YELLOW}Configuring MPD to wait for NFS mounts...${NC}"
+sudo mkdir -p /etc/systemd/system/mpd.service.d
+sudo tee /etc/systemd/system/mpd.service.d/nfs-wait.conf > /dev/null <<'MPDEOF'
+[Unit]
+# Wait for NFS mounts before starting MPD
+After=network-online.target remote-fs.target
+Wants=network-online.target
+Requires=remote-fs.target
+
+[Service]
+# Restart MPD if it crashes due to NFS issues
+Restart=on-failure
+RestartSec=10
+MPDEOF
+echo -e "${GREEN}✓ Configured MPD to wait for remote filesystems${NC}"
+
+# Ensure ripped directory exists for CD ripping
+if [ ! -d "/media/music/ripped" ]; then
+    echo -e "${YELLOW}Creating ripped directory for CD ripping...${NC}"
+    sudo mkdir -p /media/music/ripped
+    sudo chown mpd:audio /media/music/ripped
+    echo -e "${GREEN}✓ Created /media/music/ripped${NC}"
+fi
+
+# Update CD auto-rip scripts and udev rule
+echo -e "${YELLOW}Updating CD auto-rip configuration...${NC}"
+mkdir -p "$INSTALL_DIR/scripts"
+mkdir -p "$INSTALL_DIR/logs"
+
+if [ -f "$REPO_DIR/scripts/cd-inserted.sh" ]; then
+    cp "$REPO_DIR/scripts/cd-inserted.sh" "$INSTALL_DIR/scripts/"
+    chmod +x "$INSTALL_DIR/scripts/cd-inserted.sh"
+    echo -e "${GREEN}✓ Updated CD insert handler${NC}"
+fi
+
+if [ -f "$REPO_DIR/udev/99-maestro-cd.rules" ]; then
+    sed "s/%u/$USER/g" "$REPO_DIR/udev/99-maestro-cd.rules" | sudo tee /etc/udev/rules.d/99-maestro-cd.rules > /dev/null
+    sudo udevadm control --reload-rules
+    echo -e "${GREEN}✓ Updated udev rule for CD detection${NC}"
+fi
+
+echo ""
+echo -e "${GREEN}[3/6] Updating main application...${NC}"
+# Copy main app files
+sudo cp -r "$REPO_DIR/templates" "$INSTALL_DIR/"
+sudo cp -r "$REPO_DIR/templates" "$INSTALL_DIR/web/"
+
+# Copy modular route handlers (REQUIRED - fail if missing)
+if [ ! -d "$REPO_DIR/routes" ]; then
+    echo -e "${RED}✗ ERROR: routes directory not found in $REPO_DIR${NC}"
+    exit 1
+fi
+echo "  → Copying route handlers..."
+sudo cp -r "$REPO_DIR/routes" "$INSTALL_DIR/web/"
+echo -e "${GREEN}✓ Updated route handlers${NC}"
+
+# Copy services directory (REQUIRED - fail if missing)
+if [ ! -d "$REPO_DIR/services" ]; then
+    echo -e "${RED}✗ ERROR: services directory not found in $REPO_DIR${NC}"
+    exit 1
+fi
+echo "  → Copying services..."
+sudo mkdir -p "$INSTALL_DIR/web/services"
+sudo cp -rf "$REPO_DIR/services/"* "$INSTALL_DIR/web/services/"
+echo -e "${GREEN}✓ Updated services${NC}"
+
+# Copy utilities (REQUIRED - fail if missing)
+if [ ! -d "$REPO_DIR/utils" ]; then
+    echo -e "${RED}✗ ERROR: utils directory not found in $REPO_DIR${NC}"
+    exit 1
+fi
+echo "  → Copying utilities..."
+sudo cp -r "$REPO_DIR/utils" "$INSTALL_DIR/web/"
+echo -e "${GREEN}✓ Updated utilities${NC}"
+
+# Copy static directory contents (create directory first, then copy contents)
+echo "  → Copying static files..."
+sudo mkdir -p "$INSTALL_DIR/static"
+sudo mkdir -p "$INSTALL_DIR/web/static"
+sudo cp -rf "$REPO_DIR/static/"* "$INSTALL_DIR/static/"
+sudo cp -rf "$REPO_DIR/static/"* "$INSTALL_DIR/web/static/"
+
+# Copy main app.py (contains Squeezebox sync changes if updated)
+echo "  → Copying app.py with any recent changes..."
+sudo cp "$REPO_DIR/app.py" "$INSTALL_DIR/"
+sudo cp "$REPO_DIR/app.py" "$INSTALL_DIR/web/"
+
+sudo cp "$REPO_DIR/requirements.txt" "$INSTALL_DIR/"
+# Copy LMS client library if it exists
+if [ -f "$REPO_DIR/lms_client.py" ]; then
+    sudo cp "$REPO_DIR/lms_client.py" "$INSTALL_DIR/"
+    sudo cp "$REPO_DIR/lms_client.py" "$INSTALL_DIR/web/"
+    echo -e "${GREEN}✓ Updated LMS client library${NC}"
+fi
+# Copy Bandcamp client library if it exists
+if [ -f "$REPO_DIR/bandcamp_client.py" ]; then
+    sudo cp "$REPO_DIR/bandcamp_client.py" "$INSTALL_DIR/"
+    sudo cp "$REPO_DIR/bandcamp_client.py" "$INSTALL_DIR/web/"
+    echo -e "${GREEN}✓ Updated Bandcamp client library${NC}"
+fi
+echo -e "${GREEN}✓ Updated main application files${NC}"
+
+echo ""
+echo -e "${GREEN}[4/6] Updating admin interface...${NC}"
+# Copy admin files
+echo "  → Copying admin API..."
+sudo cp "$REPO_DIR/admin/admin_api.py" "$INSTALL_DIR/admin/"
+sudo cp "$REPO_DIR/admin/requirements.txt" "$INSTALL_DIR/admin/"
+sudo cp "$REPO_DIR/admin/library_maintenance.py" "$INSTALL_DIR/admin/"
+
+# Copy admin templates (includes Squeezebox sync delay UI if updated)
+echo "  → Copying admin templates (Squeezebox/LMS settings)..."
+sudo cp -r "$REPO_DIR/admin/templates" "$INSTALL_DIR/admin/"
+echo -e "${GREEN}✓ Updated admin interface files${NC}"
+
+echo ""
+echo -e "${GREEN}[5/6] Updating Python dependencies...${NC}"
+
+# Function to check if venv needs to be recreated (e.g., after Python update)
+check_venv_health() {
+    local venv_path="$1"
+    if [ ! -d "$venv_path" ]; then
+        return 1  # venv doesn't exist
+    fi
+    
+    # Check if pip is functional
+    if ! "$venv_path/bin/pip" --version &>/dev/null; then
+        echo -e "${YELLOW}⚠ Virtual environment is broken (likely due to Python update)${NC}"
+        return 1
+    fi
+    
+    return 0
+}
+
+# Update main app dependencies (use virtual environment)
+if [ -d "$INSTALL_DIR/web/venv" ]; then
+    cd "$INSTALL_DIR/web"
+    
+    if ! check_venv_health "$INSTALL_DIR/web/venv"; then
+        echo -e "${YELLOW}Recreating web virtual environment...${NC}"
+        rm -rf venv
+        python3 -m venv venv
+        echo -e "${GREEN}✓ Recreated web virtual environment${NC}"
+    fi
+    
+    source venv/bin/activate
+    pip install --upgrade pip --quiet
+    pip install --upgrade -r "$INSTALL_DIR/requirements.txt" --quiet
+    deactivate
+    echo -e "${GREEN}✓ Updated main app dependencies${NC}"
+else
+    echo -e "${YELLOW}⚠ Virtual environment not found at $INSTALL_DIR/web/venv${NC}"
+    echo -e "${YELLOW}Creating new virtual environment...${NC}"
+    cd "$INSTALL_DIR/web"
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install --upgrade pip --quiet
+    pip install -r "$INSTALL_DIR/requirements.txt" --quiet
+    deactivate
+    echo -e "${GREEN}✓ Created web virtual environment and installed dependencies${NC}"
+fi
+
+# Update admin dependencies (use virtual environment)
+if [ -d "$INSTALL_DIR/admin/venv" ]; then
+    cd "$INSTALL_DIR/admin"
+    
+    if ! check_venv_health "$INSTALL_DIR/admin/venv"; then
+        echo -e "${YELLOW}Recreating admin virtual environment...${NC}"
+        rm -rf venv
+        python3 -m venv venv
+        echo -e "${GREEN}✓ Recreated admin virtual environment${NC}"
+    fi
+    
+    source venv/bin/activate
+    pip install --upgrade pip --quiet
+    pip install --upgrade -r requirements.txt --quiet
+    deactivate
+    echo -e "${GREEN}✓ Updated admin dependencies${NC}"
+else
+    echo -e "${YELLOW}⚠ Virtual environment not found at $INSTALL_DIR/admin/venv${NC}"
+    echo -e "${YELLOW}Creating new virtual environment...${NC}"
+    cd "$INSTALL_DIR/admin"
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install --upgrade pip --quiet
+    pip install -r requirements.txt --quiet
+    deactivate
+    echo -e "${GREEN}✓ Created admin virtual environment and installed dependencies${NC}"
+fi
+
+echo ""
+echo -e "${GREEN}[6/6] Updating services and configuration...${NC}"
+
+# Update NFS monitoring if scripts exist
+if [ -f "$REPO_DIR/scripts/nfs-health-check.sh" ]; then
+    echo -e "${YELLOW}Updating NFS health monitoring...${NC}"
+    
+    # Update scripts in install directory
+    if [ -d "$INSTALL_DIR/scripts" ]; then
+        cp "$REPO_DIR/scripts/nfs-health-check.sh" "$INSTALL_DIR/scripts/"
+        cp "$REPO_DIR/scripts/nfs-health-report.sh" "$INSTALL_DIR/scripts/"
+        chmod +x "$INSTALL_DIR/scripts/nfs-health-check.sh"
+        chmod +x "$INSTALL_DIR/scripts/nfs-health-report.sh"
+        
+        # Update service file with correct paths
+        sed "s|/home/fausto/Maestro-Server|$INSTALL_DIR|g" "$REPO_DIR/scripts/nfs-health-check.service" | \
+            sudo tee /etc/systemd/system/nfs-health-check.service > /dev/null
+        
+        # Update timer
+        sudo cp "$REPO_DIR/scripts/nfs-health-check.timer" /etc/systemd/system/
+        
+        # Reload systemd to pick up new/updated service files
+        sudo systemctl daemon-reload
+        
+        # Enable if not already enabled
+        if ! systemctl is-enabled --quiet nfs-health-check.timer 2>/dev/null; then
+            sudo systemctl enable nfs-health-check.timer
+            sudo systemctl start nfs-health-check.timer
+            echo -e "${GREEN}✓ NFS monitoring enabled (new feature)${NC}"
+        else
+            sudo systemctl restart nfs-health-check.timer
+            echo -e "${GREEN}✓ NFS monitoring updated${NC}"
+        fi
+    fi
+fi
+
+# Restart services
+if systemctl is-active --quiet maestro-web.service; then
+    sudo systemctl restart maestro-web.service
+    echo -e "${GREEN}✓ Restarted maestro-web.service${NC}"
+fi
+
+if systemctl is-active --quiet maestro-admin.service; then
+    sudo systemctl restart maestro-admin.service
+    echo -e "${GREEN}✓ Restarted maestro-admin.service${NC}"
+fi
+
+# Wait a moment for services to start
+sleep 2
+
+# Check service status
+echo ""
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${GREEN}Service Status:${NC}"
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+
+if systemctl is-active --quiet maestro-web.service; then
+    echo -e "Web UI:    ${GREEN}✓ Running${NC}"
+else
+    echo -e "Web UI:    ${RED}✗ Not running${NC}"
+fi
+
+if systemctl is-active --quiet maestro-admin.service; then
+    echo -e "Admin API: ${GREEN}✓ Running${NC}"
+else
+    echo -e "Admin API: ${RED}✗ Not running${NC}"
+fi
+
+if systemctl is-active --quiet nfs-health-check.timer 2>/dev/null; then
+    echo -e "NFS Monitor: ${GREEN}✓ Active${NC}"
+fi
+
+echo ""
+echo -e "${GREEN}╔════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║                                                            ║${NC}"
+echo -e "${GREEN}║             UPDATE COMPLETED SUCCESSFULLY!                 ║${NC}"
+echo -e "${GREEN}║                                                            ║${NC}"
+echo -e "${GREEN}╚════════════════════════════════════════════════════════════╝${NC}"
+echo ""
+echo -e "Your settings have been preserved in:"
+echo -e "  ${YELLOW}$INSTALL_DIR/settings.json${NC}"
+echo ""
+echo -e "Backups created:"
+echo -e "  ${YELLOW}$INSTALL_DIR/settings.json.backup${NC}"
+[ -f "$HOME/.abcde.conf.backup" ] && echo -e "  ${YELLOW}$HOME/.abcde.conf.backup${NC}"
+echo ""

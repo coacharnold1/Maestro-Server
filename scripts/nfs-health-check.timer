@@ -1,0 +1,11 @@
+[Unit]
+Description=Run NFS Health Check Every 10 Minutes
+Requires=nfs-health-check.service
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=10min
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

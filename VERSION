@@ -1,0 +1,205 @@
+Maestro MPD Server v3.6.6
+Release Date: May 9 2026
+Version: 3.6.6
+
+🎵 MULTI-DIRECTORY RECENT ALBUMS MANAGEMENT 🎵
+
+Latest Features (Mar 10, 2026 - v3.5):
+✅ NEW: Artist-Based Music Addition - Autocomplete artist selection with 8657+ artists from library
+✅ NEW: Artist Stations - Save/load/manage preferred artist combinations as reusable presets
+✅ ENHANCED: Artist Stations UI - Matches genre stations design pattern for consistency
+✅ FIXED: Artist Stations Styling - Full theme support (all 7 themes) with proper inheritance
+✅ IMPROVED: Station Management - Consistent visual styling across genre and artist stations
+✅ REFINED: UI/UX Consistency - Artist and genre station features now mirror each other perfectly
+
+Previous Features (Mar 7, 2026 - v3.3):
+✅ NEW: Bandcamp Track Metadata in Queue - Browse Bandcamp albums, add tracks with proper title/artist/album display
+✅ NEW: Radio Page Navbar Standardization - Fixed-header navigation matching all other pages
+✅ ENHANCED: Bandcamp Metadata Caching - Track info cached by track_id and streaming URL for reliable queue display
+✅ FIXED: Search functionality integrated into radio page header
+✅ NEW: "All Types" Search Option - Quick way to search across all categories at once
+✅ IMPROVED: Autocomplete Dropdown Layout - Fixed CSS overlap issues with search button
+✅ IMPROVED: Playback Controls Centering - Reorganized layout to prevent float issues
+✅ IMPROVED: Now-Playing-Bar Theme Support - Added CSS for all 8 themes on browse_albums page
+✅ ENHANCED: Consistent UI/UX - Autocomplete behavior standardized across entire application
+✅ REMOVED: Redundant Clear Playlist Button - Streamlined playback control interface
+
+Files Modified in v3.2:
+- templates/search_results.html - Album artwork display, autocomplete data fetching
+- templates/browse_albums.html - Autocomplete implementation, playback controls layout, theme CSS for now-playing-bar
+- templates/browse_artists.html - Autocomplete implementation, playback controls layout
+- templates/browse_genres.html - Autocomplete implementation, playback controls layout
+- templates/recent_albums.html - Autocomplete implementation, removed redundant Clear Playlist button
+- app.py - Version string updated to 3.2
+- VERSION - This file with detailed feature documentation
+
+Previous Features (Mar 3, 2026 - v3.0.1):
+✅ Phase 2A Fixed Header Navigation - Consistent navigation across all pages
+✅ Header Search Bar - Search functionality with autocomplete in fixed header
+✅ Dynamic Page Headings - Genre and artist names displayed in page titles
+✅ Browse Albums Page - Complete Phase 2 header integration
+✅ Bandcamp Button & Clear Playlist - Proper layout positioning
+✅ Theme Support - All 8 themes now apply to fixed header elements
+✅ Browse Pages Navigation - Added browse_genres, browse_artists, browse_albums to Phase 2A
+✅ Better Music Discovery - Collects 3 tracks per artist for balanced variety
+✅ Clickable Artist Links - Random album results link back to artist search
+✅ Enhanced Debug Messages - Shows similar artist count and candidate pool size
+
+Previous Features (Jan 10, 2026 - v2.5.0):
+✅ Album Art Collage View - Click album art to see interactive 3x3 grid with artist's albums
+✅ Local Album Discovery - Prioritizes your music collection, shows collaborations
+✅ Interactive Album Covers - Click any album in collage to search and auto-close view
+✅ NEW: Dual-Priority Album Art - Main page uses local (fast), full-screen uses LastFM (best quality)
+✅ NEW: Random Album Selection - Shows 8 random albums from collection for variety
+✅ ENHANCED: Compact 2-Column Layout - Status info takes 50% less vertical space
+✅ ENHANCED: Visual Hierarchy - Blue labels, consistent spacing, highlighted "Up Next" section
+✅ ENHANCED: File Path Button - Clean popup instead of inline display (less clutter)
+✅ ENHANCED: Mobile Protection - Album art not clickable on screens <768px
+✅ OPTIMIZED: High-Res Images - LastFM mega size prioritized for full-screen view
+✅ UI POLISH: Hover effects on collage, album titles on hover, smooth transitions
+
+Previous Release (Dec 26, 2025 - v2.4.1):
+🐛 FIXED: Search Results - Album drill-down buttons now work correctly with special characters
+✅ IMPROVED: Event Handling - Replaced inline onclick with safe event delegation
+✅ IMPROVED: Error Handling - Better debugging and user feedback in search interface
+
+Previous Release (Dec 25, 2025 - v2.4):
+✅ NEW: Internet Radio - Full streaming radio with Radio Browser API integration (22 countries)
+✅ NEW: Smart Metadata Parsing - Handles "Title by Artist - Station" and complex patterns
+✅ NEW: Toast Notifications - Real-time feedback with SocketIO integration
+✅ NEW: Station Favicon Art - Station logos display as album art when no Last.fm data
+✅ ENHANCED: API Redundancy - 3-server failover (de1, nl1, at1) with retry functionality
+✅ ENHANCED: Station Name Fallback - Shows "🔴 LIVE: Station Name" for streams with no metadata
+✅ IMPROVED: Confirmation Dialog - Asks before clearing playlist when playing radio
+✅ OPTIMIZED: UI Polish - Text overflow handling, no layout shift, reduced art jitter
+
+Previous Release (Dec 23, 2025 - v2.3):
+✅ NEW: Pre-download Album Art - Cover art downloads BEFORE ripping starts
+✅ FIXED: CD Ripping with Parentheses - Albums with parentheses in names now rip correctly
+✅ FIXED: Metadata Cache - MusicBrainz metadata properly cached for ripping
+✅ ENHANCED: Album Organization - Tracks and cover art now in same folder
+
+Previous Release (Dec 21, 2025 - v2.2):
+✅ NEW: Letter Jump Navigation - Quick alphabetic navigation for artist lists >50 items
+✅ ENHANCED: Button Reorganization - Charts moved up, MPD controls in footer for cleaner UI
+✅ IMPROVED: NFS Mount Reliability - MPD waits for remote-fs.target, auto-restart on failure
+✅ IMPROVED: Theme Consistency - Search results now properly support all 8 themes
+✅ OPTIMIZED: UI Polish - Removed unused Clear Cache button, increased Charts button size
+✅ FIXED: Database Toast Behavior - Only shows when manually triggered, not on page load
+✅ SMART: Context-Aware Navigation - Letter jump only appears when useful (>50 artists)
+
+Previous Features (Dec 17, 2025 - v2.1):
+✅ Playlist Save/Load - M3U format with metadata, list/delete operations
+✅ Track Reordering - Up/down arrow buttons to move songs in playlist
+✅ Clickable Seeking - Click progress bar to jump to any position in track
+✅ 4 New Themes - Terminal (retro green), Sunset (warm), Forest (green), Midnight (purple)
+✅ Music Directory Standardization - /media/music/ with symlink support
+✅ Safe Installer - Preserves existing MPD config and database
+
+Core Features:
+- Web UI (port 5003) - Music playback control with modern interface
+- Admin Panel (port 5004) - System administration and configuration
+- MPD Integration - Music Player Daemon control and management
+- Last.fm Integration - Scrobbling and charts
+- Search Functionality - Artist, album, title search with album grouping
+- Auto-fill Playlists - Radio station mode with genre-based selection
+- Multi-Disc Album Support - Nested disc display with individual controls
+- Album Art Display - Local files and Last.fm fallback
+- Real-time Updates - WebSocket-based status updates
+- Theme System - 8 themes (dark, light, high-contrast, desert, terminal, sunset, forest, midnight)
+- Network Mount Support - NFS and SMB share management with reliability features
+- System Logs Viewer - Real-time monitoring of all services
+- Playlist Management - Save/load M3U playlists with metadata
+- Track Seeking - Clickable progress bar for precise playback control
+- Letter Jump Navigation - Quick alphabetic navigation for long artist lists
+
+Previous Major Features (Dec 16, 2025 - v2.0):
+✅ CRITICAL: Safe Installer - Preserves existing MPD config and database
+✅ CRITICAL: Data Loss Prevention - Auto-backup MPD database before changes
+✅ NEW: Arch Linux Support - Full compatibility with Arch/Manjaro
+✅ NEW: System Logs Viewer - Real-time monitoring with filtering/search
+✅ NEW: Admin Panel - Audio tweaks, library management, system control
+✅ FIXED: Album Art in Search - Groups by directory for multiple copies
+✅ FIXED: Recent Albums Directory - Now uses configured path from settings
+✅ ENHANCED: Network Mount Support - NFS/SMB with automatic detection
+✅ ENHANCED: Audio Device Management - Detection and configuration via Admin Panel
+✅ SECURITY: Removed dangerous chown on network mounts
+✅ UI: Clean navigation - Removed redundant buttons from main page
+
+Previous Features (Dec 13, 2025 - v1.7):
+✅ NEW: Multi-Disc Album Support - Single album entry with nested disc sections
+✅ SMART: Individual "Add Disc X" buttons for each disc in multi-disc albums
+✅ UI: Nested disc display in Recent Albums, Browse Albums, and Search Results
+✅ BACKEND: New extract_disc_number() and organize_album_by_disc() helper functions
+✅ ENHANCED: Album addition endpoint accepts optional disc_number parameter
+✅ METADATA: Automatic disc detection from 'disc' tags in music files
+✅ EXAMPLE: "Wish You Were Here 50" shows Disc 1, Disc 2, Disc 3 separately
+
+Previous Major Features (Nov 30, 2025 - v3):
+✅ NEW: Large Genre List Support - handles 50+ genres without timeouts
+✅ ENHANCED: Batch processing with 15-genre batches and fresh MPD connections
+✅ SMART: Early stopping when 5x needed tracks found for performance
+✅ AUTO-ENABLE: Radio stations automatically enable auto-fill toggle
+✅ IMPROVED: Better error handling and connection stability
+
+Previous Major Features (Nov 30, 2025 - v2):
+✅ NEW: Radio Station Auto-Fill Mode - preserves station genres during auto-fill
+✅ NEW: Enhanced Toast Notifications with gradients and smooth animations
+✅ ENHANCEMENT: Radio stations now enable auto-fill automatically when loaded
+✅ BACKEND: New perform_radio_station_auto_fill() function for genre-based track selection
+✅ INTEGRATION: Auto-fill monitor detects radio station mode and uses station genres
+✅ UI POLISH: Modern toast notifications with backdrop blur and elegant transitions
+✅ SMART AUTO-FILL: Radio station mode bypasses Last.fm, uses direct genre selection
+✅ CONFIGURATION: Example radio stations file with Rock Classics, Jazz Lounge, Electronic Mix
+
+Previous Major Features (Nov 15, 2025):
+✅ NEW: Last.fm Charts page with time period filtering (7day → all-time)
+✅ NEW: Complete theme system (dark, light, high-contrast) across all pages
+✅ INTEGRATION: Charts directly add artists/albums to playlist from stats
+✅ UI CONSISTENCY: Charts link added to footer on all pages
+✅ THEME FIX: Browse and Recent pages now honor theme selection
+✅ THEME FIX: Main page status box respects theme (no more static blue)
+✅ API: user.getTopArtists, user.getTopAlbums, user.getTopTracks endpoints
+✅ SMART DESIGN: Charts show playcount rankings with period selector
+
+Technical Achievements (Dec 13, 2025 - v1.7):
+- Implemented extract_disc_number() to parse disc metadata (handles "1", "1/2" formats)
+- Created organize_album_by_disc() to group tracks by disc number
+- Modified /add_album_to_playlist to accept optional disc_number parameter
+- Updated /api/album_tracks to return disc_structure for multi-disc albums
+- Enhanced recent_albums.html, browse_albums.html, search_results.html with nested disc UI
+- Added displayMultiDiscTracks() JavaScript function for disc section rendering
+- Integrated disc count badge (💿×3) in album listings for multi-disc identification
+
+Previous Technical Achievements (Nov 30, 2025 - v3):
+- Enhanced perform_radio_station_auto_fill() with batch processing (15 genres per batch)
+- Implemented fresh MPD connections per batch to prevent timeout errors
+- Added smart early stopping at 5x needed tracks for performance optimization
+- Improved auto-fill toggle behavior - only enables if not already checked
+- Added comprehensive error handling for large genre list processing
+- Better progress logging for debugging and monitoring
+
+Previous Technical Achievements (Nov 30, 2025 - v2):
+- Implemented Radio Station Auto-Fill with perform_radio_station_auto_fill() function
+- Enhanced auto_fill_monitor() with radio station mode detection and routing
+- Added automatic auto-fill enabling when radio stations are loaded
+- Created enhanced toast notification system with CSS gradients and animations
+- Updated socket emissions to include radio station mode information
+- Added data/radio_stations.json with example configurations for immediate use
+- Implemented backdrop blur effects and smooth cubic-bezier transitions for notifications
+
+Previous Technical Achievements (Nov 15, 2025):
+- Implemented Last.fm Charts API with period-based filtering
+- Created unified theme system with minimal CSS overrides per page
+- Added Charts page with ranked lists and add-to-playlist actions
+- Extended footer navigation across all pages (version • Settings • Charts)
+- Fixed theme inheritance on browse_genres, browse_artists, browse_albums, recent_albums
+- Fixed status-box background color to respect light/high-contrast themes
+
+System Status: FULLY OPERATIONAL with radio station auto-fill integration
+
+Backup Snapshot (Nov 30, 2025):
+- Archive: mpd_web_control_backup_20251130_204500_radio_auto_fill.tar.gz
+- Features: Radio station auto-fill mode, enhanced toast notifications, auto-fill automation
+- Locations: project/backups and user home directory
+- Retention: kept two most recent per location (older archives pruned automatically)

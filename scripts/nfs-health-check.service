@@ -1,0 +1,13 @@
+[Unit]
+Description=NFS Mount Health Check
+After=network-online.target remote-fs.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/fausto/Maestro-Server/scripts/nfs-health-check.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

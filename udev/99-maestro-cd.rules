@@ -1,0 +1,5 @@
+# Maestro CD Auto-Rip udev rule
+# Triggers when a CD is inserted into the drive
+# Place in /etc/udev/rules.d/99-maestro-cd.rules
+
+SUBSYSTEM=="block", KERNEL=="sr[0-9]", ACTION=="change", ENV{DISK_MEDIA_CHANGE}=="1", RUN+="/home/%u/maestro/scripts/cd-inserted.sh"

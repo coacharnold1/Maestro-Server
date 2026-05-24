@@ -1,0 +1,55 @@
+# Personal configuration files
+.env
+config.env
+settings.json
+genre_stations.json
+maestro-setup.conf
+
+# Machine-specific context
+COPILOT_CONTEXT.md
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Backups
+*.bak
+*.backup
+# Update staging folder
+Maestro_Update/
+Maestro-Update/
+
+# Planning documents
+*_INTEGRATION.md
+*_SYNC.md

@@ -1,0 +1,263 @@
+#!/bin/bash
+
+# Maestro Server - Uninstallation Script
+# Removes MPD, Web UI, Admin API, and all related files/services
+# Usage: sudo ./uninstall-maestro.sh
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Installation paths
+INSTALL_DIR="$HOME/maestro"
+MUSIC_DIR="/media/music"
+
+# Check if running as root
+if [ "$EUID" -ne 0 ]; then 
+    echo -e "${RED}Error: This script must be run as root or with sudo${NC}"
+    exit 1
+fi
+
+# Banner
+echo -e "${BLUE}"
+cat << "EOF"
+╔════════════════════════════════════════════════════════════╗
+║                                                            ║
+║       MAESTRO SERVER - UNINSTALLATION SCRIPT v2.0          ║
+║                                                            ║
+║    This will remove Maestro Web UI, Admin API, and         ║
+║    related files and services.                             ║
+║    (MPD removal is optional based on installation)         ║
+║                                                            ║
+╚════════════════════════════════════════════════════════════╝
+EOF
+echo -e "${NC}"
+
+# Confirmation prompt
+echo -e "${YELLOW}WARNING: This will remove Maestro Server${NC}"
+echo -e "${YELLOW}The following will be removed:${NC}"
+echo "  • Maestro Web UI"
+echo "  • Maestro Admin API"
+echo "  • Systemd services"
+echo "  • Configuration files"
+echo "  • Installation directory ($INSTALL_DIR)"
+echo "  • MPD (only if installed by Maestro)"
+echo ""
+echo -e "${GREEN}Note: Existing MPD installations will be preserved${NC}"
+echo ""
+echo -e "${RED}Music files in $MUSIC_DIR will NOT be deleted${NC}"
+echo ""
+read -p "Are you sure you want to continue? (yes/no): " -r
+if [[ ! $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
+    echo -e "${BLUE}Uninstallation cancelled.${NC}"
+    exit 0
+fi
+
+echo ""
+echo -e "${GREEN}Starting uninstallation...${NC}"
+echo ""
+
+# Stop and disable services
+stop_services() {
+    echo -e "${GREEN}[1/7] Stopping services...${NC}"
+    
+    systemctl stop maestro-web 2>/dev/null || true
+    systemctl stop maestro-admin 2>/dev/null || true
+    systemctl stop mpd 2>/dev/null || true
+    
+    systemctl disable maestro-web 2>/dev/null || true
+    systemctl disable maestro-admin 2>/dev/null || true
+    systemctl disable mpd 2>/dev/null || true
+    
+    echo -e "${GREEN}✓ Services stopped${NC}"
+}
+
+# Remove systemd service files
+remove_services() {
+    echo -e "${GREEN}[2/7] Removing systemd services...${NC}"
+    
+    rm -f /etc/systemd/system/maestro-web.service
+    rm -f /etc/systemd/system/maestro-admin.service
+    
+    systemctl daemon-reload
+    
+    echo -e "${GREEN}✓ Services removed${NC}"
+}
+
+# Remove installation directory
+remove_install_dir() {
+    echo -e "${GREEN}[3/7] Removing installation directory...${NC}"
+    
+    if [ -d "$INSTALL_DIR" ]; then
+        # Backup settings before removal
+        if [ -f "$INSTALL_DIR/settings.json" ]; then
+            cp "$INSTALL_DIR/settings.json" /tmp/maestro-settings.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
+            echo -e "  ${GREEN}✓ Settings backed up to /tmp${NC}"
+        fi
+        rm -rf "$INSTALL_DIR"
+        echo -e "${GREEN}✓ Removed $INSTALL_DIR${NC}"
+    else
+        echo -e "${YELLOW}⚠ Installation directory not found${NC}"
+    fi
+}
+
+# Remove MPD
+remove_mpd() {
+    echo -e "${GREEN}[4/7] Checking MPD...${NC}"
+    
+    local install_info="$INSTALL_DIR/.maestro_install_info"
+    local mpd_type=""
+    
+    [ -f "$install_info" ] && mpd_type=$(grep "^MPD_INSTALL_TYPE=" "$install_info" | cut -d= -f2)
+    
+    if [ "$mpd_type" = "package" ]; then
+        echo -e "  ${YELLOW}Removing MPD (installed by Maestro)${NC}"
+        if [ -f /etc/os-release ]; then
+            . /etc/os-release
+            OS=$ID
+        fi
+        
+        case "$OS" in
+            ubuntu|debian) apt remove -y mpd mpc; apt autoremove -y ;;
+            arch|manjaro|garuda) pacman -R --noconfirm mpd mpc ;;
+        esac
+        echo -e "${GREEN}✓ MPD removed${NC}"
+    elif [ "$mpd_type" = "existing" ] || [ "$mpd_type" = "skip" ]; then
+        echo -e "${GREEN}✓ Preserving MPD ($mpd_type)${NC}"
+    else
+        echo -e "${YELLOW}⚠ No install info${NC}"
+        read -p "Remove MPD package? (y/N): "
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            [ -f /etc/os-release ] && . /etc/os-release && OS=$ID
+            case "$OS" in
+                ubuntu|debian) apt remove -y mpd mpc; apt autoremove -y ;;
+                arch|manjaro|garuda) pacman -R --noconfirm mpd mpc ;;
+            esac
+            echo -e "${GREEN}✓ MPD removed${NC}"
+        else
+            echo -e "${GREEN}✓ MPD preserved${NC}"
+        fi
+    fi
+}
+
+# Remove MPD data and config
+remove_mpd_data() {
+    echo -e "${GREEN}[5/7] Handling MPD data...${NC}"
+    
+    local install_info="$INSTALL_DIR/.maestro_install_info"
+    local mpd_type=""
+    [ -f "$install_info" ] && mpd_type=$(grep "^MPD_INSTALL_TYPE=" "$install_info" | cut -d= -f2)
+    
+    if [ -f /etc/mpd.conf ]; then
+        cp /etc/mpd.conf /tmp/mpd.conf.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
+        echo -e "  ${GREEN}✓ Config backed up${NC}"
+    fi
+    
+    if [ "$mpd_type" = "package" ]; then
+        echo -e "  ${YELLOW}Removing MPD config/data${NC}"
+        rm -f /etc/mpd.conf
+        rm -rf /var/lib/mpd /var/log/mpd /run/mpd
+        echo -e "${GREEN}✓ MPD data removed${NC}"
+    else
+        echo -e "  ${YELLOW}Preserving MPD config/data${NC}"
+        echo -e "${GREEN}✓ MPD data preserved${NC}"
+    fi
+}
+
+# Remove Python virtual environments
+remove_venvs() {
+    echo -e "${GREEN}[6/7] Cleaning up Python environments...${NC}"
+    
+    # Note: venvs are in $INSTALL_DIR which is already removed
+    echo -e "${GREEN}✓ Virtual environments removed${NC}"
+}
+
+# Remove additional configuration
+remove_config() {
+    echo -e "${GREEN}[7/8] Removing additional configuration...${NC}"
+    
+    # Remove sudo permissions
+    if [ -f /etc/sudoers.d/maestro ]; then
+        rm -f /etc/sudoers.d/maestro
+        echo -e "  ${GREEN}✓ Sudo permissions removed${NC}"
+    fi
+    
+    # Remove udev rules
+    if [ -f /etc/udev/rules.d/99-maestro-cd.rules ]; then
+        rm -f /etc/udev/rules.d/99-maestro-cd.rules
+        udevadm control --reload-rules 2>/dev/null || true
+        echo -e "  ${GREEN}✓ Udev rules removed${NC}"
+    fi
+    
+    # Remove MPD NFS wait override
+    if [ -f /etc/systemd/system/mpd.service.d/nfs-wait.conf ]; then
+        rm -f /etc/systemd/system/mpd.service.d/nfs-wait.conf
+        rmdir /etc/systemd/system/mpd.service.d 2>/dev/null || true
+        systemctl daemon-reload
+        echo -e "  ${GREEN}✓ MPD overrides removed${NC}"
+    fi
+    
+    echo -e "${GREEN}✓ Additional configuration removed${NC}"
+}
+
+# Remove log files
+remove_logs() {
+    echo -e "${GREEN}[8/8] Removing log files...${NC}"
+    
+    rm -f /tmp/maestro-web.log
+    rm -f /tmp/maestro-admin.log
+    
+    echo -e "${GREEN}✓ Log files removed${NC}"
+}
+
+# Main uninstallation
+main() {
+    stop_services
+    remove_services
+    remove_install_dir
+    remove_mpd
+    remove_mpd_data
+    remove_venvs
+    remove_config
+    remove_logs
+    
+    echo ""
+    echo -e "${GREEN}✓ Music directory preserved: $MUSIC_DIR${NC}"
+    echo -e "${CYAN}(Music files are never removed by the uninstaller)${NC}"
+    echo ""
+    echo -e "${BLUE}"
+    cat << "EOF"
+╔════════════════════════════════════════════════════════════╗
+║                                                            ║
+║           MAESTRO SERVER UNINSTALLED SUCCESSFULLY          ║
+║                                                            ║
+║  All services, files, and configurations have been         ║
+║  removed from your system.                                 ║
+║                                                            ║
+╚════════════════════════════════════════════════════════════╝
+EOF
+    echo -e "${NC}"
+    
+    echo -e "${GREEN}Summary:${NC}"
+    echo "  • MPD: Removed"
+    echo "  • Web UI: Removed"
+    echo "  • Admin API: Removed"
+    echo "  • Services: Removed"
+    echo "  • Installation: Removed"
+    echo "  • Sudo permissions: Removed"
+    echo "  • Udev rules: Removed"
+    echo ""
+    echo -e "${YELLOW}Backups created:${NC}"
+    echo "  • MPD config: /tmp/mpd.conf.backup.*"
+    echo "  • Settings: /tmp/maestro-settings.backup.*"
+    echo ""
+    echo -e "${BLUE}Thank you for using Maestro Server!${NC}"
+}
+
+# Run main function
+main
