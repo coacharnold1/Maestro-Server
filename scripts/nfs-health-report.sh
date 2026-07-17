@@ -13,20 +13,42 @@ NC='\033[0m' # No Color
 LOG_FILE="/var/log/maestro-nfs-health.log"
 [ ! -f "$LOG_FILE" ] && LOG_FILE="$HOME/maestro-nfs-health.log"
 
+CONFIG_FILE="/etc/maestro/nfs-config.conf"
+
+# Get NFS server IP from config file or extract from fstab
+get_nfs_server() {
+    # First try config file if it exists
+    if [ -f "$CONFIG_FILE" ] && grep -q "NFS_SERVER=" "$CONFIG_FILE"; then
+        source "$CONFIG_FILE"
+        echo "$NFS_SERVER"
+        return
+    fi
+    
+    # Fall back to extracting first NFS mount from fstab
+    local nfs_ip=$(grep -o '^[^/]*:[^ ]*' /etc/fstab | grep -oP '^\d+\.\d+\.\d+\.\d+' | head -1)
+    if [ -n "$nfs_ip" ]; then
+        echo "$nfs_ip"
+        return
+    fi
+    
+    # Last resort fallback
+    echo "192.168.1.130"
+}
+
+NFS_SERVER=$(get_nfs_server)
+
 echo -e "${BLUE}═══════════════════════════════════════════════════${NC}"
 echo -e "${BLUE}    NFS Mount Health Report - $(date '+%Y-%m-%d %H:%M:%S')${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════${NC}\n"
 
 # Check NFS server connectivity
 echo -e "${YELLOW}▸ NFS Server Status:${NC}"
-if ping -c 1 -W 2 192.168.1.110 >/dev/null 2>&1; then
-    echo -e "  ${GREEN}✓${NC} Server 192.168.1.110 is reachable"
+if ping -c 1 -W 2 "$NFS_SERVER" >/dev/null 2>&1; then
+    echo -e "  ${GREEN}✓${NC} Server $NFS_SERVER is reachable"
 else
-    echo -e "  ${RED}✗${NC} Server 192.168.1.110 is NOT reachable!"
+    echo -e "  ${RED}✗${NC} Server $NFS_SERVER is NOT reachable!"
 fi
 echo
-
-# Check each mount
 echo -e "${YELLOW}▸ Mount Point Status:${NC}"
 mount_points=(
     "/media/music/mrbig"

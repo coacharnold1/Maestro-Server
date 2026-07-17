@@ -7,10 +7,32 @@
 
 LOG_FILE="/var/log/maestro-nfs-health.log"
 ALERT_FILE="/tmp/nfs-alert-needed"
-NFS_SERVER="192.168.1.130"
+CONFIG_FILE="/etc/maestro/nfs-config.conf"
 
 # Ensure log file exists and is writable
 sudo touch "$LOG_FILE" 2>/dev/null || LOG_FILE="$HOME/maestro-nfs-health.log"
+
+# Get NFS server IP from config file or extract from fstab
+get_nfs_server() {
+    # First try config file if it exists
+    if [ -f "$CONFIG_FILE" ] && grep -q "NFS_SERVER=" "$CONFIG_FILE"; then
+        source "$CONFIG_FILE"
+        echo "$NFS_SERVER"
+        return
+    fi
+    
+    # Fall back to extracting first NFS mount from fstab
+    local nfs_ip=$(grep -o '^[^/]*:[^ ]*' /etc/fstab | grep -oP '^\d+\.\d+\.\d+\.\d+' | head -1)
+    if [ -n "$nfs_ip" ]; then
+        echo "$nfs_ip"
+        return
+    fi
+    
+    # Last resort fallback
+    echo "192.168.1.130"
+}
+
+NFS_SERVER=$(get_nfs_server)
 
 log_message() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | sudo tee -a "$LOG_FILE" >/dev/null

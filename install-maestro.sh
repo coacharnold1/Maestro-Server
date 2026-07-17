@@ -848,6 +848,17 @@ EOF
         chmod +x "$INSTALL_DIR/scripts/nfs-health-check.sh"
         chmod +x "$INSTALL_DIR/scripts/nfs-health-report.sh"
         
+        # Create config directory and extract NFS server IP from fstab
+        sudo mkdir -p /etc/maestro
+        NFS_IP=$(grep -o '^[^/]*:[^ ]*' /etc/fstab 2>/dev/null | grep -oP '^\d+\.\d+\.\d+\.\d+' | head -1)
+        if [ -n "$NFS_IP" ]; then
+            echo "# NFS Server Configuration (auto-configured during installation)" | sudo tee /etc/maestro/nfs-config.conf > /dev/null
+            echo "# Extracted from /etc/fstab on $(date)" | sudo tee -a /etc/maestro/nfs-config.conf > /dev/null
+            echo "NFS_SERVER=\"$NFS_IP\"" | sudo tee -a /etc/maestro/nfs-config.conf > /dev/null
+            sudo chmod 644 /etc/maestro/nfs-config.conf
+            echo -e "${GREEN}✓ NFS config created at /etc/maestro/nfs-config.conf (IP: $NFS_IP)${NC}"
+        fi
+        
         # Update paths in service file to use install directory
         sed "s|/home/fausto/Maestro-Server|$INSTALL_DIR|g" "$REPO_DIR/scripts/nfs-health-check.service" | \
             sudo tee /etc/systemd/system/nfs-health-check.service > /dev/null
@@ -863,6 +874,7 @@ EOF
         
         echo -e "${GREEN}✓ NFS health monitoring installed (checks every 10 minutes)${NC}"
         echo -e "${BLUE}  View status: $INSTALL_DIR/scripts/nfs-health-report.sh${NC}"
+        echo -e "${BLUE}  Config file: /etc/maestro/nfs-config.conf${NC}"
     fi
     
     # Enable services
