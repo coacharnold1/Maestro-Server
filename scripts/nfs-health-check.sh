@@ -7,7 +7,7 @@
 
 LOG_FILE="/var/log/maestro-nfs-health.log"
 ALERT_FILE="/tmp/nfs-alert-needed"
-NFS_SERVER="192.168.1.110"
+NFS_SERVER="192.168.1.130"
 
 # Ensure log file exists and is writable
 sudo touch "$LOG_FILE" 2>/dev/null || LOG_FILE="$HOME/maestro-nfs-health.log"
