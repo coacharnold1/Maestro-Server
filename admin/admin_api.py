@@ -548,7 +548,7 @@ def api_get_mounts():
                         if fs_type in ['nfs', 'nfs4', 'cifs']:
                             mount_type = 'nfs' if fs_type in ['nfs', 'nfs4'] else 'smb'
                             
-                            # Parse NFS share (e.g., 192.168.1.110:/media/MrBig/music)
+                            # Parse NFS share (e.g., 192.168.1.130:/media/MrBig/music)
                             if ':' in device and mount_type == 'nfs':
                                 server, share_path = device.split(':', 1)
                             elif mount_type == 'smb':

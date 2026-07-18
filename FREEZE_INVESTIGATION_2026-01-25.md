@@ -59,7 +59,7 @@ Added:  actimeo=3                 (3-second attribute caching)
 **Monitoring Schedule:** Every 10 minutes (was 5, reduced to minimize overhead)
 
 **What's Monitored:**
-- NFS server reachability (192.168.1.110)
+- NFS server reachability (192.168.1.130)
 - All 8 mount points (accessibility test)
 - Stale handle detection
 - NFS statistics (retransmissions, timeouts)
@@ -68,7 +68,7 @@ Added:  actimeo=3                 (3-second attribute caching)
 
 ## Stress Impact Analysis
 
-### NFS Server (192.168.1.110)
+### NFS Server (192.168.1.130)
 **Previous State:**
 - Client loops could generate 60+ requests/minute to same files
 - Rapid retry storms on network issues
@@ -153,7 +153,7 @@ sudo systemctl restart maestro-web.service
 1. **Monitor client 192.168.1.246** - investigate what app/browser was causing the loop
 2. **Check logs periodically:** `~/Maestro-Server/scripts/nfs-health-report.sh`
 3. **If seeing "rate limited" in logs** - indicates clients requesting too fast (protection working)
-4. **NFS server health** - ensure 192.168.1.110 is stable
+4. **NFS server health** - ensure 192.168.1.130 is stable
 
 ## Summary
 

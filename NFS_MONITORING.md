@@ -1,7 +1,7 @@
 # NFS Monitoring & Health Check Guide
 
 ## Overview
-Automated monitoring of all 8 NFS mounts from server 192.168.1.110
+Automated monitoring of all 8 NFS mounts from server 192.168.1.130
 
 ## Quick Commands
 
@@ -62,7 +62,7 @@ sudo systemctl status nfs-health-check.timer
 
 ## What Gets Monitored
 
-1. **NFS Server Reachability** (192.168.1.110)
+1. **NFS Server Reachability** (192.168.1.130)
 2. **Mount Status** for all 8 music shares:
    - /media/music/mrbig
    - /media/music/borris
@@ -91,10 +91,10 @@ sudo systemctl status nfs-health-check.timer
 ### If NFS Server is Down
 ```bash
 # Check network connectivity
-ping 192.168.1.110
+ping 192.168.1.130
 
 # Check from NFS server side (if you have access)
-ssh user@192.168.1.110
+ssh user@192.168.1.130
 sudo systemctl status nfs-server
 ```
 
@@ -122,7 +122,7 @@ Then reload: `sudo systemctl daemon-reload && sudo systemctl restart nfs-health-
 - **Retries:** 3 attempts (retrans=3)
 - **Mode:** Soft mount (fails gracefully instead of hanging)
 - **Caching:** 3 second attribute cache (actimeo=3)
-- **Server:** 192.168.1.110
+- **Server:** 192.168.1.130
 - **Client IP:** 192.168.1.142
 
 ## Integration with Maestro

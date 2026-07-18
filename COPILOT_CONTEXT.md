@@ -283,7 +283,7 @@ sudo journalctl -u maestro-web.service -n 50
 - If absolutely needed, try `<script nonce="">` but external is better
 
 ### NFS Mounts
-- Server: 192.168.1.110
+- Server: 192.168.1.130
 - Health monitoring enabled
 - Check status: `~/Maestro-Server/scripts/nfs-health-report.sh`
 
