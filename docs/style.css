@@ -208,6 +208,18 @@ h3 {
     font-style: italic;
 }
 
+.videos-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.video-item {
+    flex: 1;
+}
+
 /* Hero Screenshot */
 .hero-screenshot {
     background: #f8f9fa;
@@ -607,7 +619,8 @@ footer {
     .features-grid,
     .screenshot-grid,
     .use-case-grid,
-    .req-grid {
+    .req-grid,
+    .videos-grid {
         grid-template-columns: 1fr;
     }
 
