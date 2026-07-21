@@ -37,24 +37,35 @@
 
         .nav-links {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
         }
 
-        .nav-links a {
-            color: #3498db;
+        .nav-links a,
+        .nav-links button {
+            color: #ffffff;
             text-decoration: none;
-            margin: 0 6px 5px 6px;
-            padding: 6px 12px;
-            border: 1px solid #3498db;
-            border-radius: 5px;
-            transition: all 0.3s;
-            display: inline-block;
-            font-size: 13px;
+            padding: 10px 18px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            white-space: nowrap;
         }
 
-        .nav-links a:hover {
-            background-color: #3498db;
+        .nav-links a:hover,
+        .nav-links button:hover {
             color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
 
         .loading {
@@ -459,8 +470,11 @@
 
         <div class="nav-links">
             <a href="/">🏠 Main</a>
-            <a href="/playlist">🎵 Play Queue</a>
-            <a href="/browse">🗂️ Browse Music</a>
+            <a href="/playlist">🎵 Queue</a>
+            <a href="/add_music">🎲 Add Music</a>
+            <a href="/recent">📀 Recent</a>
+            <a href="/browse">🗂️ Browse</a>
+            <a href="/radio">📻 Radio</a>
         </div>
 
         <div id="loading" class="loading">Loading your collection...</div>
