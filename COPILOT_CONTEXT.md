@@ -263,7 +263,27 @@ sudo journalctl -u maestro-web.service -n 50
 
 ## ⚠️ Important Notes
 
-### 🚨 CRITICAL: Inline Scripts in Jinja2 Templates Don't Execute
+### � Fixed: Removed Unwanted Navigation Links (July 21, 2026)
+**ISSUE FIXED:**
+- Radio page had stray links to Browse, Recent, and Search in header
+- Browse pages (genres, artists, albums) had duplicate Browse link in navigation
+- These pages should only show relevant navigation (Main, Queue, Add Music, + page-specific link)
+
+**SOLUTION APPLIED:**
+- Updated `templates/radio.html` (line 1220-1227)
+- Updated `templates/browse_genres.html` (line 1294-1301)
+- Updated `templates/browse_artists.html` (line 935-943)
+- Updated `templates/browse_albums.html` (line 1580-1588)
+- Removed: Recent, Search, and duplicate Radio/Browse links from cross-page navigation
+- Result: Each page now shows only relevant navigation items
+
+**FILES AFFECTED (commit required):**
+- `templates/radio.html`
+- `templates/browse_genres.html`
+- `templates/browse_artists.html`
+- `templates/browse_albums.html`
+
+### �🚨 CRITICAL: Inline Scripts in Jinja2 Templates Don't Execute
 **ISSUE FOUND (Jan 31, 2026):**
 - Inline `<script>` tags in HTML templates DO NOT execute, even though they appear in served HTML
 - External `<script src="/static/file.js"></script>` files work perfectly
