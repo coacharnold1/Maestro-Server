@@ -264,6 +264,13 @@ echo -e "${GREEN}[3/6] Updating main application...${NC}"
 sudo cp -r "$REPO_DIR/templates" "$INSTALL_DIR/"
 sudo cp -r "$REPO_DIR/templates" "$INSTALL_DIR/web/"
 
+# Copy modern UI templates
+if [ -d "$REPO_DIR/templates_modern" ]; then
+    sudo cp -r "$REPO_DIR/templates_modern" "$INSTALL_DIR/"
+    sudo cp -r "$REPO_DIR/templates_modern" "$INSTALL_DIR/web/"
+    echo -e "${GREEN}✓ Updated modern UI templates${NC}"
+fi
+
 # Copy modular route handlers (REQUIRED - fail if missing)
 if [ ! -d "$REPO_DIR/routes" ]; then
     echo -e "${RED}✗ ERROR: routes directory not found in $REPO_DIR${NC}"
@@ -317,6 +324,19 @@ if [ -f "$REPO_DIR/bandcamp_client.py" ]; then
     sudo cp "$REPO_DIR/bandcamp_client.py" "$INSTALL_DIR/web/"
     echo -e "${GREEN}✓ Updated Bandcamp client library${NC}"
 fi
+
+# Copy version and documentation files
+if [ -f "$REPO_DIR/VERSION" ]; then
+    sudo cp "$REPO_DIR/VERSION" "$INSTALL_DIR/"
+    sudo cp "$REPO_DIR/VERSION" "$INSTALL_DIR/web/"
+    echo -e "${GREEN}✓ Updated VERSION file${NC}"
+fi
+if [ -f "$REPO_DIR/CHANGELOG.md" ]; then
+    sudo cp "$REPO_DIR/CHANGELOG.md" "$INSTALL_DIR/"
+    sudo cp "$REPO_DIR/CHANGELOG.md" "$INSTALL_DIR/web/"
+    echo -e "${GREEN}✓ Updated CHANGELOG${NC}"
+fi
+
 echo -e "${GREEN}✓ Updated main application files${NC}"
 
 echo ""
