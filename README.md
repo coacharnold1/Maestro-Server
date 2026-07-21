@@ -4,7 +4,7 @@
 
 ### The Ultimate Self-Hosted Music Server with an easy to use Web Interface
 
-[![Version](https://img.shields.io/badge/version-2.9.0-blue.svg)](https://github.com/coacharnold1/Maestro-Server)
+[![Version](https://img.shields.io/badge/version-4.0.1-blue.svg)](https://github.com/coacharnold1/Maestro-Server)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![MPD](https://img.shields.io/badge/MPD-0.23+-orange.svg)](https://www.musicpd.org/)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/)

@@ -1,5 +1,61 @@
 # Maestro Server - Changelog
 
+## Version 4.0.1 - Modern UI Standardization & Polish (July 21, 2026)
+
+### 🎨 Complete Modern UI Design Overhaul
+**Unified Glassmorphic Design System**
+- **Consistent Button Styling**: All playback buttons (Previous, Play, Stop, Pause, Next) now feature colorful gradient backgrounds with black text for optimal readability
+- **Individual Color Gradients**: Each button has a unique gradient (purple, green, pink, orange, cyan) creating visual distinction while maintaining cohesion
+- **Shimmer Animation**: Elegant shimmer effect on hover for all interactive elements
+- **Rounded Corners**: Standardized 12px border-radius across all buttons for modern appearance
+
+### 🎛️ Navigation & Search Bar Modernization
+- **Glassmorphic Navigation Buttons**: Semi-transparent gradient backgrounds with backdrop-filter blur(10px) on all header nav buttons
+- **Modern Active States**: Pink/red gradient (#f093fb → #f5576c) for active navigation indicators across all pages
+- **Updated Search Bars**: All search inputs feature semi-transparent gradient backgrounds with backdrop blur, improved focus states with enhanced shadows
+- **Consistent Search Buttons**: Blue gradient buttons with white text, smooth hover animations with transform translateY(-2px)
+- **White Text on Nav**: Changed from mixed colors to consistent white text for better contrast
+
+### 🖤 Text Color Standardization
+- **Black Text on Gradients**: Changed all playback button text from white to #1a1a1a for improved contrast on bright gradient backgrounds
+- **Playlist Action Buttons**: Clear, Save, Load buttons updated with black text matching playback control buttons
+- **Improved Readability**: Better visual hierarchy and readability across all interactive elements
+
+### 📱 Mobile Optimization
+- **Enlarged Touch Targets**: Increased mobile nav button padding from 6px 10px to 10px 14px for better tap accuracy on phones
+- **Responsive Design**: All modernizations maintain full mobile responsiveness with proper media queries
+- **Touch-Friendly Buttons**: All buttons maintain sufficient padding for easy mobile interaction
+
+### 📄 Pages Modernized
+- `index.html` - Main home page with colorful playback controls and updated search styling
+- `playlist.html` - Queue view with rounded action buttons (Clear, Save, Load) and consistent styling
+- `add_music.html` - Complex accordion interface with standardized buttons
+- `recent_albums.html` - Recently added albums grid with modern styling
+- `browse_albums.html` - Album browsing with updated nav and search bars
+- `browse_artists.html` - Artist browsing with consistent design system
+- `browse_genres.html` - Genre browsing with modern glassmorphic elements
+- `radio.html` - Internet radio with fully modernized navigation and search
+
+### 🔄 CSS & Design Improvements
+- **Backdrop Filter Blur**: Added blur(10px) effects to create modern glassmorphic appearance
+- **Shadow Depth**: Improved box-shadow styling with better visual hierarchy (0 4px 12px rgba...)
+- **Transition Smoothness**: Unified transition timings (0.3s cubic-bezier) for consistent animation feel
+- **Color Consistency**: White placeholder text with proper opacity (rgba(255,255,255,0.5))
+- **Focus States**: Enhanced :focus states on all input elements with improved visual feedback
+
+### 📋 Files Modified
+- All 8 modern template files in `templates_modern/` directory
+- `VERSION` - Updated to 4.0.1
+- This CHANGELOG
+
+### 🎯 Next Steps for Optimization
+- **CSS Refactoring**: Move duplicate CSS from individual templates to shared `static/modern-theme.css` stylesheet
+- **Component Architecture**: Create reusable Jinja2 template components (`_nav.html`, `_playback_controls.html`, `_search_bar.html`)
+- **Master Template Inheritance**: Establish consistent base template usage to eliminate style duplication
+- **Single-Source-of-Truth**: Maintain all styling in centralized location for easier future updates (estimated 80% reduction in maintenance)
+
+---
+
 ## Version 3.6.6 - Multi-Directory Recent Albums Management (May 9, 2026)
 
 ### 📀 Enhanced Recent Albums Directories

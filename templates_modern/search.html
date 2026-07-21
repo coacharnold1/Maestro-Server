@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Music Library</title>
+    <script src="/static/version-loader.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 80px rgba(102, 126, 234, 0.1);
+            box-sizing: border-box;
+        }
+
+        h1,
+        h2 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 4s ease-in-out infinite;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-align: center;
+            font-size: 2em;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .logo-container img {
+            max-width: 600px;
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 8px 24px rgba(102, 126, 234, 0.3));
+            transition: all 0.3s ease;
+        }
+
+        .logo-container img:hover {
+            filter: drop-shadow(0 12px 32px rgba(102, 126, 234, 0.4));
+            transform: scale(1.01);
+        }
+
+        .now-playing-bar {
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 15px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .now-playing-bar:hover {
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+
+        .now-playing-bar .np-art {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            object-fit: cover;
+            flex-shrink: 0;
+            background: rgba(255,255,255,0.05);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .now-playing-bar .np-content {
+            flex: 1;
+            text-align: center;
+            min-width: 0;
+        }
+
+        .now-playing-bar .label {
+            font-size: 0.75em;
+            color: #95a5a6;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+
+        .now-playing-bar .info {
+            font-size: 1em;
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .now-playing-bar .artist {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .now-playing-bar .separator {
+            color: #7f8c8d;
+            margin: 0 8px;
+        }
+
+        .now-playing-bar .track {
+            color: #f093fb;
+        }
+
+        .now-playing-bar .album {
+            color: #667eea;
+        }
+
+        .nav-links {
+            text-align: center;
+            margin: 25px 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .nav-links a,
+        .nav-links button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-size: 200% 200%;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .nav-links a::before,
+        .nav-links button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -1000px;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        .nav-links a:hover,
+        .nav-links button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .nav-links .current-page {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.3) !important;
+        }
+
+        .nav-links .current-page:hover {
+            box-shadow: 0 6px 20px rgba(245, 87, 108, 0.5) !important;
+        }
+
+        /* Button Styles */
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -1000px;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #764ba2 0%, #f093fb 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(240, 147, 251, 0.3);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(240, 147, 251, 0.5);
+        }
+
+        .nav-links-breadcrumb {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .nav-links-breadcrumb:hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: #764ba2;
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 15px;
+            padding-top: 15px;
+        }
+
+        .controls button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            margin: 6px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .controls button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -1000px;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        .controls button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+        }
+
+        .search-form {
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 25px;
+            border-radius: 15px;
+            margin: 25px 0;
+            transition: all 0.3s ease;
+        }
+
+        .search-form:hover {
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.05);
+            color: #ffffff;
+            font-size: 1em;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: rgba(102, 126, 234, 0.5);
+            background: rgba(255,255,255,0.08);
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .search-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            color: white !important;
+            padding: 12px 24px !important;
+            font-size: 1em !important;
+            border-radius: 10px !important;
+            margin-top: 15px !important;
+            font-weight: 600 !important;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .search-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -1000px;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        .search-button:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5) !important;
+        }
+
+        /* Autocomplete dropdown styling */
+        .autocomplete-container {
+            position: relative;
+        }
+
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: #2c3e50;
+            border: 1px solid #3498db;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .autocomplete-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            color: #ecf0f1;
+            border-bottom: 1px solid #34495e;
+        }
+
+        .autocomplete-item:hover,
+        .autocomplete-item.selected {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .autocomplete-loading {
+            padding: 10px 15px;
+            color: #95a5a6;
+            text-align: center;
+            font-style: italic;
+        }
+
+        /* Message display styling */
+        #message-area {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #message-area.show {
+            opacity: 1;
+        }
+
+        #message-area.info {
+            background-color: #3498db;
+        }
+
+        #message-area.error {
+            background-color: #e74c3c;
+        }
+
+        #message-area.success {
+            background-color: #27ae60;
+        }
+
+        /* Mobile responsive navigation */
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+
+            .nav-links {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                align-items: center;
+            }
+
+            .nav-links a {
+                margin: 0;
+                width: 80%;
+                max-width: 200px;
+                text-align: center;
+            }
+
+            .logo-container img {
+                max-width: 400px;
+            }
+        }
+
+        /* Minimal theme overrides to honor Settings theme across pages */
+        body.light {
+            background-color: #f5f5f7;
+            color: #1a1a1a;
+        }
+        body.light .container {
+            background-color: #ffffff;
+            color: #1a1a1a;
+        }
+        body.light .controls,
+        body.light .nav-links,
+        body.light .search-form {
+            background-color: #f0f3f6;
+            border-color: #d0d7de;
+        }
+        /* Light theme: form inputs/selects */
+        body.light .form-group select,
+        body.light .form-group input {
+            background-color: #ffffff !important;
+            color: #1a1a1a !important;
+            border-color: #d0d7de !important;
+        }
+        body.high-contrast {
+            background-color: #000000;
+            color: #ffff00;
+        }
+        body.high-contrast .container {
+            background-color: #000000;
+            color: #ffff00;
+            border: 2px solid #ffff00;
+        }
+        body.high-contrast .controls,
+        body.high-contrast .nav-links,
+        body.high-contrast .search-form {
+            background-color: #000000;
+            border: 2px solid #ffff00;
+        }
+        /* High-contrast: form inputs/selects */
+        body.high-contrast .form-group select,
+        body.high-contrast .form-group input {
+            background-color: #000000 !important;
+            color: #ffff00 !important;
+            border: 2px solid #ffff00 !important;
+        }
+
+        /* Desert theme */
+        body.desert {
+            background-color: #2c1810;
+            color: #f4e4bc;
+        }
+        body.desert .container {
+            background-color: #3d2f20;
+            color: #f4e4bc;
+            border-color: #8b4513;
+        }
+        body.desert .controls,
+        body.desert .nav-links,
+        body.desert .search-form {
+            background-color: #4a3b2a;
+            border-color: #cd853f;
+        }
+        body.desert .form-group select,
+        body.desert .form-group input {
+            background-color: #4a3b2a !important;
+            color: #f4e4bc !important;
+            border-color: #cd853f !important;
+        }
+        
+        /* Terminal theme */
+        body.terminal {
+            background-color: #000000;
+            color: #00ff00;
+        }
+        body.terminal .container {
+            background-color: #0a0a0a;
+            color: #00ff00;
+            border-color: #00cc00;
+        }
+        body.terminal .controls,
+        body.terminal .nav-links,
+        body.terminal .search-form {
+            background-color: #1a1a1a;
+            border-color: #00cc00;
+        }
+        body.terminal .form-group select,
+        body.terminal .form-group input {
+            background-color: #0a0a0a !important;
+            color: #00ff00 !important;
+            border-color: #00cc00 !important;
+        }
+        
+        /* Sunset theme */
+        body.sunset {
+            background-color: #1a0f1f;
+            color: #ffe4b5;
+        }
+        body.sunset .container {
+            background-color: #2d1b2e;
+            color: #ffe4b5;
+            border-color: #ff6b35;
+        }
+        body.sunset .controls,
+        body.sunset .nav-links,
+        body.sunset .search-form {
+            background-color: #3d2534;
+            border-color: #ff6b35;
+        }
+        body.sunset .form-group select,
+        body.sunset .form-group input {
+            background-color: #2d1b2e !important;
+            color: #ffe4b5 !important;
+            border-color: #ff6b35 !important;
+        }
+        
+        /* Forest theme */
+        body.forest {
+            background-color: #0d1b0d;
+            color: #c9e4c5;
+        }
+        body.forest .container {
+            background-color: #1a2e1a;
+            color: #c9e4c5;
+            border-color: #4a7c4e;
+        }
+        body.forest .controls,
+        body.forest .nav-links,
+        body.forest .search-form {
+            background-color: #233d23;
+            border-color: #4a7c4e;
+        }
+        body.forest .form-group select,
+        body.forest .form-group input {
+            background-color: #1a2e1a !important;
+            color: #c9e4c5 !important;
+            border-color: #4a7c4e !important;
+        }
+        
+        /* Midnight theme */
+        body.midnight {
+            background-color: #0f0a1e;
+            color: #e0d4f7;
+        }
+        body.midnight .container {
+            background-color: #1e1435;
+            color: #e0d4f7;
+            border-color: #6a4c93;
+        }
+        body.midnight .controls,
+        body.midnight .nav-links,
+        body.midnight .search-form {
+            background-color: #2a1f4a;
+            border-color: #6a4c93;
+        }
+        body.midnight .form-group select,
+        body.midnight .form-group input {
+            background-color: #1e1435 !important;
+            color: #e0d4f7 !important;
+            border-color: #6a4c93 !important;
+        }
+
+        /* ==================== FIXED HEADER NAV ==================== */
+        .fixed-header {
+            background-color: #2c3e50;
+            border-bottom: 2px solid #34495e;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            padding: 0;
+            margin: 0 0 20px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .header-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px 20px;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .header-nav a,
+        .header-nav button {
+            color: #ffffff;
+            text-decoration: none;
+            padding: 10px 18px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            white-space: nowrap;
+        }
+
+        .header-nav a:hover,
+        .header-nav button:hover {
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .header-nav a.active {
+            color: #ffffff;
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%) !important;
+            border-color: rgba(243, 156, 18, 0.3) !important;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(243, 156, 18, 0.3);
+        }
+
+        @media (max-width: 450px) {
+            /* Make header nav work on mobile with 6 items */
+            .header-nav {
+                gap: 4px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .header-nav a {
+                padding: 6px 10px !important;
+                font-size: 12px !important;
+                margin: 2px 1px;
+            }
+        }
+
+        /* ==================== THEME-SPECIFIC FIXED HEADER COLORS ==================== */
+        
+        /* Dark theme (default) */
+        body .fixed-header {
+            background-color: #2c3e50;
+            border-bottom-color: #34495e;
+        }
+        body .header-nav a, body .header-nav button {
+            color: #3498db;
+            border-color: #3498db;
+        }
+
+        /* Light theme */
+        body.light .fixed-header {
+            background-color: #e8e8e8;
+            border-bottom-color: #cccccc;
+        }
+        body.light .header-nav a, body.light .header-nav button {
+            color: #0066cc;
+            border-color: #0066cc;
+        }
+
+        /* High-contrast theme */
+        body.high-contrast .fixed-header {
+            background-color: #000000;
+            border-bottom: 2px solid #ffff00;
+        }
+        body.high-contrast .header-nav a, body.high-contrast .header-nav button {
+            color: #ffff00;
+            border-color: #ffff00;
+        }
+
+        /* Desert theme */
+        body.desert .fixed-header {
+            background-color: #3d2f20;
+            border-bottom-color: #8b4513;
+        }
+        body.desert .header-nav a, body.desert .header-nav button {
+            color: #cd853f;
+            border-color: #cd853f;
+        }
+
+        /* Terminal theme */
+        body.terminal .fixed-header {
+            background-color: #0a0a0a;
+            border-bottom: 2px solid #00cc00;
+        }
+        body.terminal .header-nav a, body.terminal .header-nav button {
+            color: #00ff00;
+            border-color: #00cc00;
+        }
+
+        /* Sunset theme */
+        body.sunset .fixed-header {
+            background-color: #2d1b2e;
+            border-bottom-color: #ff6b35;
+        }
+        body.sunset .header-nav a, body.sunset .header-nav button {
+            color: #ff8c42;
+            border-color: #ff8c42;
+        }
+
+        /* Forest theme */
+        body.forest .fixed-header {
+            background-color: #1a2e1a;
+            border-bottom-color: #4a7c4e;
+        }
+        body.forest .header-nav a, body.forest .header-nav button {
+            color: #66bb6a;
+            border-color: #66bb6a;
+        }
+
+        /* Midnight theme */
+        body.midnight .fixed-header {
+            background-color: #1e1435;
+            border-bottom-color: #6a4c93;
+        }
+        body.midnight .header-nav a, body.midnight .header-nav button {
+            color: #9575cd;
+            border-color: #9575cd;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="{{ app_theme }}">
+    <div class="container">
+        <!-- Logo -->
+        <div class="logo-container">
+            <img id="maestro-logo-search" src="/static/logo.svg" alt="Maestro MPD Control" onerror="this.style.display='none'">
+        </div>
+
+        <!-- Now Playing Bar -->
+        <div class="now-playing-bar" id="now-playing-bar" style="display: none;">
+            <img class="np-art" id="np-art" src="/static_placeholder_art" alt="Album Art" onerror="this.src='/static_placeholder_art'">
+            <div class="np-content">
+                <div class="label">♪ Now Playing</div>
+                <div class="info">
+                    <span class="artist" id="np-artist">-</span>
+                    <span class="separator">•</span>
+                    <span class="album" id="np-album">-</span>
+                    <span class="separator">•</span>
+                    <span class="track" id="np-track">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fixed Header Navigation -->
+        <div class="fixed-header">
+            <div class="header-content">
+                <div class="header-nav">
+                    <a href="/">🏠 Main</a>
+                    <a href="/playlist">🎵 Queue</a>
+                    <a href="/add_music">🎲 Add Music</a>
+                    <a href="/recent">📀 Recent</a>
+                    <a href="/browse">🗂️ Browse</a>                    <a href="/radio">📻 Radio</a>                    <a href="/search" class="active">🔍 Search</a>
+                </div>
+            </div>
+        </div>
+
+        <div id="message-area"></div>
+
+        <h1>🔍 Search Music Library</h1>
+
+        <!-- Breadcrumb Navigation -->
+        <div style="text-align: center; margin: 15px 0;">
+            <a href="/browse" class="nav-links-breadcrumb">🗂️ Browse</a>
+            <span style="color: #95a5a6; margin: 0 10px;">•</span>
+            <a href="/recent" class="nav-links-breadcrumb">📀 Recent</a>
+            <span style="color: #95a5a6; margin: 0 10px;">•</span>
+            <a href="/radio" class="nav-links-breadcrumb">📻 Radio</a>
+        </div>
+
+        <!-- Playback Controls -->
+        <div class="controls">
+            <h2>🎵 Playback Controls</h2>
+            <button onclick="playbackAction('previous')" class="btn btn-secondary">⏮️
+                Previous</button>
+            <button onclick="playbackAction('play')" class="btn btn-primary">▶️ Play</button>
+            <button onclick="playbackAction('stop')" class="btn btn-primary">⏹️ Stop</button>
+            <button onclick="playbackAction('pause')" class="btn btn-primary">⏸️ Pause</button>
+            <button onclick="playbackAction('next')" class="btn btn-primary">⏭️ Next</button>
+        </div>
+
+        <!-- Search Form -->
+        <div class="search-form">
+            <form method="POST" action="{{ url_for('search') }}">
+                <div class="form-group">
+                    <label for="search_tag">Search By:</label>
+                    <select name="search_tag" id="search_tag">
+                        <option value="any">Any (Song List)</option>
+                        <option value="artist" selected>Artist</option>
+                        <option value="album">Album</option>
+                        <option value="title">Title</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="query">Search Query:</label>
+                    <div class="autocomplete-container">
+                        <input type="text" id="query" name="query" required placeholder="Enter your search term..." autocomplete="off">
+                        <div id="autocomplete-dropdown" class="autocomplete-dropdown"></div>
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <button type="submit" class="search-button">🔍 Search Library</button>
+                    <button type="button" class="search-button" onclick="window.location.href='/random_albums'" style="background-color: #9b59b6; margin-left: 10px;">🎲 Random Albums</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- App Info + Settings (inline, always visible) -->
+    <div style="text-align: center; margin: 18px auto; padding-top: 8px; border-top: 1px solid #34495e; max-width: 1000px;">
+        <span id="version-info">Loading version info...</span>
+        &nbsp;•&nbsp;
+        <a href="/settings" style="color:#bdc3c7; text-decoration: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px;">Settings</a>
+        &nbsp;•&nbsp;
+        <a href="/charts" style="color:#bdc3c7; text-decoration: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px;">Charts</a>
+    </div>
+
+    <script>
+        (function(){
+            fetch('/api/version')
+                .then(r=>r.json())
+                .then(d=>{var el=document.getElementById('version-info'); if(el) el.textContent = d.app_name+' v'+d.version+' ('+d.build_date+')';})
+                .catch(()=>{var el=document.getElementById('version-info'); if(el) el.textContent='MPD Web Control';});
+        })();
+
+        // Auto-populate search form from URL parameters and auto-submit
+        document.addEventListener('DOMContentLoaded', function() {
+            // SocketIO setup for now playing bar
+            const socket = io();
+            const nowPlayingBar = document.getElementById('now-playing-bar');
+            const npArtist = document.getElementById('np-artist');
+            const npAlbum = document.getElementById('np-album');
+            const npTrack = document.getElementById('np-track');
+            const npArt = document.getElementById('np-art');
+            const maestroLogo = document.getElementById('maestro-logo-search');
+
+            // Track current art to avoid unnecessary reloads
+            let currentNpArtKey = '';
+
+            // Helper to update album art
+            function updateNowPlayingArt(artist, album, songFile) {
+                const artKey = `${artist}-${album}`;
+                if (artKey !== currentNpArtKey && npArt) {
+                    currentNpArtKey = artKey;
+                    let artUrl = `/album_art?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}&size=thumb&_t=${Date.now()}`;
+                    if (songFile) {
+                        artUrl += `&file=${encodeURIComponent(songFile)}`;
+                    }
+                    npArt.src = artUrl;
+                }
+            }
+
+            // Update now playing bar with MPD status
+            socket.on('mpd_status', function(data) {
+                if (data.state === 'play' || data.state === 'pause') {
+                    if (data.artist && data.artist !== 'N/A' && data.song_title && data.song_title !== 'N/A') {
+                        nowPlayingBar.style.display = 'flex';
+                        npArtist.textContent = data.artist;
+                        npAlbum.textContent = data.album || 'Unknown Album';
+                        npTrack.textContent = data.song_title;
+                        updateNowPlayingArt(data.artist, data.album || 'Unknown Album', data.song_file || data.file);
+                    } else {
+                        nowPlayingBar.style.display = 'none';
+                    }
+                    if (maestroLogo) {
+                        maestroLogo.src = data.state === 'play' ? "/static/logo.svg" : "/static/logo-static.svg";
+                    }
+                } else {
+                    nowPlayingBar.style.display = 'none';
+                    if (maestroLogo) maestroLogo.src = "/static/logo-static.svg";
+                }
+            });
+
+            // Fetch initial state to set logo correctly on page load
+            fetch('/api/version')
+                .then(() => fetch('/get_mpd_status'))
+                .then(r => r.json())
+                .then(data => {
+                    if (maestroLogo && data.state === 'play') {
+                        maestroLogo.src = "/static/logo.svg";
+                    } else if (maestroLogo) {
+                        maestroLogo.src = "/static/logo-static.svg";
+                    }
+                    if (data.state === 'play' || data.state === 'pause') {
+                        if (data.artist && data.artist !== 'N/A' && data.song_title && data.song_title !== 'N/A') {
+                            nowPlayingBar.style.display = 'flex';
+                            npArtist.textContent = data.artist;
+                            npAlbum.textContent = data.album || 'Unknown Album';
+                            npTrack.textContent = data.song_title;
+                            updateNowPlayingArt(data.artist, data.album || 'Unknown Album');
+                        }
+                    }
+                })
+                .catch(err => console.error('Error fetching initial state:', err));
+
+            // Form auto-populate
+            const urlParams = new URLSearchParams(window.location.search);
+            const query = urlParams.get('query');
+            const type = urlParams.get('type');
+
+            if (query) {
+                document.getElementById('query').value = query;
+            }
+            if (type) {
+                document.getElementById('search_tag').value = type;
+            }
+
+            // Auto-submit if both query and type are present
+            if (query && type) {
+                document.querySelector('form').submit();
+            }
+
+            // ===== AUTOCOMPLETE FUNCTIONALITY =====
+            let autocompleteData = { artists: [], albums: [], titles: [] };
+            let selectedIndex = -1;
+            const queryInput = document.getElementById('query');
+            const searchTagSelect = document.getElementById('search_tag');
+            const dropdown = document.getElementById('autocomplete-dropdown');
+
+            // Load autocomplete data on page load
+            fetch('/api/search/autocomplete')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        autocompleteData = data;
+                        console.log(`Autocomplete data loaded: ${data.artists.length} artists, ${data.albums.length} albums, ${data.titles.length} titles`);
+                    }
+                })
+                .catch(err => console.error('Error loading autocomplete data:', err));
+
+            // Filter and display suggestions
+            function showSuggestions() {
+                const searchType = searchTagSelect.value;
+                const inputValue = queryInput.value.trim().toLowerCase();
+                
+                if (inputValue.length < 2) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+
+                let suggestions = [];
+                if (searchType === 'artist') {
+                    suggestions = autocompleteData.artists.filter(a => 
+                        a.toLowerCase().includes(inputValue)
+                    ).slice(0, 10);
+                } else if (searchType === 'album') {
+                    suggestions = autocompleteData.albums.filter(a => 
+                        a.toLowerCase().includes(inputValue)
+                    ).slice(0, 10);
+                } else if (searchType === 'title') {
+                    suggestions = autocompleteData.titles.filter(t => 
+                        t.toLowerCase().includes(inputValue)
+                    ).slice(0, 10);
+                }
+
+                if (suggestions.length === 0) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+
+                // Build dropdown HTML
+                dropdown.innerHTML = suggestions.map((item, index) => 
+                    `<div class="autocomplete-item" data-index="${index}">${escapeHtml(item)}</div>`
+                ).join('');
+
+                dropdown.style.display = 'block';
+                selectedIndex = -1;
+
+                // Add click handlers
+                dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+                    item.addEventListener('click', function() {
+                        queryInput.value = this.textContent;
+                        dropdown.style.display = 'none';
+                    });
+                });
+            }
+
+            // Handle keyboard navigation
+            function handleKeyDown(e) {
+                if (dropdown.style.display === 'none') return;
+
+                const items = dropdown.querySelectorAll('.autocomplete-item');
+                if (items.length === 0) return;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                    updateSelection(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, -1);
+                    updateSelection(items);
+                } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                    e.preventDefault();
+                    queryInput.value = items[selectedIndex].textContent;
+                    dropdown.style.display = 'none';
+                } else if (e.key === 'Escape') {
+                    dropdown.style.display = 'none';
+                    selectedIndex = -1;
+                }
+            }
+
+            function updateSelection(items) {
+                items.forEach((item, index) => {
+                    if (index === selectedIndex) {
+                        item.classList.add('selected');
+                        item.scrollIntoView({ block: 'nearest' });
+                    } else {
+                        item.classList.remove('selected');
+                    }
+                });
+            }
+
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            // Event listeners
+            queryInput.addEventListener('input', showSuggestions);
+            queryInput.addEventListener('keydown', handleKeyDown);
+            searchTagSelect.addEventListener('change', () => {
+                if (queryInput.value.trim().length >= 2) {
+                    showSuggestions();
+                }
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!queryInput.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+            // ===== END AUTOCOMPLETE =====
+        });
+
+        // Playback control function
+        function playbackAction(action) {
+            fetch(`/${action}?ajax=1`, {
+                method: 'GET'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        console.log(data.message);
+                        displayMessage('info', data.message || `${action.charAt(0).toUpperCase() + action.slice(1)} command sent`);
+                    } else {
+                        console.error(data.message || `Failed to ${action}`);
+                        displayMessage('error', data.message || `Failed to ${action}`);
+                    }
+                })
+                .catch(err => {
+                    console.error(`Error: ${err.message}`);
+                    displayMessage('error', `Error: ${err.message}`);
+                });
+        }
+
+        function displayMessage(type, text) {
+            const messageArea = document.getElementById('message-area');
+            messageArea.textContent = text;
+            messageArea.className = `show ${type}`;
+            messageArea.style.opacity = 1;
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                messageArea.style.opacity = 0;
+                setTimeout(() => {
+                    messageArea.textContent = '';
+                    messageArea.className = '';
+                }, 300);
+            }, 5000);
+        }
+    </script>
+    <!-- Keyboard Shortcuts -->
+    <!-- Playback Controls -->
+    <script src="/static/playback-controls.js"></script>
+    <script src="/static/keyboard-shortcuts.js"></script>
+</body>
+
+</html>

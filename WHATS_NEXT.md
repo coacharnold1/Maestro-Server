@@ -1,5 +1,114 @@
 # Maestro Server Development Roadmap
+## 🎨 PLANNED: Modern UI CSS Refactoring (Post v4.0.1)
 
+**Status:** PLANNED - Architectural improvement for future maintainability
+**Priority:** HIGH - Will dramatically reduce maintenance overhead
+**Estimated Effort:** 2-3 hours
+
+### Problem
+Current architecture has CSS duplicated across all 8 modern template files:
+- `.playback-controls button` styles (copy-pasted 8 times)
+- `.header-nav` and `.header-nav a` styles (8 copies)
+- `.header-search` input/select/button styles (8 copies)
+- Color variables for themes (8 copies)
+- Mobile media queries (8 copies)
+
+**Impact:** Today's update required 8 file edits instead of 1. Future updates will be 8x more complex.
+
+### Solution: Centralized Stylesheet Architecture
+
+#### Step 1: Create Master Stylesheets
+1. **`static/modern-ui/theme.css`** - All base styling
+   - Button classes (`.btn-prev`, `.btn-play`, `.btn-stop`, `.btn-pause`, `.btn-next`)
+   - Navigation styling (`.header-nav`, `.header-nav a`, `.header-nav a.current-page`)
+   - Search bar styling (`.header-search input`, `.header-search select`, `.header-search button`)
+   - Color variables / CSS custom properties for each theme
+   - Mobile media queries
+
+2. **`static/modern-ui/components.css`** - Reusable component styles
+   - Playback controls wrapper
+   - Playlist action buttons
+   - Accordion styling
+   - Volume controls
+   - Modal styling
+
+3. **`static/modern-ui/responsive.css`** - Media query consolidation
+   - All breakpoints (768px, 600px, 450px)
+   - Mobile-specific adjustments
+   - Touch target sizing
+
+#### Step 2: Create Reusable Template Components
+1. **`templates_modern/_nav.html`** - Navigation bar component
+   ```jinja2
+   <nav class="header-nav">
+       <a href="/" class="{% if current_page == 'home' %}current-page{% endif %}">🏠 Main</a>
+       ...
+   </nav>
+   ```
+
+2. **`templates_modern/_playback_controls.html`** - Playback buttons
+   ```jinja2
+   <div class="playback-controls">
+       <button class="btn-prev">⏮️ Previous</button>
+       ...
+   </div>
+   ```
+
+3. **`templates_modern/_search_bar.html`** - Search bar component
+   ```jinja2
+   <div class="header-search">
+       <select id="header-search-type">...</select>
+       ...
+   </div>
+   ```
+
+#### Step 3: Update All Templates to Use Components
+Replace inline `<style>` blocks and duplicated HTML with:
+```jinja2
+{% extends "base_layout.html" %}
+{% include "_nav.html" %}
+{% include "_playback_controls.html" %}
+{% include "_search_bar.html" %}
+```
+
+#### Step 4: Remove Duplicate Styles
+Delete inline `<style>...</style>` blocks from all 8 template files
+
+### Benefits
+- **80% Less Code**: Replace ~2000 lines of duplicate CSS with ~500 lines
+- **1 Edit = All Pages**: Change button styling once, updates everywhere
+- **Easier Testing**: Single source of truth for component behavior
+- **Mobile Maintenance**: Update mobile breakpoints in 1 place
+- **Theme Consistency**: CSS variables for colors (easy dark mode support)
+- **Faster Performance**: Smaller HTML files, shared CSS caching
+
+### Files Affected
+Templates to update:
+- `templates_modern/index.html`
+- `templates_modern/playlist.html`
+- `templates_modern/add_music.html`
+- `templates_modern/recent_albums.html`
+- `templates_modern/browse_albums.html`
+- `templates_modern/browse_artists.html`
+- `templates_modern/browse_genres.html`
+- `templates_modern/radio.html`
+
+New files to create:
+- `static/modern-ui/theme.css` (~600 lines)
+- `static/modern-ui/components.css` (~400 lines)
+- `static/modern-ui/responsive.css` (~300 lines)
+- `templates_modern/_nav.html`
+- `templates_modern/_playback_controls.html`
+- `templates_modern/_search_bar.html`
+- `templates_modern/_volume_controls.html`
+
+### Timeline
+- **Phase 1**: Extract CSS to stylesheet files (test on 1 template)
+- **Phase 2**: Create component templates (test all 8 templates)
+- **Phase 3**: Update all templates to use components
+- **Phase 4**: Quality assurance across all pages and mobile
+
+---
 ## � ACTIVE DEBUGGING SESSION - Artist Feature Playlist Creation Issue
 
 **Status:** IN PROGRESS - Debugging stuck "Creating Playlist" dialog

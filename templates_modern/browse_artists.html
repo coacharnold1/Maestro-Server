@@ -1,0 +1,1567 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browse Artists - MPD Web Control</title>
+    <script src="/static/version-loader.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 80px rgba(102, 126, 234, 0.1);
+            box-sizing: border-box;
+        }
+
+        h1 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 4s ease-in-out infinite;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            font-size: 2.2em;
+            text-align: center;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+
+        .genre-title {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        .nav-links {
+            text-align: center;
+            margin-bottom: 25px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .nav-links a,
+        .nav-links button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-size: 200% 200%;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .nav-links a::before,
+        .nav-links button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -1000px;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        .nav-links a:hover,
+        .nav-links button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .nav-links .clear-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.3);
+        }
+
+        .nav-links .clear-btn:hover {
+            box-shadow: 0 6px 20px rgba(245, 87, 108, 0.5);
+        }
+
+        /* Button Styles */
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -1000px;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #764ba2 0%, #f093fb 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(240, 147, 251, 0.3);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(240, 147, 251, 0.5);
+        }
+
+        /* Colorful gradient buttons for playback */
+        .btn-prev {
+            background: linear-gradient(135deg, #764ba2 0%, #b721c1 100%) !important;
+        }
+
+        .btn-play {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%) !important;
+        }
+
+        .btn-stop {
+            background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%) !important;
+        }
+
+        .btn-pause {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%) !important;
+        }
+
+        .btn-next {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+        }
+
+        /* Base playback button styling */
+        .playback-controls button {
+            padding: 10px 16px;
+            margin: 8px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            color: #1a1a1a;
+            display: inline-block;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .playback-controls button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -1000px;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        .playback-controls button:hover {
+            transform: translateY(-2px);
+        }
+
+        .nav-links-breadcrumb {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .nav-links-breadcrumb:hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: #764ba2;
+        }
+
+        .playback-controls {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .playback-controls:hover {
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+
+        .playback-controls h2 {
+            margin: 0 0 20px 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        .playback-controls a,
+        .playback-controls button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            margin: 8px;
+            border: none;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            display: inline-block;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .playback-controls a::before,
+        .playback-controls button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -1000px;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        .playback-controls a:hover,
+        .playback-controls button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .playback-controls button:active {
+            transform: translateY(0);
+        }
+
+        .playback-controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 40px;
+            font-size: 1.2em;
+            color: #bdc3c7;
+        }
+
+        .error {
+            background: linear-gradient(135deg, rgba(245, 87, 108, 0.1) 0%, rgba(240, 147, 251, 0.05) 100%);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(245, 87, 108, 0.3);
+            color: #f5576c;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.2);
+        }
+
+        .artist-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .artist-item {
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 25px;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .artist-item:hover {
+            transform: translateY(-5px);
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(102, 126, 234, 0.3);
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.2);
+        }
+
+        .artist-name {
+            font-size: 1.4em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .artist-meta {
+            color: #bdc3c7;
+            font-size: 0.95em;
+            font-weight: 500;
+        }
+
+        .letter-nav {
+            text-align: center;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 15px;
+            display: none;
+        }
+
+        .letter-nav h3 {
+            margin: 0 0 15px 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        .letter-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            padding: 8px 12px;
+            margin: 4px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 0.9em;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+
+        .letter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .letter-btn.active {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);
+        }
+
+        /* Minimal theme overrides */
+        body.light {
+            background-color: #f5f5f7;
+            color: #1a1a1a;
+        }
+        body.light .container {
+            background-color: #ffffff;
+            color: #1a1a1a;
+        }
+        body.light .playback-controls,
+        body.light .stats,
+        body.light .artist-item {
+            background-color: #f0f3f6;
+            border-color: #d0d7de;
+        }
+
+        body.light .now-playing-bar {
+            background: linear-gradient(135deg, #f0f3f6 0%, #e8ecf0 100%);
+            border-color: #d0d7de;
+        }
+        body.light .now-playing-bar .label {
+            color: #6b7280;
+        }
+        body.light .now-playing-bar .info,
+        body.light .now-playing-bar .track {
+            color: #1a1a1a;
+        }
+        body.light .now-playing-bar .artist {
+            color: #059669;
+        }
+        body.light .now-playing-bar .album {
+            color: #d97706;
+        }
+        body.light .now-playing-bar .separator {
+            color: #d0d7de;
+        }
+
+        body.high-contrast {
+            background-color: #000000;
+            color: #ffff00;
+        }
+        body.high-contrast .container {
+            background-color: #000000;
+            color: #ffff00;
+            border: 2px solid #ffff00;
+        }
+        body.high-contrast .playback-controls,
+        body.high-contrast .stats,
+        body.high-contrast .artist-item {
+            background-color: #000000;
+            border: 2px solid #ffff00;
+        }
+
+        body.high-contrast .now-playing-bar {
+            background: linear-gradient(135deg, #000000 0%, #111111 100%);
+            border: 2px solid #ffff00;
+        }
+        body.high-contrast .now-playing-bar .label {
+            color: #ffff00;
+        }
+        body.high-contrast .now-playing-bar .info,
+        body.high-contrast .now-playing-bar .track,
+        body.high-contrast .now-playing-bar .artist,
+        body.high-contrast .now-playing-bar .album {
+            color: #ffff00;
+        }
+        body.high-contrast .now-playing-bar .separator {
+            color: #ffff00;
+        }
+
+        /* Desert theme */
+        body.desert {
+            background-color: #2c1810;
+            color: #f4e4bc;
+        }
+        body.desert .container {
+            background-color: #3d2f20;
+            color: #f4e4bc;
+            border-color: #8b4513;
+        }
+        body.desert .playback-controls,
+        body.desert .stats,
+        body.desert .artist-item {
+            background-color: #4a3b2a;
+            border-color: #cd853f;
+        }
+
+        body.desert .now-playing-bar {
+            background: linear-gradient(135deg, #4a3b2a 0%, #3d2f20 100%);
+            border-color: #cd853f;
+        }
+        body.desert .now-playing-bar .label {
+            color: #d2b48c;
+        }
+        body.desert .now-playing-bar .info,
+        body.desert .now-playing-bar .track {
+            color: #f4e4bc;
+        }
+        body.desert .now-playing-bar .artist {
+            color: #daa520;
+        }
+        body.desert .now-playing-bar .album {
+            color: #cd853f;
+        }
+        body.desert .now-playing-bar .separator {
+            color: #8b4513;
+        }
+
+        /* Terminal theme */
+        body.terminal {
+            background-color: #000000;
+            color: #00ff00;
+        }
+        body.terminal .container {
+            background-color: #0a0a0a;
+            color: #00ff00;
+            border-color: #00cc00;
+        }
+        body.terminal .playback-controls,
+        body.terminal .stats,
+        body.terminal .artist-item {
+            background-color: #1a1a1a;
+            border-color: #00cc00;
+        }
+
+        body.terminal .now-playing-bar {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            border-color: #00cc00;
+        }
+        body.terminal .now-playing-bar .label {
+            color: #00aa00;
+        }
+        body.terminal .now-playing-bar .info,
+        body.terminal .now-playing-bar .track,
+        body.terminal .now-playing-bar .artist,
+        body.terminal .now-playing-bar .album {
+            color: #00ff00;
+        }
+        body.terminal .now-playing-bar .separator {
+            color: #009900;
+        }
+
+        /* Sunset theme */
+        body.sunset {
+            background-color: #1a0f1f;
+            color: #ffe4b5;
+        }
+        body.sunset .container {
+            background-color: #2d1b2e;
+            color: #ffe4b5;
+            border-color: #ff6b35;
+        }
+        body.sunset .playback-controls,
+        body.sunset .stats,
+        body.sunset .artist-item {
+            background-color: #3d2534;
+            border-color: #ff6b35;
+        }
+
+        body.sunset .now-playing-bar {
+            background: linear-gradient(135deg, #3d2534 0%, #2d1b2e 100%);
+            border-color: #ff6b35;
+        }
+        body.sunset .now-playing-bar .label {
+            color: #ffb380;
+        }
+        body.sunset .now-playing-bar .info,
+        body.sunset .now-playing-bar .track {
+            color: #ffe4b5;
+        }
+        body.sunset .now-playing-bar .artist {
+            color: #ffb347;
+        }
+        body.sunset .now-playing-bar .album {
+            color: #ff6b35;
+        }
+        body.sunset .now-playing-bar .separator {
+            color: #ff8c42;
+        }
+
+        /* Forest theme */
+        body.forest {
+            background-color: #0d1b0d;
+            color: #c9e4c5;
+        }
+        body.forest .container {
+            background-color: #1a2e1a;
+            color: #c9e4c5;
+            border-color: #4a7c4e;
+        }
+        body.forest .playback-controls,
+        body.forest .stats,
+        body.forest .artist-item {
+            background-color: #233d23;
+            border-color: #4a7c4e;
+        }
+
+        body.forest .now-playing-bar {
+            background: linear-gradient(135deg, #233d23 0%, #1a2e1a 100%);
+            border-color: #4a7c4e;
+        }
+        body.forest .now-playing-bar .label {
+            color: #7cb342;
+        }
+        body.forest .now-playing-bar .info,
+        body.forest .now-playing-bar .track {
+            color: #c9e4c5;
+        }
+        body.forest .now-playing-bar .artist {
+            color: #7cb342;
+        }
+        body.forest .now-playing-bar .album {
+            color: #4a7c4e;
+        }
+        body.forest .now-playing-bar .separator {
+            color: #558b2f;
+        }
+
+        /* Midnight theme */
+        body.midnight {
+            background-color: #0f0a1e;
+            color: #e0d4f7;
+        }
+        body.midnight .container {
+            background-color: #1e1435;
+            color: #e0d4f7;
+            border-color: #6a4c93;
+        }
+        body.midnight .playback-controls,
+        body.midnight .stats,
+        body.midnight .artist-item {
+            background-color: #2a1f4a;
+            border-color: #6a4c93;
+        }
+
+        body.midnight .now-playing-bar {
+            background: linear-gradient(135deg, #2a1f4a 0%, #1e1435 100%);
+            border-color: #6a4c93;
+        }
+        body.midnight .now-playing-bar .label {
+            color: #b19cd9;
+        }
+        body.midnight .now-playing-bar .info,
+        body.midnight .now-playing-bar .track {
+            color: #e0d4f7;
+        }
+        body.midnight .now-playing-bar .artist {
+            color: #bb86fc;
+        }
+        body.midnight .now-playing-bar .album {
+            color: #6a4c93;
+        }
+        body.midnight .now-playing-bar .separator {
+            color: #8367a7;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+
+            .nav-links {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                align-items: center;
+            }
+
+            .nav-links a {
+                margin: 0;
+                width: 80%;
+                max-width: 200px;
+                text-align: center;
+            }
+
+            /* Mobile-friendly letter navigation */
+            .letter-nav {
+                padding: 10px;
+            }
+
+            .letter-nav h3 {
+                font-size: 0.9em;
+                margin-bottom: 8px;
+            }
+
+            .letter-btn {
+                padding: 4px 6px;
+                font-size: 0.8em;
+                margin: 1px;
+            }
+        }
+
+        /* Now Playing Bar */
+        .now-playing-bar {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            border: 1px solid #4a6279;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+        }
+        .now-playing-bar .np-art { width: 50px; height: 50px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background-color: #2c3e50; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); }
+        .now-playing-bar .np-content { flex: 1; text-align: center; min-width: 0; }
+        .now-playing-bar .label { font-size: 0.8em; color: #95a5a6; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 1px; }
+        .now-playing-bar .info { font-size: 1.1em; color: #ecf0f1; font-weight: 500; }
+        .now-playing-bar .artist { color: #27ae60; }
+        .now-playing-bar .separator { color: #7f8c8d; margin: 0 8px; }
+        .now-playing-bar .track { color: #3498db; }
+        .now-playing-bar .album { color: #e67e22; }
+        @media (max-width: 600px) {
+            .now-playing-bar .np-art { width: 40px; height: 40px; }
+            .now-playing-bar .info { font-size: 0.9em; }
+            .now-playing-bar .separator { margin: 0 4px; }
+        }
+
+        /* ==================== PHASE 2: FIXED HEADER NAVIGATION ==================== */
+
+        /* Theme-specific header colors */
+        body .fixed-header {
+            background-color: #2c3e50;
+            border-bottom-color: #34495e;
+        }
+        body .header-nav a, body .header-nav button {
+            color: #3498db;
+            border-color: #3498db;
+        }
+
+        body.light .fixed-header {
+            background-color: #e8e8e8;
+            border-bottom-color: #cccccc;
+        }
+        body.light .header-nav a, body.light .header-nav button {
+            color: #0066cc;
+            border-color: #0066cc;
+        }
+
+        body.high-contrast .fixed-header {
+            background-color: #000000;
+            border-bottom: 2px solid #ffff00;
+        }
+        body.high-contrast .header-nav a, body.high-contrast .header-nav button {
+            color: #ffff00;
+            border-color: #ffff00;
+        }
+
+        body.desert .fixed-header {
+            background-color: #3d2f20;
+            border-bottom-color: #8b4513;
+        }
+        body.desert .header-nav a, body.desert .header-nav button {
+            color: #cd853f;
+            border-color: #cd853f;
+        }
+
+        body.terminal .fixed-header {
+            background-color: #0a0a0a;
+            border-bottom: 2px solid #00cc00;
+        }
+        body.terminal .header-nav a, body.terminal .header-nav button {
+            color: #00ff00;
+            border-color: #00cc00;
+        }
+
+        body.sunset .fixed-header {
+            background-color: #2d1b2e;
+            border-bottom-color: #ff6b35;
+        }
+        body.sunset .header-nav a, body.sunset .header-nav button {
+            color: #ff8c42;
+            border-color: #ff8c42;
+        }
+
+        body.forest .fixed-header {
+            background-color: #1a2e1a;
+            border-bottom-color: #4a7c4e;
+        }
+        body.forest .header-nav a, body.forest .header-nav button {
+            color: #66bb6a;
+            border-color: #66bb6a;
+        }
+
+        body.midnight .fixed-header {
+            background-color: #1e1435;
+            border-bottom-color: #6a4c93;
+        }
+        body.midnight .header-nav a, body.midnight .header-nav button {
+            color: #bb86fc;
+            border-color: #bb86fc;
+        }
+
+        .fixed-header {
+            background-color: #2c3e50;
+            border-bottom: 2px solid #34495e;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            padding: 0;
+            margin: 0 0 20px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .header-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px 20px;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .header-nav a,
+        .header-nav button {
+            color: #ffffff;
+            text-decoration: none;
+            padding: 10px 18px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            white-space: nowrap;
+        }
+
+        .header-nav a:hover,
+        .header-nav button:hover {
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .header-nav a.active {
+            color: white;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+            border-color: #f5576c !important;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.3) !important;
+        }
+
+        .header-search {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: nowrap;
+            justify-content: center;
+        }
+
+        .header-search input,
+        .header-search select {
+            padding: 8px 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.15) 0%, rgba(41, 128, 185, 0.15) 100%);
+            backdrop-filter: blur(10px);
+            color: #ffffff;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .header-search select {
+            max-width: 100px;
+            flex-shrink: 0;
+        }
+
+        .header-search input {
+            width: auto;
+            max-width: 175px;
+            min-width: 100px;
+        }
+
+        .header-search button {
+            flex-shrink: 0;
+        }
+
+        .random-albums-btn {
+            flex-shrink: 0;
+        }
+
+        .header-search input::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+
+        .header-search input:focus,
+        .header-search select:focus {
+            outline: none;
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.3) 0%, rgba(41, 128, 185, 0.3) 100%);
+            border-color: rgba(255,255,255,0.4);
+            box-shadow: 0 0 12px rgba(52, 152, 219, 0.4);
+        }
+
+        .header-search button {
+            padding: 10px 18px;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: 1px solid rgba(52, 152, 219, 0.3);
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            white-space: nowrap;
+        }
+
+        .header-search button:hover {
+            background: linear-gradient(135deg, #2980b9 0%, #1f618d 100%);
+            border-color: rgba(47, 128, 185, 0.5);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .autocomplete-container {
+            position: relative;
+            flex: none;
+            width: auto;
+        }
+
+        .autocomplete-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: #34495e;
+            border: 1px solid #3498db;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .autocomplete-item {
+            padding: 10px 12px;
+            color: #ecf0f1;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(52, 152, 219, 0.2);
+            font-size: 0.9em;
+        }
+
+        .autocomplete-item:hover,
+        .autocomplete-item.selected {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .random-albums-btn {
+            background-color: #9b59b6;
+            color: white;
+            border: 1px solid #9b59b6;
+            padding: 8px 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+
+        .random-albums-btn:hover {
+            background-color: #8e44ad;
+            border-color: #8e44ad;
+        }
+
+        .clear-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: 1px solid #e74c3c;
+            padding: 8px 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            white-space: nowrap;
+            transition: all 0.3s;
+        }
+
+        .clear-btn:hover {
+            background-color: #c0392b;
+            border-color: #c0392b;
+        }
+
+        .playback-controls .clear-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: 1px solid #e74c3c;
+        }
+
+        .playback-controls .clear-btn:hover {
+            background-color: #c0392b;
+            border-color: #c0392b;
+        }
+
+        .stats {
+            background-color: #34495e;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            color: #bdc3c7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: nowrap;
+        }
+
+        @media (max-width: 768px) {
+            .header-search input {
+                max-width: 110px;
+                min-width: 80px;
+                padding: 6px 8px;
+                font-size: 0.85em;
+            }
+            .header-search select {
+                max-width: 90px;
+                padding: 6px 8px;
+                font-size: 0.85em;
+            }
+            .header-search button {
+                padding: 6px 10px;
+                font-size: 0.8em;
+            }
+        }
+
+        @media (max-width: 450px) {
+            /* Mobile search link visible, desktop hidden */
+            .mobile-search-link {
+                display: inline-block !important;
+            }
+
+            /* Make header nav work on mobile with 6 items */
+            .header-nav {
+                gap: 4px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .header-nav a {
+                padding: 10px 14px !important;
+                font-size: 12px !important;
+                margin: 2px 1px;
+            }
+
+            /* Hide search inputs on mobile, keep Random button */
+            #header-search-type,
+            .autocomplete-container,
+            .autocomplete-dropdown,
+            #header-autocomplete-dropdown,
+            .header-search button:not(.random-albums-btn) {
+                display: none !important;
+            }
+
+            /* Adjust header-search for mobile */
+            .header-search {
+                gap: 4px;
+                padding: 0 5px;
+            }
+        }
+
+        /* Hide mobile search link on desktop */
+        @media (min-width: 451px) {
+            .mobile-search-link {
+                display: none !important;
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
+</head>
+
+<body class="{{ app_theme }}">
+    <div class="container">
+        <!-- Now Playing Bar -->
+        <div class="now-playing-bar" id="now-playing-bar" style="display: none;">
+            <img class="np-art" id="np-art" src="/static_placeholder_art" alt="Album Art" onerror="this.src='/static_placeholder_art'">
+            <div class="np-content">
+                <div class="label">♪ Now Playing</div>
+                <div class="info">
+                    <span class="artist" id="np-artist">-</span>
+                    <span class="separator">•</span>
+                    <span class="album" id="np-album">-</span>
+                    <span class="separator">•</span>
+                    <span class="track" id="np-track">-</span>
+                </div>
+            </div>
+        </div>
+
+        <h1 id="page-heading">🎤 Artists</h1>
+        <div class="genre-title" id="genre-title">Loading...</div>
+
+        <!-- Phase 2: Fixed Header Navigation -->
+        <div class="fixed-header">
+            <div class="header-content">
+                <div class="header-nav">
+                    <a href="/">🏠 Main</a>
+                    <a href="/playlist">🎵 Queue</a>
+                    <a href="/add_music">🎲 Add Music</a>
+                    <a href="/recent">📀 Recent</a>
+                    <a href="/browse" class="active">🗂️ Browse</a>
+                    <a href="/radio">📻 Radio</a>
+                    <a href="/search" class="mobile-search-link">🔍 Search</a>
+                </div>
+                <div class="header-search">
+                    <select id="header-search-type">
+                        <option value="any">All Types</option>
+                        <option value="artist">Artists</option>
+                        <option value="album">Albums</option>
+                        <option value="title">Songs</option>
+                    </select>
+                    <div class="autocomplete-container">
+                        <input type="text" id="header-search-input" placeholder="Search..." autocomplete="off">
+                        <div id="header-autocomplete-dropdown" class="autocomplete-dropdown"></div>
+                    </div>
+                    <button onclick="performHeaderSearch()">Go</button>
+                    <button type="button" class="random-albums-btn" onclick="window.location.href='/random_albums'" title="Get 25 random albums">🎲 Random</button>
+                </div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin: 15px 0;">
+            <a href="/browse" class="nav-links-breadcrumb">← Back to Genres</a>
+        </div>
+
+        <div class="playback-controls">
+            <h2>🎵 Playback Controls</h2>
+            <div style="margin-bottom: 10px;">
+                <button onclick="playbackAction('previous')" class="btn btn-prev">⏮️ Previous</button>
+                <button onclick="playbackAction('play')" class="btn btn-play">▶️ Play</button>
+                <button onclick="playbackAction('stop')" class="btn btn-stop">⏹️ Stop</button>
+                <button onclick="playbackAction('pause')" class="btn btn-pause">⏸️ Pause</button>
+                <button onclick="playbackAction('next')" class="btn btn-next">⏭️ Next</button>
+            </div>
+            <button onclick="clearPlaylist()" class="clear-btn">🗑️ Clear Playlist</button>
+        </div>
+
+        <div id="loading" class="loading">
+            <div>🎤 Loading artists...</div>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div class="stats" id="stats" style="display: none;">
+            <span id="artist-count">0</span> artists in this genre
+        </div>
+
+        <div class="letter-nav" id="letter-nav">
+            <h3>Jump to Letter</h3>
+            <div id="letter-buttons"></div>
+        </div>
+
+        <ul id="artist-list" class="artist-list" style="display: none;"></ul>
+    </div>
+
+    <!-- App Info + Settings (inline, always visible) -->
+    <div style="text-align: center; margin: 18px auto; padding-top: 8px; border-top: 1px solid #34495e; max-width: 1000px;">
+        <span id="version-info">Loading version info...</span>
+        &nbsp;•&nbsp;
+        <a href="/settings" style="color:#bdc3c7; text-decoration: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px;">Settings</a>
+        &nbsp;•&nbsp;
+        <a href="/charts" style="color:#bdc3c7; text-decoration: none; border: 1px solid #3498db; padding: 4px 8px; border-radius: 4px;">Charts</a>
+    </div>
+
+    <script>
+        (function(){
+            fetch('/api/version')
+                .then(r=>r.json())
+                .then(d=>{var el=document.getElementById('version-info'); if(el) el.textContent = d.app_name+' v'+d.version+' ('+d.build_date+')';})
+                .catch(()=>{var el=document.getElementById('version-info'); if(el) el.textContent='MPD Web Control';});
+        })();
+
+        // Get genre from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const genreName = urlParams.get('genre');
+
+        // Update heading with genre name
+        if (genreName) {
+            const headingEl = document.getElementById('page-heading');
+            if (headingEl) {
+                headingEl.textContent = `🎵 ${decodeURIComponent(genreName)} » Artists`;
+            }
+        }
+
+        // Header navigation and search
+        document.addEventListener('DOMContentLoaded', function() {
+            // Highlight current page in header nav
+            const currentPath = window.location.pathname;
+            const headerNavLinks = document.querySelectorAll('.header-nav a');
+            headerNavLinks.forEach(link => {
+                if (link.pathname === currentPath || (currentPath === '/browse' && link.pathname === '/browse')) {
+                    link.classList.add('active');
+                }
+            });
+
+            // Header search functionality with autocomplete
+            let allAlbums = [];
+            let allArtists = [];
+            let allSongs = [];
+
+            fetch('/api/search/autocomplete')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        allAlbums = data.albums || [];
+                        allArtists = data.artists || [];
+                        allSongs = data.titles || [];
+                        console.log('Autocomplete data loaded:', {albums: allAlbums.length, artists: allArtists.length, songs: allSongs.length});
+                    }
+                })
+                .catch(err => console.error('Error fetching autocomplete data:', err));
+
+            const searchInput = document.getElementById('header-search-input');
+            const searchType = document.getElementById('header-search-type');
+            const autocompleteDropdown = document.getElementById('header-autocomplete-dropdown');
+
+            function showHeaderSuggestions(query) {
+                if (query.length === 0) {
+                    autocompleteDropdown.style.display = 'none';
+                    return;
+                }
+                const type = searchType.value;
+                const lowerQuery = query.toLowerCase();
+                let suggestions = [];
+
+                if (type === 'any') {
+                    if (allArtists.length > 0) {
+                        suggestions = suggestions.concat(allArtists.filter(a => a.toLowerCase().includes(lowerQuery)));
+                    }
+                    if (allAlbums.length > 0) {
+                        suggestions = suggestions.concat(allAlbums.filter(a => a.toLowerCase().includes(lowerQuery)));
+                    }
+                    if (allSongs.length > 0) {
+                        suggestions = suggestions.concat(allSongs.filter(s => s.toLowerCase().includes(lowerQuery)));
+                    }
+                    suggestions = [...new Set(suggestions)].slice(0, 5);
+                } else if (type === 'album' && allAlbums.length > 0) {
+                    suggestions = allAlbums.filter(a => a.toLowerCase().includes(lowerQuery)).slice(0, 5);
+                } else if (type === 'artist' && allArtists.length > 0) {
+                    suggestions = allArtists.filter(a => a.toLowerCase().includes(lowerQuery)).slice(0, 5);
+                } else if (type === 'title' && allSongs.length > 0) {
+                    suggestions = allSongs.filter(s => s.toLowerCase().includes(lowerQuery)).slice(0, 5);
+                }
+
+                if (suggestions.length > 0) {
+                    autocompleteDropdown.innerHTML = suggestions.map(s => 
+                        `<div class="autocomplete-item">${escapeHtml(s)}</div>`
+                    ).join('');
+                    autocompleteDropdown.style.display = 'block';
+                    
+                    autocompleteDropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+                        item.addEventListener('click', function() {
+                            searchInput.value = this.textContent;
+                            autocompleteDropdown.style.display = 'none';
+                            performHeaderSearch();
+                        });
+                    });
+                } else {
+                    autocompleteDropdown.style.display = 'none';
+                }
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    showHeaderSuggestions(this.value);
+                });
+            }
+
+            if (searchType) {
+                searchType.addEventListener('change', function() {
+                    showHeaderSuggestions(searchInput.value);
+                });
+            }
+
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            function performHeaderSearch() {
+                const query = searchInput ? searchInput.value.trim() : '';
+                if (query.length > 0) {
+                    const type = searchType ? searchType.value : 'any';
+                    window.location.href = `/search?query=${encodeURIComponent(query)}&search_tag=${type}`;
+                }
+            }
+
+            // Make it globally available
+            window.performHeaderSearch = performHeaderSearch;
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // SocketIO setup for now playing bar
+            const socket = io();
+            const nowPlayingBar = document.getElementById('now-playing-bar');
+            const npArtist = document.getElementById('np-artist');
+            const npAlbum = document.getElementById('np-album');
+            const npTrack = document.getElementById('np-track');
+            const npArt = document.getElementById('np-art');
+
+            // Track current art to avoid unnecessary reloads
+            let currentNpArtKey = '';
+
+            // Helper to update album art
+            function updateNowPlayingArt(artist, album, songFile) {
+                const artKey = `${artist}-${album}`;
+                if (artKey !== currentNpArtKey && npArt) {
+                    currentNpArtKey = artKey;
+                    let artUrl = `/album_art?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}&size=thumb&_t=${Date.now()}`;
+                    if (songFile) {
+                        artUrl += `&file=${encodeURIComponent(songFile)}`;
+                    }
+                    npArt.src = artUrl;
+                }
+            }
+
+            socket.on('mpd_status', function(data) {
+                if (data.state === 'play' || data.state === 'pause') {
+                    if (data.artist && data.artist !== 'N/A' && data.song_title && data.song_title !== 'N/A') {
+                        nowPlayingBar.style.display = 'flex';
+                        npArtist.textContent = data.artist;
+                        npAlbum.textContent = data.album || 'Unknown Album';
+                        npTrack.textContent = data.song_title;
+                        updateNowPlayingArt(data.artist, data.album || 'Unknown Album', data.song_file || data.file);
+                    } else {
+                        nowPlayingBar.style.display = 'none';
+                    }
+                } else {
+                    nowPlayingBar.style.display = 'none';
+                }
+            });
+
+            // Fetch initial state to set logo correctly on page load
+            fetch('/api/version')
+                .then(() => fetch('/get_mpd_status'))
+                .then(r => r.json())
+                .then(data => {
+                    if (data.state === 'play') {
+                        // Logo already set to animated, no change needed
+                    } else {
+                        // Set to static logo
+                        document.getElementById('maestro-logo-artists') && (document.getElementById('maestro-logo-artists').src = '/static/logo-static.svg');
+                    }
+                    if (data.state === 'play' || data.state === 'pause') {
+                        if (data.artist && data.artist !== 'N/A' && data.song_title && data.song_title !== 'N/A') {
+                            nowPlayingBar.style.display = 'flex';
+                            npArtist.textContent = data.artist;
+                            npAlbum.textContent = data.album || 'Unknown Album';
+                            npTrack.textContent = data.song_title;
+                            updateNowPlayingArt(data.artist, data.album || 'Unknown Album', data.song_file || data.file);
+                        }
+                    }
+                })
+                .catch(err => console.error('Error fetching initial state:', err));
+
+            if (genreName) {
+                document.getElementById('genre-title').textContent = `Genre: ${genreName}`;
+                loadArtists(genreName);
+            } else {
+                showError('No genre specified');
+            }
+        });
+
+        function loadArtists(genre) {
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const artistList = document.getElementById('artist-list');
+            const stats = document.getElementById('stats');
+
+            // Show loading state
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            artistList.style.display = 'none';
+            stats.style.display = 'none';
+
+            fetch(`/api/browse/artists?genre=${encodeURIComponent(genre)}`)
+                .then(response => response.json())
+                .then(data => {
+                    loading.style.display = 'none';
+
+                    if (data.status === 'success') {
+                        displayArtists(data.artists);
+                        document.getElementById('artist-count').textContent = data.count;
+                        stats.style.display = 'block';
+                    } else {
+                        showError(data.message || 'Failed to load artists');
+                    }
+                })
+                .catch(err => {
+                    loading.style.display = 'none';
+                    showError('Network error loading artists: ' + err.message);
+                });
+        }
+
+        function displayArtists(artists) {
+            const artistList = document.getElementById('artist-list');
+            const letterNav = document.getElementById('letter-nav');
+            artistList.innerHTML = '';
+
+            if (artists.length === 0) {
+                artistList.innerHTML = '<li style="text-align: center; padding: 40px; color: #bdc3c7;">No artists found</li>';
+                artistList.style.display = 'block';
+                letterNav.style.display = 'none';
+                return;
+            }
+
+            // Show letter navigation only if more than 50 artists
+            if (artists.length > 50) {
+                createLetterNavigation(artists);
+                letterNav.style.display = 'block';
+            } else {
+                letterNav.style.display = 'none';
+            }
+
+            // Store all artists globally for letter jumping
+            window.allArtists = artists;
+
+            artists.forEach(artist => {
+                const listItem = document.createElement('li');
+                listItem.className = 'artist-item';
+                listItem.onclick = () => browseAlbums(artist.name);
+                listItem.setAttribute('data-artist-name', artist.name.toLowerCase());
+
+                listItem.innerHTML = `
+                    <div class="artist-name">${escapeHtml(artist.name)}</div>
+                `;
+
+                artistList.appendChild(listItem);
+            });
+
+            artistList.style.display = 'block';
+        }
+
+        function createLetterNavigation(artists) {
+            const letterButtons = document.getElementById('letter-buttons');
+            letterButtons.innerHTML = '';
+
+            // Get all starting letters from artists
+            const letters = new Set();
+            artists.forEach(artist => {
+                const firstLetter = artist.name.charAt(0).toUpperCase();
+                if (firstLetter.match(/[A-Z0-9]/)) {
+                    letters.add(firstLetter);
+                }
+            });
+
+            // Create buttons for each letter
+            Array.from(letters).sort().forEach(letter => {
+                const btn = document.createElement('button');
+                btn.className = 'letter-btn';
+                btn.textContent = letter;
+                btn.onclick = () => jumpToLetter(letter);
+                letterButtons.appendChild(btn);
+            });
+        }
+
+        function jumpToLetter(letter) {
+            // Remove active class from all buttons
+            document.querySelectorAll('.letter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Add active class to clicked button
+            event.target.classList.add('active');
+
+            // Find first artist starting with this letter
+            const targetArtist = window.allArtists.find(artist =>
+                artist.name.charAt(0).toUpperCase() === letter
+            );
+
+            if (targetArtist) {
+                const artistElement = document.querySelector(
+                    `[data-artist-name="${targetArtist.name.toLowerCase()}"]`
+                );
+                if (artistElement) {
+                    artistElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // Highlight the artist briefly
+                    artistElement.style.backgroundColor = '#e74c3c';
+                    setTimeout(() => {
+                        artistElement.style.backgroundColor = '';
+                    }, 1000);
+                }
+            }
+        }
+
+        function browseAlbums(artistName) {
+            window.location.href = `/browse/albums?artist=${encodeURIComponent(artistName)}&genre=${encodeURIComponent(genreName)}`;
+        }
+
+        function showError(message) {
+            const error = document.getElementById('error');
+            error.textContent = message;
+            error.style.display = 'block';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Playback control function
+        function playbackAction(action) {
+            fetch(`/${action}?ajax=1`, {
+                method: 'GET'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        console.log(data.message);
+                    } else {
+                        console.error(data.message || `Failed to ${action}`);
+                    }
+                })
+                .catch(err => {
+                    console.error(`Error: ${err.message}`);
+                });
+        }
+    </script>
+    <!-- Keyboard Shortcuts -->
+    <!-- Playback Controls -->
+    <script src="/static/playback-controls.js"></script>
+    <script src="/static/keyboard-shortcuts.js"></script>
+</body>
+
+</html>

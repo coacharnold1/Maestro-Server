@@ -62,6 +62,7 @@ def load_settings():
     # defaults
     return {
         'theme': 'dark',
+        'ui_mode': 'classic',
         'lastfm_api_key': '',
         'lastfm_shared_secret': '',
         'show_scrobble_toasts': True,
@@ -232,9 +233,15 @@ except ImportError:
             return []
 
 # Load configuration from environment variables or use defaults
+# Determine template folder based on UI mode setting
+_initial_settings = load_settings()
+_ui_mode = _initial_settings.get('ui_mode', 'classic')
+_template_folder = 'templates_modern' if _ui_mode == 'modern' else 'templates'
+print(f"[DEBUG] UI Mode: {_ui_mode}, Template Folder: {_template_folder}", flush=True)
+
 if ENV_LOADED:
     app_name = globals().get('__app_id__', 'mpd-web-control')
-    app = Flask(app_name)
+    app = Flask(app_name, template_folder=_template_folder)
     app.secret_key = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
     
     # Configuration from environment
@@ -254,7 +261,7 @@ if ENV_LOADED:
 else:
     # Fallback configuration
     app_name = globals().get('__app_id__', 'mpd-web-control')
-    app = Flask(app_name)
+    app = Flask(app_name, template_folder=_template_folder)
     app.secret_key = 'mpd-web-control-secret-key-2025'
     
     # Direct configuration (will be overridden by config.env if it exists)
@@ -1346,14 +1353,19 @@ def settings_page():
     current = load_settings()
     if request.method == 'POST':
         theme = request.form.get('theme', current.get('theme', 'dark')).strip() or 'dark'
+        ui_mode = request.form.get('ui_mode', current.get('ui_mode', 'classic')).strip() or 'classic'
         lastfm_key = request.form.get('lastfm_api_key', '').strip()
         lastfm_secret = request.form.get('lastfm_shared_secret', '').strip()
         scrobble_flag = request.form.get('enable_scrobbling') == 'on'
         show_toasts_flag = request.form.get('show_scrobble_toasts') == 'on'
         hide_volume_flag = request.form.get('hide_volume_controls') == 'on'
 
+        # Check if UI mode changed (requires app restart)
+        ui_mode_changed = current.get('ui_mode', 'classic') != ui_mode
+
         # Update in-memory and persisted settings. Environment variables still take precedence at runtime
         current['theme'] = theme
+        current['ui_mode'] = ui_mode
         current['enable_scrobbling'] = scrobble_flag
         scrobbling_enabled = scrobble_flag
         current['show_scrobble_toasts'] = show_toasts_flag
@@ -1379,7 +1391,10 @@ def settings_page():
 
         if save_settings(current):
             app.config['THEME'] = theme
-            flash('Settings saved successfully', 'success')
+            if ui_mode_changed:
+                flash('Settings saved! Please restart the Maestro server to apply the new UI mode.', 'success')
+            else:
+                flash('Settings saved successfully', 'success')
         else:
             flash('Failed to save settings', 'error')
         return redirect(url_for('settings_page'))
@@ -1389,6 +1404,7 @@ def settings_page():
     masked_secret = '•' * 10 if current.get('lastfm_shared_secret') else ''
     return render_template('settings.html',
                            theme=current.get('theme', 'dark'),
+                           ui_mode=current.get('ui_mode', 'classic'),
                            enable_scrobbling=bool(current.get('enable_scrobbling', False)),
                            lastfm_connected=bool(current.get('lastfm_session_key')),
                            show_scrobble_toasts=bool(current.get('show_scrobble_toasts', True)),
