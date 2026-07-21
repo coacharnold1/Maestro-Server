@@ -158,13 +158,20 @@
             top: 15px;
             right: 20px;
             font-size: 28px;
-            color: #95a5a6;
+            color: #ecf0f1;
             cursor: pointer;
-            transition: color 0.2s;
+            transition: all 0.3s ease;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
         }
 
         .modal-close:hover {
-            color: #ecf0f1;
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
         }
 
         .modal-header {
@@ -239,17 +246,20 @@
         }
 
         .add-btn {
-            background: #27ae60;
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
             color: white;
             border: none;
-            padding: 8px 15px;
-            border-radius: 6px;
+            padding: 10px 16px;
+            border-radius: 12px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(67, 233, 123, 0.3);
         }
 
         .add-btn:hover {
-            background: #229954;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(67, 233, 123, 0.5);
         }
 
         .message {
