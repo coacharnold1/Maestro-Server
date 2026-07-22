@@ -283,7 +283,28 @@ sudo journalctl -u maestro-web.service -n 50
 - `templates/browse_artists.html`
 - `templates/browse_albums.html`
 
-### �🚨 CRITICAL: Inline Scripts in Jinja2 Templates Don't Execute
+### ✨ Updated: Jump to Letter Button Styling in Modern UI (July 22, 2026)
+**ISSUE FIXED:**
+- Browse Genre page "Jump to Letter" buttons did not match the styling from Browse Artist page
+- Old styling used simple solid colors (#3498db blue background, #e74c3c red active)
+- This made the Genre page look out of date compared to the modernized Artist page
+
+**SOLUTION APPLIED:**
+- Updated `.letter-nav` to use modern glass-morphism with `backdrop-filter: blur(10px)`
+- Updated `.letter-nav h3` to use gradient text (purple to pink)
+- Changed `.letter-btn` to gradient buttons matching the updated design
+- Updated hover effect with `transform: translateY(-2px)` and enhanced shadow
+- Changed active state to gradient pink/red (`#f093fb` to `#f5576c`)
+- Removed theme-specific letter-nav overrides to maintain consistency
+
+**FILES AFFECTED (deployed):**
+- `templates_modern/browse_genres.html` - Updated letter navigation styling and removed theme overrides ✓
+- Deployed to: `/home/fausto/maestro/web/templates_modern/browse_genres.html` ✓
+- Service restarted: maestro-web.service ✓
+
+**Result:** Browse Genres and Browse Artists pages now have matching modern button styling for "Jump to Letter" feature.
+
+### 🚨 CRITICAL: Inline Scripts in Jinja2 Templates Don't Execute
 **ISSUE FOUND (Jan 31, 2026):**
 - Inline `<script>` tags in HTML templates DO NOT execute, even though they appear in served HTML
 - External `<script src="/static/file.js"></script>` files work perfectly

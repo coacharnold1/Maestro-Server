@@ -572,40 +572,50 @@
 
         .letter-nav {
             text-align: center;
-            margin-bottom: 20px;
-            padding: 15px;
-            background-color: #34495e;
-            border-radius: 8px;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 15px;
             display: none;
         }
 
         .letter-nav h3 {
-            margin: 0 0 10px 0;
-            color: #ecf0f1;
-            font-size: 1em;
+            margin: 0 0 15px 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 1.1em;
+            font-weight: 600;
         }
 
         .letter-btn {
             display: inline-block;
-            background-color: #3498db;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             text-decoration: none;
-            padding: 5px 8px;
-            margin: 2px;
-            border-radius: 3px;
-            transition: background-color 0.3s;
-            font-weight: bold;
+            padding: 8px 12px;
+            margin: 4px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 600;
             font-size: 0.9em;
             cursor: pointer;
             border: none;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
         }
 
         .letter-btn:hover {
-            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
 
         .letter-btn.active {
-            background-color: #e74c3c;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);
         }
 
         /* Minimal theme overrides */
@@ -620,7 +630,6 @@
         body.light .playback-controls,
         body.light .stats,
         body.light .genre-item,
-        body.light .letter-nav,
         body.light .volume-mini-controls {
             background-color: #f0f3f6;
             border-color: #d0d7de;
@@ -662,7 +671,6 @@
         body.high-contrast .playback-controls,
         body.high-contrast .stats,
         body.high-contrast .genre-item,
-        body.high-contrast .letter-nav,
         body.high-contrast .volume-mini-controls {
             background-color: #000000;
             border: 2px solid #ffff00;
@@ -698,7 +706,6 @@
         body.desert .playback-controls,
         body.desert .stats,
         body.desert .genre-item,
-        body.desert .letter-nav,
         body.desert .volume-mini-controls {
             background-color: #4a3b2a;
             border-color: #cd853f;
@@ -738,7 +745,6 @@
         body.terminal .playback-controls,
         body.terminal .stats,
         body.terminal .genre-item,
-        body.terminal .letter-nav,
         body.terminal .volume-mini-controls {
             background-color: #1a1a1a;
             border-color: #00cc00;
@@ -774,7 +780,6 @@
         body.sunset .playback-controls,
         body.sunset .stats,
         body.sunset .genre-item,
-        body.sunset .letter-nav,
         body.sunset .volume-mini-controls {
             background-color: #3d2534;
             border-color: #ff6b35;
@@ -814,7 +819,6 @@
         body.forest .playback-controls,
         body.forest .stats,
         body.forest .genre-item,
-        body.forest .letter-nav,
         body.forest .volume-mini-controls {
             background-color: #233d23;
             border-color: #4a7c4e;
@@ -854,7 +858,6 @@
         body.midnight .playback-controls,
         body.midnight .stats,
         body.midnight .genre-item,
-        body.midnight .letter-nav,
         body.midnight .volume-mini-controls {
             background-color: #2a1f4a;
             border-color: #6a4c93;
