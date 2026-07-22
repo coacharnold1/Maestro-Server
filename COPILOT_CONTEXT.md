@@ -16,7 +16,7 @@
 ## 🚨 CRITICAL: Environment & Paths
 
 ### Current Machine
-**This is the DEVELOPMENT server at 192.168.1.209**
+**This is the TEST/DEVELOPMENT server at 192.168.1.106**
 
 ### Path Structure (ALWAYS REMEMBER THIS!)
 - **Git Repository**: `/home/fausto/Maestro-Server` (where you edit files)
@@ -30,7 +30,7 @@
 #### 1️⃣ **Main Maestro Web Service**
 - **Service**: `maestro-web.service`
 - **Port**: 5003
-- **URL**: http://192.168.1.209:5003
+- **URL**: http://192.168.1.106:5003
 - **Files Located At**:
   - Source: `/home/fausto/Maestro-Server/` (git repo)
   - Running: `/home/fausto/maestro/web/` 
@@ -41,7 +41,7 @@
 #### 2️⃣ **Admin Service** (SEPARATE!)
 - **Service**: `maestro-admin.service`
 - **Port**: 5004
-- **URL**: http://192.168.1.209:5004
+- **URL**: http://192.168.1.106:5004
 - **Files**: Admin templates and Python in `/admin/` folder
 - **Copy Templates To BOTH**:
   - `/home/fausto/maestro/admin/templates/` (template location 1)
@@ -152,7 +152,7 @@ curl http://localhost:5004
 **Need to update Admin pages (e.g., library_management.html)?**
 1. Copy to: `/home/fausto/maestro/admin/templates/` AND `/home/fausto/maestro/web/admin/templates/`
 2. Restart: `sudo systemctl restart maestro-admin.service`
-3. Test at: http://192.168.1.209:5004
+3. Test at: http://192.168.1.106:5004
 
 ### Safe Update Workflow
 
@@ -183,12 +183,12 @@ cd /home/fausto
 
 ## 📍 Other Environments
 
-### Development Machine (192.168.1.209)
-- For testing major changes
-- Same path structure as production
+### Production Machine (192.168.1.209)
+- For stable releases
+- Same path structure
 
-### Test Machine (192.168.1.106)
-- For experimental features
+### Development/Test Machine (192.168.1.106)
+- **CURRENT MACHINE** - For testing and experimental features
 - Same path structure
 
 ## 📦 Version Management
@@ -236,7 +236,7 @@ When bumping version (e.g., 2.9.1 → 2.9.2):
 ### For Testing:
 - Always verify service status after restart
 - Check logs: `sudo journalctl -u maestro-web.service -f`
-- Test from browser at http://192.168.1.209:5003
+- Test from browser at http://192.168.1.106:5003
 
 ## 🎯 Common Tasks
 
@@ -470,10 +470,10 @@ When clicking "Replace Playlist" (🔄) button on browse_albums or recent_albums
   - Settings page now lets users change recent folder at runtime
   - Tested locally ✓, pushed to GitHub ✓
 
-**Last Updated**: March 11, 2026
+**Last Updated**: July 22, 2026
 **Maintainer**: fausto
 **Current Version**: 3.6.0
-**Environment**: Dev (192.168.1.209), Production Arch (192.168.1.142)
+**Environment**: Dev/Test (192.168.1.106), Production (192.168.1.209), Production Arch (192.168.1.142)
 
 
 
