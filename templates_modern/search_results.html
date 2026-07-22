@@ -355,41 +355,25 @@
             background-color: #27ae60;
         }
 
-        /* Playback button styles - must be more specific than .controls button */
-        .controls button.btn-previous {
-            background-color: #9b59b6;
-            color: white;
+        /* Colorful gradient buttons for playback */
+        .controls button.btn-prev {
+            background: linear-gradient(135deg, #764ba2 0%, #b721c1 100%) !important;
         }
-        .controls button.btn-previous:hover {
-            background-color: #8e44ad;
-        }
+
         .controls button.btn-play {
-            background-color: #27ae60;
-            color: white;
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%) !important;
         }
-        .controls button.btn-play:hover {
-            background-color: #229954;
-        }
+
         .controls button.btn-stop {
-            background-color: #f39c12;
-            color: white;
+            background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%) !important;
         }
-        .controls button.btn-stop:hover {
-            background-color: #e67e22;
-        }
+
         .controls button.btn-pause {
-            background-color: #e74c3c;
-            color: white;
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%) !important;
         }
-        .controls button.btn-pause:hover {
-            background-color: #c0392b;
-        }
+
         .controls button.btn-next {
-            background-color: #3498db;
-            color: white;
-        }
-        .controls button.btn-next:hover {
-            background-color: #2980b9;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
         }
         button.btn-back {
             background-color: #95a5a6;
@@ -1366,8 +1350,8 @@
 
         <!-- Playback Controls -->
         <div class="controls">
-            <h2>🎵 Playback Controls</h2>
-            <button onclick="playbackAction('previous')" class="btn-previous">⏮️ Previous</button>
+            <h3 style="margin: 0 0 8px 0; font-size: 0.95em; color: #ecf0f1;">🎵 Playback Controls</h3>
+            <button onclick="playbackAction('previous')" class="btn-prev">⏮️ Previous</button>
             <button onclick="playbackAction('play')" class="btn-play">▶️ Play</button>
             <button onclick="playbackAction('stop')" class="btn-stop">⏹️ Stop</button>
             <button onclick="playbackAction('pause')" class="btn-pause">⏸️ Pause</button>
