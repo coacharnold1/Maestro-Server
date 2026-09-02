@@ -1,8 +1,8 @@
 print("[DEBUG] app.py loaded and running", flush=True)
 
 # Application version information
-APP_VERSION = "4.0.8"
-APP_BUILD_DATE = "2026-08-17" 
+APP_VERSION = "4.1.0"
+APP_BUILD_DATE = "2026-09-02" 
 APP_NAME = "Maestro MPD Server"
 
 # Simple threading mode to avoid eventlet issues
@@ -2589,8 +2589,8 @@ def update_mpd_db():
     try:
         import subprocess
         
-        # Run mpc update command
-        result = subprocess.run(['mpc', 'update'], capture_output=True, text=True, timeout=5)
+        # Run mpc update command (use full path to ensure it's found)
+        result = subprocess.run(['/usr/bin/mpc', 'update'], capture_output=True, text=True, timeout=5)
         
         if result.returncode == 0:
             print(f"[UPDATE_DB] mpc update executed successfully")
@@ -2635,8 +2635,8 @@ def db_update_status():
     try:
         import subprocess
         
-        # Run mpc status command
-        result = subprocess.run(['mpc', 'status'], capture_output=True, text=True, timeout=5)
+        # Run mpc status command (use full path to ensure it's found)
+        result = subprocess.run(['/usr/bin/mpc', 'status'], capture_output=True, text=True, timeout=5)
         
         if result.returncode == 0:
             status_output = result.stdout
@@ -2671,6 +2671,67 @@ def db_update_status():
         return jsonify({
             'status': 'error',
             'message': str(e)
+        }), 500
+
+@app.route('/update_db_recent_folders')
+def update_db_recent_folders():
+    """Update MPD database for recent folders only (faster than full scan)."""
+    try:
+        import subprocess
+        settings = load_settings()
+        recent_dirs = settings.get('recent_albums_dir', 'ripped')
+        
+        # Parse comma-separated directories
+        folders_to_update = []
+        if isinstance(recent_dirs, str):
+            for d in recent_dirs.split(','):
+                d = d.strip()
+                if d:
+                    folders_to_update.append(d)
+        
+        if not folders_to_update:
+            folders_to_update = ['ripped']
+        
+        folder_list = ', '.join(folders_to_update)
+        print(f"[UPDATE_RECENT] Starting update for folders: {folder_list}")
+        
+        # Run mpc update for each folder
+        all_success = True
+        for folder in folders_to_update:
+            try:
+                result = subprocess.run(['/usr/bin/mpc', 'update', folder], capture_output=True, text=True, timeout=10)
+                if result.returncode == 0:
+                    print(f"[UPDATE_RECENT] Successfully started update for: {folder}")
+                else:
+                    print(f"[UPDATE_RECENT] Error updating {folder}: {result.stderr}")
+                    all_success = False
+            except subprocess.TimeoutExpired:
+                print(f"[UPDATE_RECENT] Timeout updating {folder}")
+                all_success = False
+        
+        if all_success:
+            msg = f"Database update started for: {folder_list}"
+            print(f"[UPDATE_RECENT] {msg}")
+            socketio.emit('server_message', {'type': 'success', 'text': msg})
+            return jsonify({
+                'status': 'success',
+                'message': msg,
+                'folders': folder_list
+            })
+        else:
+            error_msg = f"Error updating some folders. Check logs."
+            print(f"[UPDATE_RECENT] ERROR: {error_msg}")
+            return jsonify({
+                'status': 'error',
+                'message': error_msg
+            }), 500
+    except Exception as e:
+        error_msg = f"Error starting recent folders update: {str(e)}"
+        print(f"[UPDATE_RECENT] EXCEPTION: {error_msg}")
+        socketio.emit('server_message', {'type': 'error', 'text': error_msg})
+        return jsonify({
+            'status': 'error',
+            'message': error_msg
         }), 500
 
 @app.route('/add_music')
