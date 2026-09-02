@@ -2585,59 +2585,89 @@ def restart_mpd():
 
 @app.route('/update_mpd_db')
 def update_mpd_db():
+    """Start MPD database update using mpc command."""
     try:
-        client = connect_mpd_client()
-        if client:
-            # Send update command to MPD
-            update_job = client.update()
-            client.disconnect()
+        import subprocess
+        
+        # Run mpc update command
+        result = subprocess.run(['mpc', 'update'], capture_output=True, text=True, timeout=5)
+        
+        if result.returncode == 0:
+            print(f"[UPDATE_DB] mpc update executed successfully")
+            print(f"[UPDATE_DB] Output: {result.stdout}")
             
-            print(f"MPD database update started. Job ID: {update_job}")
-            
-            # Emit success message
+            # Emit success message via SocketIO
             socketio.emit('server_message', {'type': 'success', 'text': 'MPD database update started successfully'})
-            
-            # Wait a moment and then trigger status update
-            socketio.start_background_task(target=lambda: socketio.emit('mpd_status', get_mpd_status_for_display()))
-            
-            return redirect(url_for('index'))
-        else:
-            error_msg = "Could not connect to MPD to update database"
-            print(error_msg)
-            socketio.emit('server_message', {'type': 'error', 'text': error_msg})
-            return redirect(url_for('index'))
-            
-    except Exception as e:
-        error_msg = f"Error updating MPD database: {str(e)}"
-        print(error_msg)
-        socketio.emit('server_message', {'type': 'error', 'text': error_msg})
-        return redirect(url_for('index'))
-
-@app.route('/api/db_update_status')
-def db_update_status():
-    """Check if MPD database update is in progress."""
-    try:
-        client = connect_mpd_client()
-        if client:
-            status = client.status()
-            client.disconnect()
-            
-            # Check if 'updating_db' key exists in status
-            is_updating = 'updating_db' in status
-            job_id = status.get('updating_db', None)
             
             return jsonify({
                 'status': 'success',
-                'updating': is_updating,
-                'job_id': job_id
+                'message': 'Database update started'
             })
         else:
+            error_msg = f"mpc update command failed: {result.stderr}"
+            print(f"[UPDATE_DB] ERROR: {error_msg}")
+            socketio.emit('server_message', {'type': 'error', 'text': error_msg})
             return jsonify({
                 'status': 'error',
-                'message': 'Could not connect to MPD'
+                'message': error_msg
             }), 500
             
+    except subprocess.TimeoutExpired:
+        error_msg = "mpc update command timed out"
+        print(f"[UPDATE_DB] TIMEOUT: {error_msg}")
+        socketio.emit('server_message', {'type': 'error', 'text': error_msg})
+        return jsonify({
+            'status': 'error',
+            'message': error_msg
+        }), 500
     except Exception as e:
+        error_msg = f"Error starting database update: {str(e)}"
+        print(f"[UPDATE_DB] EXCEPTION: {error_msg}")
+        socketio.emit('server_message', {'type': 'error', 'text': error_msg})
+        return jsonify({
+            'status': 'error',
+            'message': error_msg
+        }), 500
+
+@app.route('/api/db_update_status')
+def db_update_status():
+    """Check if MPD database update is in progress using mpc status."""
+    try:
+        import subprocess
+        
+        # Run mpc status command
+        result = subprocess.run(['mpc', 'status'], capture_output=True, text=True, timeout=5)
+        
+        if result.returncode == 0:
+            status_output = result.stdout
+            # Check if "Updating DB" is in the output (like: "Updating DB (#100) ...")
+            is_updating = 'Updating DB' in status_output
+            
+            if is_updating:
+                print(f"[DB_STATUS] Update in progress")
+                print(f"[DB_STATUS] mpc output: {status_output.strip()}")
+            else:
+                print(f"[DB_STATUS] No update in progress")
+            
+            return jsonify({
+                'status': 'success',
+                'updating': is_updating
+            })
+        else:
+            print(f"[DB_STATUS] ERROR: mpc status failed - {result.stderr}")
+            return jsonify({
+                'status': 'error',
+                'message': 'Could not get MPD status'
+            }), 500
+            
+    except subprocess.TimeoutExpired:
+        print("[DB_STATUS] TIMEOUT: mpc status command timed out")
+        return jsonify({
+            'status': 'error',
+            'message': 'Command timeout'
+        }), 500
+    except Exception as e:
+        print(f"[DB_STATUS] EXCEPTION: {str(e)}")
         return jsonify({
             'status': 'error',
             'message': str(e)
@@ -3726,7 +3756,7 @@ def add_top_tracks_by_artist():
 
 @app.route('/add_random_by_genre', methods=['POST'])
 def add_random_by_genre():
-    """Add random songs from selected genres using Auto-Fill settings."""
+    """Add random songs from selected genres with configurable size or Auto-Fill settings."""
     try:
         # Handle FormData
         genres_json = request.form.get('genres')
@@ -3742,8 +3772,21 @@ def add_random_by_genre():
             socketio.emit('server_message', {'type': 'error', 'text': error_msg})
             return jsonify({'status': 'error', 'message': error_msg}), 400
         
-        # Use Auto-Fill settings for track count
-        num_tracks = random.randint(auto_fill_num_tracks_min, auto_fill_num_tracks_max)
+        # Check if num_tracks is explicitly provided; otherwise use Auto-Fill settings
+        requested_num_tracks = request.form.get('num_tracks', type=int, default=None)
+        
+        if requested_num_tracks is not None:
+            # User specified exact playlist size (allow ±5 track error margin)
+            num_tracks_min = max(1, requested_num_tracks - 5)
+            num_tracks_max = requested_num_tracks + 5
+            num_tracks_target = requested_num_tracks
+            use_auto_fill = False
+        else:
+            # Use Auto-Fill settings
+            num_tracks_min = auto_fill_num_tracks_min
+            num_tracks_max = auto_fill_num_tracks_max
+            num_tracks_target = random.randint(num_tracks_min, num_tracks_max)
+            use_auto_fill = True
         
         client = connect_mpd_client()
         if not client:
@@ -3773,9 +3816,19 @@ def add_random_by_genre():
             
             songs_list = list(unique_songs.values())
             
-            # Shuffle and limit to requested number
+            # Shuffle and select songs with error margin handling
             random.shuffle(songs_list)
-            selected_songs = songs_list[:num_tracks]
+            # Try to get target number, but allow between min and max
+            available_count = len(songs_list)
+            if available_count < num_tracks_min:
+                # Not enough songs available, use what we have
+                selected_songs = songs_list
+            elif available_count >= num_tracks_target:
+                # Enough songs; get target amount
+                selected_songs = songs_list[:num_tracks_target]
+            else:
+                # Between min and max; get all available
+                selected_songs = songs_list
             
             # Add songs to playlist
             for song in selected_songs:
@@ -3788,7 +3841,15 @@ def add_random_by_genre():
             client.disconnect()
             
             genre_list = ', '.join(genres[:3]) + ('...' if len(genres) > 3 else '')
-            success_msg = f'Added {len(selected_songs)} random songs from genres: {genre_list} (using Auto-Fill settings: {auto_fill_num_tracks_min}-{auto_fill_num_tracks_max})'
+            
+            if use_auto_fill:
+                success_msg = f'Added {len(selected_songs)} random songs from genres: {genre_list} (using Auto-Fill settings: {auto_fill_num_tracks_min}-{auto_fill_num_tracks_max})'
+            else:
+                if len(selected_songs) == requested_num_tracks:
+                    success_msg = f'✅ Added {len(selected_songs)} songs to playlist from genres: {genre_list}'
+                else:
+                    success_msg = f'Added {len(selected_songs)} songs (requested {requested_num_tracks}, ±5 track tolerance) from genres: {genre_list}'
+            
             socketio.emit('server_message', {'type': 'success', 'text': success_msg})
             
             return jsonify({

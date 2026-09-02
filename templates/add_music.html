@@ -2000,9 +2000,11 @@
                         </select>
                         <small style="color: #bdc3c7; margin-top: 5px; display: block;">Hold Ctrl (Cmd on Mac) to select multiple genres</small>
                     </div>
-                    <p style="color: #bdc3c7; font-size: 0.9em; margin: 10px 0;">
-                        Track count will use Auto-Fill settings below (Min-Max range)
-                    </p>
+                    <div class="form-group">
+                        <label for="genre-playlist-size">Number of Songs (Leave blank to use Auto-Fill settings):</label>
+                        <input type="number" id="genre-playlist-size" placeholder="e.g., 100" min="1" max="500" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff; box-sizing: border-box;">
+                        <small style="color: #95a5a6; margin-top: 5px; display: block;">Leave empty to use Auto-Fill Min-Max range, or enter exact count (allows ±5 track tolerance)</small>
+                    </div>
                     <button id="add-random-by-genre-btn" style="background-color: #e67e22; color: white; width: 100%;">🎲 Add Random Songs from Selected Genres</button>
                 </div>
             </div>
@@ -2433,7 +2435,7 @@
                 });
 
             // --- Genre-based Random Tracks Event Listeners ---
-            addRandomByGenreBtn.addEventListener('click', function () {
+            addRandomByGenreBtn.addEventListener('click', async function () {
                 const selectedGenres = Array.from(genreSelect.selectedOptions).map(option => option.value);
 
                 if (selectedGenres.length === 0) {
@@ -2441,26 +2443,36 @@
                     return;
                 }
 
-                displayMessage('info', `Adding random tracks from selected genres using Auto-Fill settings...`);
+                const genrePlaylistSizeInput = document.getElementById('genre-playlist-size');
+                const playlistSize = genrePlaylistSizeInput.value.trim();
+                const numTracks = playlistSize ? parseInt(playlistSize) : null;
 
-                const formData = new FormData();
-                formData.append('genres', JSON.stringify(selectedGenres));
+                // Show playlist action modal
+                const userChoice = await showPlaylistActionModal();
+                if (userChoice === 'cancel') {
+                    return;
+                }
 
-                fetch('/add_random_by_genre', {
-                    method: 'POST',
-                    body: formData
-                })
-                    .then(response => {
-                        if (!response.ok) {
-                            console.error('Failed to add random tracks by genre:', response.statusText);
-                            displayMessage('error', 'Failed to add random tracks by genre.');
-                        }
-                        // Server will send a SocketIO message with success/failure
-                    })
-                    .catch(error => {
-                        console.error('Error sending add random tracks by genre request:', error);
-                        displayMessage('error', `Error: ${error.message}`);
-                    });
+                let statusMsg = '';
+                if (playlistSize) {
+                    const sizeNum = parseInt(playlistSize);
+                    if (isNaN(sizeNum) || sizeNum < 1 || sizeNum > 500) {
+                        displayMessage('error', 'Playlist size must be between 1 and 500.');
+                        return;
+                    }
+                    statusMsg = userChoice === 'clear' 
+                        ? `Creating ${sizeNum}-song playlist from selected genres...`
+                        : `Adding ${sizeNum} songs to queue from selected genres...`;
+                } else {
+                    statusMsg = userChoice === 'clear'
+                        ? `Creating playlist from selected genres using Auto-Fill settings...`
+                        : `Adding random tracks to queue from selected genres using Auto-Fill settings...`;
+                }
+
+                displayMessage('info', statusMsg);
+
+                // Use addTracksAndPlay for consistent handling
+                addTracksAndPlay(selectedGenres, 'Manual Selection', numTracks, userChoice);
             });
 
             // Load genres when page loads
@@ -2594,9 +2606,14 @@
                     return;
                 }
 
+                // Get playlist size from input field (if specified)
+                const genrePlaylistSizeInput = document.getElementById('genre-playlist-size');
+                const playlistSize = genrePlaylistSizeInput ? genrePlaylistSizeInput.value.trim() : '';
+                const numTracks = playlistSize ? parseInt(playlistSize) : null;
+
                 fetch(`/api/genre_stations/${encodeURIComponent(stationName)}`)
                     .then(response => response.json())
-                    .then(data => {
+                    .then(async (data) => {
                         if (data.status === 'success') {
                             // Clear current selections
                             Array.from(genreSelect.options).forEach(option => option.selected = false);
@@ -2609,11 +2626,17 @@
                                 }
                             });
 
-                            displayMessage('success', `🎵 Loading station "${stationName}" - Adding tracks and starting playback...`);
+                            // Show playlist action modal
+                            const userChoice = await showPlaylistActionModal();
+                            if (userChoice === 'cancel') {
+                                return;
+                            }
 
-                            // Automatically add tracks from the loaded genres and start playing
-                            addTracksAndPlay(data.station.genres, stationName);
+                            const sizeMsg = numTracks ? ` with ${numTracks} songs` : '';
+                            displayMessage('success', `🎵 Loading station "${stationName}"${sizeMsg}...`);
 
+                            // Automatically add tracks from the loaded genres
+                            addTracksAndPlay(data.station.genres, stationName, numTracks, userChoice);
                         } else {
                             displayMessage('error', data.message);
                         }
@@ -2624,23 +2647,43 @@
                     });
             }
 
-            function addTracksAndPlay(genres, stationName) {
-                // First clear the playlist, then add tracks from the station genres
-                fetch('/clear_playlist', {
-                    method: 'POST'
-                })
-                    .then(response => response.json())
-                    .then(clearData => {
-                        if (clearData.status === 'success' || clearData.status === 'info') {
-                            // Playlist cleared, now add tracks from genres
-                            const formData = new FormData();
-                            formData.append('genres', JSON.stringify(genres));
-                            formData.append('clear_playlist', 'false'); // Already cleared above
+            function addTracksAndPlay(genres, stationName, numTracks = null, mode = 'clear') {
+                // mode can be: 'clear' (replace playlist), 'add' (add to queue), 'cancel' (abort)
+                if (mode === 'cancel') {
+                    displayMessage('info', 'Playlist operation cancelled');
+                    return;
+                }
 
-                            return fetch('/add_random_by_genre', {
-                                method: 'POST',
-                                body: formData
-                            });
+                // Helper function to add tracks and play
+                const performAddTracks = () => {
+                    const formData = new FormData();
+                    formData.append('genres', JSON.stringify(genres));
+                    // Only set clear_playlist if we're in 'clear' mode
+                    formData.append('clear_playlist', mode === 'clear' ? 'true' : 'false');
+                    // Pass numTracks if specified
+                    if (numTracks) {
+                        formData.append('num_tracks', numTracks);
+                    }
+
+                    return fetch('/add_random_by_genre', {
+                        method: 'POST',
+                        body: formData
+                    });
+                };
+
+                // If clear mode, first clear the playlist
+                let clearPromise = Promise.resolve({ status: 'success' });
+                if (mode === 'clear') {
+                    clearPromise = fetch('/clear_playlist', {
+                        method: 'POST'
+                    }).then(response => response.json());
+                }
+
+                clearPromise
+                    .then(clearData => {
+                        if (clearData.status === 'success' || clearData.status === 'info' || mode === 'add') {
+                            // Playlist cleared (or skipped for 'add' mode), now add tracks
+                            return performAddTracks();
                         } else {
                             throw new Error('Failed to clear playlist');
                         }
@@ -2648,64 +2691,69 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.status === 'success') {
-                            // Tracks added successfully, now start playback
-                            setTimeout(() => {
-                                fetch('/play', { method: 'POST' })
-                                    .then(response => response.json())
-                                    .then(playData => {
-                                        if (playData.status === 'success') {
-                                            // Set genre station mode for auto-fill
-                                            fetch('/api/genre_station_mode', {
-                                                method: 'POST',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({
-                                                    station_name: stationName,
-                                                    genres: genres
+                            // Tracks added successfully, now start playback (only for clear mode)
+                            if (mode === 'clear') {
+                                setTimeout(() => {
+                                    fetch('/play', { method: 'POST' })
+                                        .then(response => response.json())
+                                        .then(playData => {
+                                            if (playData.status === 'success') {
+                                                // Set genre station mode for auto-fill
+                                                fetch('/api/genre_station_mode', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({
+                                                        station_name: stationName,
+                                                        genres: genres
+                                                    })
                                                 })
-                                            })
-                                                .then(response => response.json())
-                                                .then(modeData => {
-                                                    console.log('Radio station mode set:', modeData);
+                                                    .then(response => response.json())
+                                                    .then(modeData => {
+                                                        console.log('Radio station mode set:', modeData);
 
-                                                    // Auto-enable auto-fill when genre station is loaded
-                                                    if (!autoFillToggle.checked) {
-                                                        fetch('/toggle_auto_fill', {
-                                                            method: 'POST',
-                                                            headers: { 'Content-Type': 'application/json' },
-                                                            body: JSON.stringify({ active: true })
-                                                        })
-                                                            .then(response => response.json())
-                                                            .then(autoFillData => {
-                                                                console.log('Auto-fill enabled for genre station:', autoFillData);
-                                                                autoFillToggle.checked = true;
+                                                        // Auto-enable auto-fill when genre station is loaded
+                                                        if (!autoFillToggle.checked) {
+                                                            fetch('/toggle_auto_fill', {
+                                                                method: 'POST',
+                                                                headers: { 'Content-Type': 'application/json' },
+                                                                body: JSON.stringify({ active: true })
                                                             })
-                                                            .catch(error => {
-                                                                console.error('Error enabling auto-fill:', error);
-                                                            });
-                                                    }
+                                                                .then(response => response.json())
+                                                                .then(autoFillData => {
+                                                                    console.log('Auto-fill enabled for genre station:', autoFillData);
+                                                                    autoFillToggle.checked = true;
+                                                                })
+                                                                .catch(error => {
+                                                                    console.error('Error enabling auto-fill:', error);
+                                                                });
+                                                        }
 
-                                                    // Trigger auto-fill status update to reflect genre station mode
-                                                    fetch('/get_auto_fill_status')
-                                                        .then(response => response.json())
-                                                        .then(statusData => {
-                                                            updateAutoFillStatusDisplay(statusData);
-                                                        })
-                                                        .catch(error => console.log('Error updating auto-fill status display:', error));
-                                                })
-                                                .catch(error => {
-                                                    console.error('Error setting genre station mode:', error);
-                                                });
+                                                        // Trigger auto-fill status update to reflect genre station mode
+                                                        fetch('/get_auto_fill_status')
+                                                            .then(response => response.json())
+                                                            .then(statusData => {
+                                                                updateAutoFillStatusDisplay(statusData);
+                                                            })
+                                                            .catch(error => console.log('Error updating auto-fill status display:', error));
+                                                    })
+                                                    .catch(error => {
+                                                        console.error('Error setting genre station mode:', error);
+                                                    });
 
-                                            displayMessage('success', `🎵 Radio station "${stationName}" is now playing!`);
-                                        } else {
-                                            displayMessage('warning', `Tracks added but playback failed: ${playData.message}`);
-                                        }
-                                    })
-                                    .catch(error => {
-                                        console.error('Error starting playback:', error);
-                                        displayMessage('warning', 'Tracks added but failed to start playback');
-                                    });
-                            }, 1500); // Increased delay to ensure tracks are fully added
+                                                displayMessage('success', `🎵 Radio station "${stationName}" is now playing!`);
+                                            } else {
+                                                displayMessage('warning', `Tracks added but playback failed: ${playData.message}`);
+                                            }
+                                        })
+                                        .catch(error => {
+                                            console.error('Error starting playback:', error);
+                                            displayMessage('warning', 'Tracks added but failed to start playback');
+                                        });
+                                }, 1500); // Increased delay to ensure tracks are fully added
+                            } else {
+                                // Add mode - just confirm without playing
+                                displayMessage('success', `✅ Added ${data.songs_added || '?'} tracks to queue!`);
+                            }
                         } else {
                             displayMessage('error', `Failed to add tracks: ${data.message}`);
                         }
@@ -3743,10 +3791,63 @@
         }
     </script>
 
+    <!-- Playlist Action Modal -->
+    <div id="playlist-action-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: #2c3e50; border-radius: 12px; padding: 30px; max-width: 400px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8); text-align: center;">
+            <h2 style="color: #ecf0f1; margin-top: 0; margin-bottom: 20px;">🎵 Playlist Action</h2>
+            <p style="color: #bdc3c7; margin-bottom: 25px; font-size: 1.05em;">How would you like to add these tracks?</p>
+            <div style="display: flex; gap: 12px; flex-direction: column;">
+                <button id="playlist-clear-btn" style="background-color: #e74c3c; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 1em; cursor: pointer; transition: all 0.3s; font-weight: bold;">
+                    🗑️ Clear & Replace Playlist
+                </button>
+                <button id="playlist-add-btn" style="background-color: #3498db; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 1em; cursor: pointer; transition: all 0.3s; font-weight: bold;">
+                    ➕ Add to End of Queue
+                </button>
+                <button id="playlist-cancel-btn" style="background-color: #95a5a6; color: #2c3e50; border: none; padding: 12px 24px; border-radius: 8px; font-size: 1em; cursor: pointer; transition: all 0.3s; font-weight: bold;">
+                    ❌ Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Keyboard Shortcuts -->
     <!-- Playback Controls -->
     <script src="/static/playback-controls.js"></script>
     <script src="/static/keyboard-shortcuts.js"></script>
+    
+    <script>
+        // Playlist Action Modal Management
+        let playlistActionResolve = null;
+        
+        function showPlaylistActionModal() {
+            return new Promise((resolve) => {
+                playlistActionResolve = resolve;
+                const modal = document.getElementById('playlist-action-modal');
+                modal.style.display = 'flex';
+                
+                // Setup button handlers
+                document.getElementById('playlist-clear-btn').onclick = () => {
+                    modal.style.display = 'none';
+                    resolve('clear');
+                };
+                
+                document.getElementById('playlist-add-btn').onclick = () => {
+                    modal.style.display = 'none';
+                    resolve('add');
+                };
+                
+                document.getElementById('playlist-cancel-btn').onclick = () => {
+                    modal.style.display = 'none';
+                    resolve('cancel');
+                };
+            });
+        }
+        
+        function closePlaylistActionModal() {
+            const modal = document.getElementById('playlist-action-modal');
+            modal.style.display = 'none';
+        }
+    </script>
 </body>
 
 </html>
