@@ -1196,9 +1196,19 @@
             <button class="volume-mini-btn" onclick="adjustVolume(2)">+2</button>
         </div>
 
+        <!-- Update & Refresh Modal Overlay -->
+        <div id="db-update-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 9998;"></div>
+        
+        <!-- Update & Refresh Modal -->
+        <div id="db-update-status" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; width: 90%; max-width: 500px; padding: 30px; background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4); text-align: center;">
+            <button id="db-update-close-btn" onclick="document.getElementById('db-update-status').style.display='none'; document.getElementById('db-update-overlay').style.display='none';" style="position: absolute; top: 10px; right: 15px; background: none; border: none; font-size: 1.5em; cursor: pointer; color: white; padding: 0; width: 30px; height: 30px;">✕</button>
+            <div id="db-update-spinner" style="font-size: 3em; margin-bottom: 15px;">⏳</div>
+            <div id="db-update-text" style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px;">Updating recent folders...</div>
+            <div id="db-update-details" style="font-size: 0.9em; margin-top: 15px; opacity: 0.9;"></div>
+        </div>
+        
         <div style="text-align: center; margin: 20px 0;">
-            <button class="refresh-btn" onclick="loadRecentAlbums()">🔄 Refresh Albums</button>
-            <button class="refresh-btn" onclick="loadRecentAlbums(true)" style="background-color: #e67e22;">🔄 Force Refresh</button>
+            <button class="refresh-btn" id="update-recent-btn" onclick="startRecentFoldersUpdate()" style="background-color: #27ae60;">🔄 Update & Refresh Recent</button>
         </div>
 
         <div class="stats" id="stats" style="display: none;">
@@ -2146,6 +2156,200 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // ===== Update Recent Folders Functions =====
+        let recentDbUpdateCheckInterval = null;
+        let recentDbUpdateTimeoutId = null;
+        const recentUpdateTimeout = 30000; // 30 second timeout
+
+        function startRecentFoldersUpdate() {
+            const dbUpdateStatus = document.getElementById('db-update-status');
+            const dbUpdateOverlay = document.getElementById('db-update-overlay');
+            const dbUpdateText = document.getElementById('db-update-text');
+            const dbUpdateSpinner = document.getElementById('db-update-spinner');
+            const dbUpdateDetails = document.getElementById('db-update-details');
+            const updateRecentBtn = document.getElementById('update-recent-btn');
+            
+            // Show modal
+            dbUpdateStatus.style.display = 'block';
+            dbUpdateOverlay.style.display = 'block';
+            dbUpdateSpinner.textContent = '⏳';
+            dbUpdateSpinner.style.animation = 'spin 2s linear infinite';
+            dbUpdateText.textContent = 'Scanning recent folders...';
+            dbUpdateDetails.style.display = 'block';
+            dbUpdateDetails.textContent = 'Starting database update...';
+            updateRecentBtn.disabled = true;
+            updateRecentBtn.style.opacity = '0.5';
+            
+            // Fetch to start the update
+            fetch('/update_db_recent_folders')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        console.log('[Update Recent] Update started:', data.message);
+                        dbUpdateDetails.textContent = `Updating: ${data.folders}`;
+                        
+                        // Start polling for update status
+                        recentDbUpdateCheckInterval = setInterval(checkRecentDbUpdateStatus, 1000);
+                        
+                        // Set safety timeout
+                        recentDbUpdateTimeoutId = setTimeout(() => {
+                            console.log('[Update Recent] Timeout reached, closing modal');
+                            closeRecentDbUpdateModal();
+                            showRecentUpdateNotification('Database update timed out. Please check if it completed.', 'warning');
+                        }, recentUpdateTimeout);
+                    } else {
+                        console.error('[Update Recent] Error starting update:', data.message);
+                        dbUpdateSpinner.textContent = '❌';
+                        dbUpdateText.textContent = 'Error starting update';
+                        dbUpdateDetails.textContent = data.message;
+                        updateRecentBtn.disabled = false;
+                        updateRecentBtn.style.opacity = '1';
+                    }
+                })
+                .catch(error => {
+                    console.error('[Update Recent] Fetch error:', error);
+                    dbUpdateSpinner.textContent = '❌';
+                    dbUpdateText.textContent = 'Error starting update';
+                    dbUpdateDetails.textContent = error.message;
+                    updateRecentBtn.disabled = false;
+                    updateRecentBtn.style.opacity = '1';
+                });
+        }
+        
+        function checkRecentDbUpdateStatus() {
+            fetch('/api/db_update_status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success' && data.updating) {
+                        // Update still in progress
+                        const dbUpdateStatus = document.getElementById('db-update-status');
+                        dbUpdateStatus.style.display = 'block';
+                        dbUpdateStatus.style.background = 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)';
+                    } else {
+                        // Update complete
+                        completeRecentUpdate();
+                    }
+                })
+                .catch(error => {
+                    console.error('[Update Recent Status] Check error:', error);
+                });
+        }
+        
+        function completeRecentUpdate() {
+            const dbUpdateStatus = document.getElementById('db-update-status');
+            const dbUpdateSpinner = document.getElementById('db-update-spinner');
+            const dbUpdateText = document.getElementById('db-update-text');
+            const dbUpdateDetails = document.getElementById('db-update-details');
+            
+            // Update modal appearance
+            dbUpdateSpinner.textContent = '✅';
+            dbUpdateSpinner.style.animation = 'none';
+            dbUpdateText.textContent = 'Database update complete!';
+            dbUpdateStatus.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
+            dbUpdateDetails.textContent = 'Recent albums list is refreshing...';
+            
+            // Stop polling
+            if (recentDbUpdateCheckInterval) {
+                clearInterval(recentDbUpdateCheckInterval);
+                recentDbUpdateCheckInterval = null;
+            }
+            
+            // Clear timeout
+            if (recentDbUpdateTimeoutId) {
+                clearTimeout(recentDbUpdateTimeoutId);
+                recentDbUpdateTimeoutId = null;
+            }
+            
+            // Refresh the albums list
+            loadRecentAlbums();
+            
+            // Auto-close modal after 2 seconds
+            setTimeout(() => {
+                closeRecentDbUpdateModal();
+                dbUpdateStatus.style.background = 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)';
+                showRecentUpdateNotification('✅ Recent folders updated and albums refreshed!', 'success');
+            }, 2000);
+        }
+        
+        function closeRecentDbUpdateModal() {
+            const dbUpdateStatus = document.getElementById('db-update-status');
+            const dbUpdateOverlay = document.getElementById('db-update-overlay');
+            const updateRecentBtn = document.getElementById('update-recent-btn');
+            
+            dbUpdateStatus.style.display = 'none';
+            dbUpdateOverlay.style.display = 'none';
+            
+            // Clear intervals
+            if (recentDbUpdateCheckInterval) {
+                clearInterval(recentDbUpdateCheckInterval);
+                recentDbUpdateCheckInterval = null;
+            }
+            if (recentDbUpdateTimeoutId) {
+                clearTimeout(recentDbUpdateTimeoutId);
+                recentDbUpdateTimeoutId = null;
+            }
+            
+            updateRecentBtn.disabled = false;
+            updateRecentBtn.style.opacity = '1';
+        }
+        
+        function showRecentUpdateNotification(message, type) {
+            // Create a simple notification
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: bold;
+                z-index: 10000;
+                animation: slideIn 0.3s ease-in-out;
+                max-width: 300px;
+            `;
+            
+            if (type === 'success') {
+                notification.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
+                notification.textContent = message;
+            } else if (type === 'warning') {
+                notification.style.background = 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)';
+                notification.textContent = '⚠️ ' + message;
+            } else {
+                notification.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+                notification.textContent = '❌ ' + message;
+            }
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 4 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-in-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 4000);
+        }
+
+        // Add animation styles if not already present
+        if (!document.querySelector('style[data-animations]')) {
+            const style = document.createElement('style');
+            style.setAttribute('data-animations', 'true');
+            style.textContent = `
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+                @keyframes slideIn {
+                    from { transform: translateX(400px); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                @keyframes slideOut {
+                    from { transform: translateX(0); opacity: 1; }
+                    to { transform: translateX(400px); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
         }
     </script>
 
