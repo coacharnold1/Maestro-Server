@@ -2676,6 +2676,7 @@ def db_update_status():
 @app.route('/update_db_recent_folders')
 def update_db_recent_folders():
     """Update MPD database for recent folders only (faster than full scan)."""
+    global recent_albums_cache, recent_albums_cache_mod_times
     try:
         import subprocess
         settings = load_settings()
@@ -2694,6 +2695,12 @@ def update_db_recent_folders():
         
         folder_list = ', '.join(folders_to_update)
         print(f"[UPDATE_RECENT] Starting update for folders: {folder_list}")
+        
+        # IMPORTANT: Clear the recent albums cache so next fetch will get fresh results
+        # This ensures newly added albums with newer filesystem mtimes will appear at top
+        recent_albums_cache = None
+        recent_albums_cache_mod_times = None
+        print(f"[UPDATE_RECENT] Cleared recent_albums_cache for refresh")
         
         # Run mpc update for each folder
         all_success = True
@@ -5734,6 +5741,39 @@ def get_recent_albums_from_mpd(limit=50, force_refresh=False):
             # Add source directory to artist display for clarity, but keep original for searching
             artist_display = f"{album_data['artist']} [{album_data['source_dir']}]"
             
+            # Get filesystem mtime of the album directory for accurate sorting
+            # This ensures newly added folders appear at the top regardless of MPD metadata
+            filesystem_mtime = 0
+            try:
+                if album_data['sample_file']:
+                    # Extract album directory from sample file path
+                    import os
+                    mpd_music_dir = '/media/music'
+                    try:
+                        with open('/etc/mpd.conf', 'r') as f:
+                            for line in f:
+                                if line.strip().startswith('music_directory') and not line.strip().startswith('#'):
+                                    mpd_music_dir = line.split('"')[1]
+                                    break
+                    except:
+                        pass
+                    
+                    # Build full path from MPD path
+                    full_file_path = f"{mpd_music_dir}/{album_data['sample_file']}"
+                    album_dir = os.path.dirname(full_file_path)
+                    
+                    # Get the directory's modification time
+                    if os.path.exists(album_dir):
+                        filesystem_mtime = os.path.getmtime(album_dir)
+                        print(f"[FS-SORT] Album '{album_data['album']}' mtime: {filesystem_mtime}")
+            except Exception as e:
+                print(f"[FS-SORT] Could not get filesystem mtime for album: {e}")
+                # Fall back to using MPD's last-modified if available
+                try:
+                    filesystem_mtime = int(album_data['date']) if album_data['date'] else 0
+                except:
+                    filesystem_mtime = 0
+            
             # Build album info - include disc structure if multi-disc
             album_info = {
                 'album': album_data['album'],
@@ -5741,6 +5781,7 @@ def get_recent_albums_from_mpd(limit=50, force_refresh=False):
                 'original_artist': album_data['original_artist'],  # Single artist for MPD searches
                 'genre': album_data.get('genre', 'Unknown Genre'),
                 'date': album_data['date'],
+                'filesystem_mtime': filesystem_mtime,  # Actual filesystem modification time for sorting
                 'file_count': len(album_data['songs']),
                 'duration': total_duration,
                 'duration_formatted': duration_formatted,
@@ -5755,8 +5796,9 @@ def get_recent_albums_from_mpd(limit=50, force_refresh=False):
             
             album_info_list.append(album_info)
         
-        # Sort by date (most recent first) and return limited results
-        recent_albums = sorted(album_info_list, key=lambda x: x['date'], reverse=True)
+        # Sort by filesystem modification time (most recent first)
+        # This ensures newly added folders appear at top regardless of MPD metadata
+        recent_albums = sorted(album_info_list, key=lambda x: x['filesystem_mtime'], reverse=True)
         client.disconnect()
         
         # Update cache with new results
