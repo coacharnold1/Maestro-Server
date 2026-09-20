@@ -356,10 +356,10 @@ audio_output {
 audio_output {
     type            "httpd"
     name            "HTTP Stream"
-    encoder         "lame"
+    encoder         "flac"
     port            "8000"
-    bitrate         "320"
-    format          "44100:16:2"
+    bitrate         "0"
+    format          "96000:24:2"
     always_on       "yes"
     tags            "yes"
 }
@@ -367,7 +367,7 @@ audio_output {
 # Audiophile settings
 audio_buffer_size   "4096"
 buffer_before_play  "10%"
-max_output_buffer_size  "16384"
+max_output_buffer_size  "32768"
 
 # Resampling (disabled for bit-perfect)
 #samplerate_converter    "Fastest Sinc Interpolator"

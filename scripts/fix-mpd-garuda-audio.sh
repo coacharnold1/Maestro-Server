@@ -77,17 +77,17 @@ user                "mpd"
 audio_output {
     type            "httpd"
     name            "HTTP Stream (PipeWire)"
-    encoder         "lame"
+    encoder         "flac"
     port            "8001"
-    bitrate         "320"
-    format          "48000:16:2"
+    bitrate         "0"
+    format          "96000:24:2"
     always_on       "yes"
     tags            "yes"
 }
 
 # Audiophile settings
 audio_buffer_size   "4096"
-max_output_buffer_size  "16384"
+max_output_buffer_size  "32768"
 
 # Logging
 log_level           "default"

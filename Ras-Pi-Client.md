@@ -21,13 +21,33 @@ You can enable HTTP streaming two ways:
 2. Navigate to **Audio Tweaks** page
 3. In the **HTTP Streaming Configuration** section:
    - Toggle the switch to **Enable HTTP streaming**
-   - Use default settings (port 8000, LAME encoder, 192kbps)
-   - Or click **Show Advanced Settings** to customize
+   - For **24-bit audio support**: Use FLAC encoder with 96000:24:2 format
+   - Or use default settings for compatibility
+   - Click **Show Advanced Settings** to customize encoder, bitrate, and format
 4. MPD will automatically restart with the new configuration
 
-### Option 2: Manual Configuration
+### Option 2: Manual Configuration (with 24-bit support)
 
-Edit `/etc/mpd.conf` and add:
+For **24-bit FLAC/WAV files**, edit `/etc/mpd.conf` and add:
+
+```conf
+audio_output {
+    type        "httpd"
+    name        "Maestro HTTP Stream"
+    encoder     "flac"
+    port        "8000"
+    bitrate     "0"
+    format      "96000:24:2"
+    max_clients "0"
+    bind_to_address "0.0.0.0"
+    always_on   "yes"
+}
+
+# Increase buffer to handle high-bitrate 24-bit streaming
+max_output_buffer_size "32768"
+```
+
+For **standard 16-bit/44.1kHz** (backward compatible):
 
 ```conf
 audio_output {
@@ -35,7 +55,7 @@ audio_output {
     name        "Maestro HTTP Stream"
     encoder     "lame"
     port        "8000"
-    bitrate     "192"
+    bitrate     "320"
     format      "44100:16:2"
     max_clients "0"
     bind_to_address "0.0.0.0"
