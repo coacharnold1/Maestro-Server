@@ -19,19 +19,18 @@ File: `/etc/logrotate.d/mpd`
     missingok          # Don't error if log file is missing
     notifempty         # Don't rotate empty files
     create 0640 mpd mpd  # Create new log file with MPD permissions
-    sharedscripts      # Run postrotate script once for all files
-    postrotate
-        systemctl reload mpd > /dev/null 2>&1 || true
-    endscript
+    copytruncate       # Copy then truncate in place; MPD's service can't reload to reopen its log
 }
 ```
 
 ### How It Works
-1. **Daily**: Every day at 3:00 AM (cron), logrotate checks `/etc/logrotate.d/`
-2. **Rotation**: Current log is renamed with date stamp, compressed
+1. **Daily**: `logrotate.timer` (systemd) runs logrotate, which checks `/etc/logrotate.d/`. The installer and updater install `logrotate` and enable this timer; it is NOT enabled by default on Arch, so without it the rule never runs.
+2. **Rotation**: Current log is copied to `mpd.log.1` and truncated in place
 3. **Retention**: Keeps 7 compressed days (saves ~98% space: 18 MB compressed vs 18 GB uncompressed)
 4. **Cleanup**: Files older than 7 days are automatically deleted
-5. **Reload**: MPD is signaled to use new log file
+5. **No restart needed**: MPD keeps writing to the same (now empty) file
+
+The rule file must be owned by root, or logrotate ignores it.
 
 ### Expected Disk Savings
 - **Before**: 126GB for single MPD log file

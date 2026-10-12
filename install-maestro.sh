@@ -235,6 +235,7 @@ install_dependencies() {
                 curl wget git \
                 build-essential \
                 ffmpeg \
+                logrotate \
                 cdparanoia cd-discid abcde flac lame vorbis-tools eject imagemagick \
                 vsftpd
             ;;
@@ -247,6 +248,7 @@ install_dependencies() {
                 curl wget git \
                 base-devel \
                 ffmpeg \
+                logrotate \
                 vsftpd
             
             # On Arch, add user to audio group for device detection
@@ -898,7 +900,10 @@ EOF
     echo -e "${BLUE}Setting up log rotation for MPD...${NC}"
     if [ -f "$REPO_DIR/config/logrotate-mpd.conf" ]; then
         sudo cp "$REPO_DIR/config/logrotate-mpd.conf" /etc/logrotate.d/mpd
+        sudo chown root:root /etc/logrotate.d/mpd
         sudo chmod 644 /etc/logrotate.d/mpd
+        # Rules only run if the logrotate timer is enabled (not on by default)
+        sudo systemctl enable --now logrotate.timer 2>/dev/null || true
         echo -e "${GREEN}✓ Log rotation configured (daily rotation, keeps 7 days)${NC}"
     else
         echo -e "${YELLOW}⚠ logrotate config not found at $REPO_DIR/config/logrotate-mpd.conf${NC}"

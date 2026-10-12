@@ -235,8 +235,19 @@ echo -e "${GREEN}✓ Configured MPD to wait for remote filesystems${NC}"
 # Setup log rotation for MPD (prevents 126GB+ log buildup)
 echo -e "${YELLOW}Setting up log rotation for MPD...${NC}"
 if [ -f "$REPO_DIR/config/logrotate-mpd.conf" ]; then
+    if ! command -v logrotate &> /dev/null; then
+        echo -e "${YELLOW}logrotate not found, installing...${NC}"
+        if command -v pacman &> /dev/null; then
+            sudo pacman -S --needed --noconfirm logrotate
+        else
+            sudo apt install -y logrotate
+        fi
+    fi
     sudo cp "$REPO_DIR/config/logrotate-mpd.conf" /etc/logrotate.d/mpd
+    sudo chown root:root /etc/logrotate.d/mpd
     sudo chmod 644 /etc/logrotate.d/mpd
+    # Rules only run if the logrotate timer is enabled (not on by default)
+    sudo systemctl enable --now logrotate.timer 2>/dev/null || true
     echo -e "${GREEN}✓ Log rotation configured (daily, keeps 7 days)${NC}"
 else
     echo -e "${YELLOW}⚠ logrotate config not found, skipping log rotation setup${NC}"
