@@ -165,7 +165,7 @@ Maestro expects a standard hierarchical structure:
 #### Automatic Updates
 - **CD Rip Completion** - Triggers after every CD rip
 - **Mount Operations** - Updates after mounting new share
-- **Scheduled Updates** - Optional cron job (recommended daily)
+- **Scheduled Updates** - Installed `mpd-update.timer` scans the library twice daily (04:00 and 16:00). Scans walk the whole library over NFS, so keep the interval long; edit `/etc/systemd/system/mpd-update.timer` to change it
 
 #### Manual Updates
 1. Main UI → Footer → "Update MPD Database"

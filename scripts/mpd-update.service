@@ -1,0 +1,9 @@
+[Unit]
+Description=MPD Database Update
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=mpd
+ExecStart=/usr/bin/mpc update

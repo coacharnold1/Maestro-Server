@@ -909,6 +909,14 @@ EOF
         echo -e "${YELLOW}⚠ logrotate config not found at $REPO_DIR/config/logrotate-mpd.conf${NC}"
     fi
     
+    # Scheduled MPD library scan (twice daily; use the Update DB button or `mpc update` for immediate scans)
+    if [ -f "$REPO_DIR/scripts/mpd-update.timer" ]; then
+        sudo cp "$REPO_DIR/scripts/mpd-update.service" "$REPO_DIR/scripts/mpd-update.timer" /etc/systemd/system/
+        sudo systemctl daemon-reload
+        sudo systemctl enable --now mpd-update.timer
+        echo -e "${GREEN}✓ MPD library scan scheduled (04:00 and 16:00 daily)${NC}"
+    fi
+    
     # Enable services
     sudo systemctl enable maestro-web.service
     sudo systemctl enable maestro-admin.service

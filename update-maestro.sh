@@ -253,6 +253,15 @@ else
     echo -e "${YELLOW}⚠ logrotate config not found, skipping log rotation setup${NC}"
 fi
 
+# Scheduled MPD library scan (twice daily; replaces any older, more frequent timer)
+if [ -f "$REPO_DIR/scripts/mpd-update.timer" ]; then
+    sudo cp "$REPO_DIR/scripts/mpd-update.service" "$REPO_DIR/scripts/mpd-update.timer" /etc/systemd/system/
+    sudo systemctl daemon-reload
+    sudo systemctl enable mpd-update.timer
+    sudo systemctl restart mpd-update.timer
+    echo -e "${GREEN}✓ MPD library scan scheduled (04:00 and 16:00 daily)${NC}"
+fi
+
 # Ensure music directory structure exists with correct permissions
 # IMPORTANT: Fix permissions for both parent and ripped directories
 # /media/music needs to be writable by install user for:
